@@ -147,9 +147,9 @@ export class UnrealEngine416Generator implements TargetGenerator {
 #include "Base64.h"
 #include "HiveBlueprintLibrary.generated.h"
 
-#define UE_LOG_HIVE(Verbosity, Format, ...) \
-{ \
-	UE_LOG(LogOnline, Verbosity, TEXT("%s%s"), TEXT("HiveMP: "), *FString::Printf(Format, ##__VA_ARGS__)); \
+#define UE_LOG_HIVE(Verbosity, Format, ...) \\
+{ \\
+	UE_LOG(LogOnline, Verbosity, TEXT("%s%s"), TEXT("HiveMP: "), *FString::Printf(Format, ##__VA_ARGS__)); \\
 }
 
 USTRUCT(BlueprintType)
@@ -259,10 +259,50 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
     }
   }
 `;
+            } else if (propType.startsWith('FString')) {
+              code += `
+  FString F_${propName};
+  if (obj->TryGetStringField(TEXT("${propName}"), F_${propName}))
+  {
+    Target.${propName} = F_${propName};
+  }
+`;
+            } else if (propType.startsWith('FHive')) {
+              let deserializerName = UnrealEngine416Generator.getDeserializerName(safeName, propValue).substr('array:'.length);
+              if (deserializerName != null) {
+                code += `
+  const TSharedPtr<FJsonObject>* F_${propName};
+  if (obj->TryGetObjectField(TEXT("${propName}"), F_${propName}))
+  {
+    Target.${propName} = ${deserializerName}(*F_${propName});
+  }
+`;
+              }
+            } else if (propType == 'int32' || propType == 'int64' || propType == 'float' || propType == 'double') {
+              code += `
+  double F_${propName};
+  if (obj->TryGetNumberField(TEXT("${propName}"), F_${propName}))
+  {
+    Target.${propName} = (${propType})F_${propName};
+  }
+`;
+            } else if (propType == 'bool') {
+              code += `
+  bool F_${propName};
+  if (obj->TryGetBoolField(TEXT("${propName}"), F_${propName}))
+  {
+    Target.${propName} = (${propType})F_${propName};
+  }
+`;
+            } else {
+              code += `
+    // Don't know how to handle '${propType||''}'
+`;
             }
           }
         }
         code += `
+  return Target;
 }
 `;
       }

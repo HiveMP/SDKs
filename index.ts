@@ -65,7 +65,7 @@ program
 
         command = 'generate';
         (async(): Promise<void> => {
-          let documents: {[id: string]: swagger.Document} = [];
+          let documents: {[id: string]: swagger.Document} = {};
           let documentPromises = [];
           for (let api of apis) {
             documentPromises.push((async(api: string) => {
