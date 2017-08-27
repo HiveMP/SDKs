@@ -7,12 +7,16 @@ import * as mkdirp from 'mkdirp';
 import fetch from 'node-fetch';
 import {
   CSharp35Generator,
-  CSharp45Generator
+  CSharp45Generator,
 } from './targets/csharp';
+import {
+  UnrealEngine416Generator,
+} from './targets/ue4';
 
 let targets = [
   new CSharp35Generator(),
   new CSharp45Generator(),
+  new UnrealEngine416Generator(),
 ];
 
 let apis = [
@@ -61,7 +65,7 @@ program
 
         command = 'generate';
         (async(): Promise<void> => {
-          let documents = [];
+          let documents: {[id: string]: swagger.Document} = [];
           let documentPromises = [];
           for (let api of apis) {
             documentPromises.push((async(api: string) => {
@@ -73,7 +77,7 @@ program
                 console.error('unable to validate document at ' + swaggerUri);
                 process.exit(1);
               }*/
-              documents.push(document as swagger.Document);
+              documents[api] = document as swagger.Document;
             })(api));
           }
           await Promise.all(documentPromises);

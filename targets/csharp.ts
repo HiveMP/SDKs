@@ -6,7 +6,7 @@ export class CSharp35Generator implements TargetGenerator {
     return 'CSharp-3.5';
   }
 
-  async generate(documents: swagger.Document[], outputDir: string): Promise<void> {
+  async generate(documents: {[id: string]: swagger.Document}, outputDir: string): Promise<void> {
 
   }
 }
@@ -16,7 +16,7 @@ export class CSharp45Generator implements TargetGenerator {
     return 'CSharp-4.5';
   }
   
-  async generate(documents: swagger.Document[], outputDir: string): Promise<void> {
+  async generate(documents: {[id: string]: swagger.Document}, outputDir: string): Promise<void> {
 
   }
 }
