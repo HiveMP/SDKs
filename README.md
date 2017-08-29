@@ -4,6 +4,14 @@ This is the HiveMP SDK generator, which generates SDKs from the API definition f
 
 This is intended to replace the current separate SDKs, but is currently experimental.
 
+## Usage
+
+To generate SDKs, run a command like the following:
+
+```
+yarn run generator -- generate UnrealEngine-4.16 dist/UnrealEngine-4.16
+```
+
 ## License
 
 ```
