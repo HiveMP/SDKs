@@ -16,8 +16,10 @@ export class UnrealEngine416Generator implements TargetGenerator {
     return s;
   }
 
-  static getCPlusPlusTypeFromParameter(safeName: string, parameter: schema.Definition, useConst: boolean): string {
+  static getCPlusPlusTypeFromParameter(safeName: string, parameter: schema.Definition, useConst: boolean, useConstIn?: boolean): string {
     const constName = useConst ? 'const ' : '';
+    const arrayConstName = useConstIn ? 'const ': '';
+    const arrayConstSuffix = useConstIn ? '&' : '';
     let parameterType = null;
     try {
       if (parameter.type != null) {
@@ -62,21 +64,25 @@ export class UnrealEngine416Generator implements TargetGenerator {
             break;
           case 'array':
             parameterType = 
+              arrayConstName + 
               'TArray<' + 
-              UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter.items, false) +
-              '>';
+              UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter.items, false, useConstIn) +
+              '>' +
+              arrayConstSuffix;
             break;
         }
       } else if (parameter.schema != null) {
         if (parameter.schema.type == 'array') {
           parameterType = 
+            arrayConstName + 
             'TArray<' + 
-            UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter.items, false) +
-            '>';
+            UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter.schema.items, false, useConstIn) +
+            '>' +
+            arrayConstSuffix;
         } else if (parameter.schema.$ref != null) {
           parameterType = constName + 'FHive' + safeName + '_' + UnrealEngine416Generator.stripDefinition(parameter.schema.$ref);
         } else {
-          return UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter.schema, useConst);
+          return UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter.schema, useConst, useConstIn);
         }
       } else if (parameter.$ref != null) {
         parameterType = constName + 'FHive' + safeName + '_' + UnrealEngine416Generator.stripDefinition(parameter.$ref);
@@ -86,6 +92,31 @@ export class UnrealEngine416Generator implements TargetGenerator {
       parameterType = 'int32 /* unknown */';
     }
     return parameterType;
+  }
+
+  static getReferencedDefinitionName(safeName: string, parameter: schema.Definition) {
+    try {
+      if (parameter.type != null) {
+        if (parameter.type == 'array') {
+          return UnrealEngine416Generator.getReferencedDefinitionName(safeName, parameter.items);
+        }
+        return null;
+      } else if (parameter.schema != null) {
+        if (parameter.schema.type == 'array') {
+          return UnrealEngine416Generator.getReferencedDefinitionName(safeName, parameter.schema.items);
+        } else if (parameter.schema.$ref != null) {
+          return UnrealEngine416Generator.stripDefinition(parameter.schema.$ref);
+        } else {
+          return UnrealEngine416Generator.getReferencedDefinitionName(safeName, parameter.schema);
+        }
+      } else if (parameter.$ref != null) {
+        return UnrealEngine416Generator.stripDefinition(parameter.$ref);
+      }
+    } catch (ex) {
+      console.error(ex);
+      return null;
+    }
+    return null;
   }
 
   static getDeserializerName(safeName: string, parameter: schema.Definition): string {
@@ -171,6 +202,177 @@ struct FHiveApiError
 };
 
 `;
+    for (let key in documents) {
+      let api = documents[key];
+      let safeName = key.replace('-', '_');
+
+      let emittedDefinitions = [];
+      let emitDefinition = (defName: string) => {
+        if (emittedDefinitions.indexOf(defName) != -1) {
+          return;
+        }
+
+        if (defName == 'HiveSystemError') {
+          return;
+        }
+
+        let defValue = api.definitions[defName];
+
+        for (let propName in defValue.properties) {
+          let propValue = defValue.properties[propName];
+          let refDefName = UnrealEngine416Generator.getReferencedDefinitionName(safeName, propValue);
+          if (refDefName != null) {
+            for (let defName2 in api.definitions) {
+              if (defName2 == refDefName) {
+                emitDefinition(defName2);
+              }
+            }
+          }
+        }
+
+        emittedDefinitions.push(defName);
+
+        header += `
+USTRUCT(BlueprintType, meta=(DisplayName="HiveMP ${maps[key]} ${defName}"))
+struct FHive${safeName}_${defName}
+{
+	GENERATED_BODY()
+
+`;
+        for (let propName in defValue.properties) {
+          let propValue = defValue.properties[propName];
+          let propType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, propValue, false, false);
+          if (propType != null) {
+            header += `
+  UPROPERTY(BlueprintReadOnly)
+  ${propType} ${propName};
+`;
+          }
+        }
+
+        header += `
+};
+`;
+      };
+
+      for (let defName in api.definitions) {
+        let defValue = api.definitions[defName];
+        if (defName == 'HiveSystemError') {
+          continue;
+        }
+
+        emitDefinition(defName);
+
+        header += `
+struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(TSharedPtr<FJsonObject> obj);
+`;
+      }
+
+      for (let pathName in api.paths) {
+        let pathValue = api.paths[pathName];
+        for (let methodName in pathValue) {
+          let methodValue = pathValue[methodName];
+          try {
+            let operationId = methodValue.operationId || "";
+            let tag = methodValue.tags[0];
+            let summary = methodValue.summary || "";
+            let description = methodValue.description || "";
+            let displayName = summary.replace("\"", "\\\"");
+            if (displayName.indexOf(".") != -1) {
+              displayName = displayName.substr(0, displayName.indexOf("."));
+            }
+            if (displayName.indexOf("  ") != -1) {
+              displayName = displayName.substr(0, displayName.indexOf("  "));
+            }
+            let descriptionLimited = description.length > 1000 ? (description.substr(0, 1000) + "...") : description;
+            let toolTip = descriptionLimited.replace("\"", "\\\"").replace(/(?:\r\n|\r|\n)/g, '\\n');
+            
+            let implName = safeName + "_" + tag + "_" + operationId;
+
+            try {
+              if (methodValue.responses != null && methodValue.responses["200"] != null) {
+                let parameterType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, methodValue.responses["200"], true, true);
+                if (parameterType == null) {
+                  header += `
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(F${implName}_Delegate, const FHiveApiError&, Error);
+`;
+                } else {
+                  header += `
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(F${implName}_Delegate, ${parameterType}, Result, const FHiveApiError&, Error);
+`;
+                }
+              } else {
+                header += `
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(F${implName}_Delegate, const FHiveApiError&, Error);
+`;
+              }
+            } catch (ex) {
+              console.error("during callback generation:");
+              console.error(ex);
+              header += `
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(F${implName}_Delegate, const FHiveApiError&, Error);
+`;
+            }
+
+            header += `
+UCLASS(MinimalAPI)
+class U${implName} : public UOnlineBlueprintCallProxyBase
+{
+	GENERATED_UCLASS_BODY()
+
+	UPROPERTY(BlueprintAssignable)
+	F${implName}_Delegate OnSuccess;
+
+	UPROPERTY(BlueprintAssignable)
+	F${implName}_Delegate OnFailure;
+
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", WorldContext="WorldContextObject", DisplayName="${displayName}", ToolTip="${toolTip}"), Category="HiveMP|${maps[key]}")
+	static U${implName}* PerformHiveCall(
+		UObject* WorldContextObject,
+    FString ApiKey
+`;
+            if (methodValue.parameters != null) {
+              for (let parameter of methodValue.parameters) {
+                let cppType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter, true, false);
+                header += `
+    , ${cppType} ${parameter.name}
+`;
+              }
+            }
+            header += `
+  );
+
+	// UOnlineBlueprintCallProxyBase interface
+	virtual void Activate() override;
+	// End of UOnlineBlueprintCallProxyBase interface
+
+private:
+	// The world context object in which this call is taking place
+	UObject* WorldContextObject;
+
+  FString ApiKey;
+
+`;
+            if (methodValue.parameters != null) {
+              for (let parameter of methodValue.parameters) {
+                let cppType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter, true, false);
+                header += `
+  ${cppType} Field_${parameter.name};
+`;
+              }
+            }
+            header += `
+};
+
+`;
+          } catch (ex) {
+            console.error("during header generation:");
+            console.error(ex);
+          }
+        }
+      }
+    }
+
     let code = `
 #pragma once
 
@@ -431,7 +633,7 @@ void U${implName}::Activate()
             code += `
   TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
   HttpRequest->SetURL(FString::Printf(
-    TEXT("https://${key}-api.hivemp.com${api.basePath}${pathName}?${queryStringPlacements.join('&')}#>")
+    TEXT("https://${key}-api.hivemp.com${api.basePath}${pathName}?${queryStringPlacements.join('&')}")
 `;
 
             if (methodValue.parameters != null) {
@@ -443,11 +645,11 @@ void U${implName}::Activate()
                       code += `
     , TEXT("")
 `;
-                    } else if (cppType == null) {
+                    } else if (cppType.startsWith("FString")) {
                       code += `
     , *FGenericPlatformHttp::UrlEncode(this->Field_${parameter.name})
 `;
-                    } else if (cppType == null) {
+                    } else if (cppType == "bool") {
                       code += `
     , *FGenericPlatformHttp::UrlEncode(this->Field_${parameter.name} ? TEXT("true") : TEXT("false"))
 `;
