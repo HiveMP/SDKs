@@ -277,7 +277,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(TShare
             let tag = methodValue.tags[0];
             let summary = methodValue.summary || "";
             let description = methodValue.description || "";
-            let displayName = summary.replace("\"", "\\\"");
+            let displayName = summary.replace(/(?:\r\n|\r|\n)/g, " ").replace("\"", "\\\"");
             if (displayName.indexOf(".") != -1) {
               displayName = displayName.substr(0, displayName.indexOf("."));
             }
