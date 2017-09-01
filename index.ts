@@ -50,6 +50,10 @@ program
     '-e, --endpoint <endpoint>', 
     'the endpoint to generate from (can be "prod", ' +
     '"dev" or a string with "{api}" in it)')
+  .option(
+    '--include-cluster-only',
+    'include API calls that can only be made with intracluster API keys'
+  )
   .action((target: string, outputDir: string, options: any) => {
     let t = target;
     let found = false;
@@ -91,7 +95,7 @@ program
               resolve();
             });
           });
-          await target.generate(documents, outputDir);
+          await target.generate(documents, outputDir, options.includeClusterOnly);
         })()
           .then(() => {
             console.log('generated for target \'' + t + '\'');

@@ -144,7 +144,7 @@ export class UnrealEngine416Generator implements TargetGenerator {
     return null;
   }
 
-  async generate(documents: {[id: string]: swagger.Document}, outputDir: string): Promise<void> {
+  async generate(documents: {[id: string]: swagger.Document}, outputDir: string, includeClusterOnly: boolean): Promise<void> {
     let maps = {
       "admin-session": "Administrative Sessions",
       "attribute": "Attributes",

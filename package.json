@@ -13,7 +13,8 @@
     "node-fetch": "^1.7.2",
     "swagger2": "^0.0.24",
     "ts-node": "^3.3.0",
-    "typescript": "^2.4.2"
+    "typescript": "^2.4.2",
+    "xml-escape": "^1.1.0"
   },
   "devDependencies": {
     "@types/commander": "^2.9.2",
