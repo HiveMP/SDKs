@@ -470,7 +470,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
   }
 `;
             } else if (propType.startsWith('FHive')) {
-              let deserializerName = UnrealEngine416Generator.getDeserializerName(safeName, propValue).substr('array:'.length);
+              let deserializerName = UnrealEngine416Generator.getDeserializerName(safeName, propValue);
               if (deserializerName != null) {
                 code += `
   const TSharedPtr<FJsonObject>* F_${propName};
