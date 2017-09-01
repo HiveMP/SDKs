@@ -5,20 +5,10 @@ import * as path from 'path';
 import * as xmlescape from 'xml-escape';
 import { TargetGenerator, GeneratorUtility } from './TargetGenerator';
 
-export class CSharp35Generator implements TargetGenerator {
-  get name(): string {
-    return 'CSharp-3.5';
-  }
+abstract class CSharpGenerator implements TargetGenerator {
+  abstract get name(): string;
 
-  async generate(documents: {[id: string]: swagger.Document}, outputDir: string, includeClusterOnly: boolean): Promise<void> {
-
-  }
-}
-
-export class CSharp45Generator implements TargetGenerator {
-  get name(): string {
-    return 'CSharp-4.5';
-  }
+  abstract getDefines(): string;
   
   static stripDefinition(s: string): string {
     if (s.startsWith('#/definitions/')) {
@@ -74,22 +64,22 @@ export class CSharp45Generator implements TargetGenerator {
             break;
           case 'array':
             type = 
-              CSharp45Generator.getCSharpTypeFromDefinition(namespace, definition.items, false, useConstIn) +
+              CSharpGenerator.getCSharpTypeFromDefinition(namespace, definition.items, false, useConstIn) +
               '[]';
             break;
         }
       } else if (definition.schema != null) {
         if (definition.schema.type == 'array') {
           type = 
-            CSharp45Generator.getCSharpTypeFromDefinition(namespace, definition.schema.items, false, useConstIn) +
+            CSharpGenerator.getCSharpTypeFromDefinition(namespace, definition.schema.items, false, useConstIn) +
             '[]';
         } else if (definition.schema.$ref != null) {
-          type = namespace + '.' + CSharp45Generator.stripDefinition(definition.schema.$ref);
+          type = namespace + '.' + CSharpGenerator.stripDefinition(definition.schema.$ref);
         } else {
-          return CSharp45Generator.getCSharpTypeFromDefinition(namespace, definition.schema, useConst, useConstIn);
+          return CSharpGenerator.getCSharpTypeFromDefinition(namespace, definition.schema, useConst, useConstIn);
         }
       } else if (definition.$ref != null) {
-        type = namespace + '.' + CSharp45Generator.stripDefinition(definition.$ref);
+        type = namespace + '.' + CSharpGenerator.stripDefinition(definition.$ref);
       }
     } catch (ex) {
       console.warn(ex);
@@ -107,8 +97,8 @@ export class CSharp45Generator implements TargetGenerator {
           name = "_cancellationToken";
         }
         parametersArr.push(
-          CSharp45Generator.getCSharpTypeFromDefinition(namespace, parameter, false) +
-          " " + 
+          CSharpGenerator.getCSharpTypeFromDefinition(namespace, parameter, false) +
+          " @" + 
           name
         );
       }
@@ -147,10 +137,12 @@ export class CSharp45Generator implements TargetGenerator {
 // </auto-generated>
 //------------------------
 
+${this.getDefines()}
+
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && NET_2_0 && NET_2_0_SUBSET))
+#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -180,6 +172,41 @@ namespace ${namespace}
             methodName: methodName
           });
         }
+      }
+
+      for (let definitionName in api.definitions) {
+        if (definitionName == 'HiveSystemError') {
+          continue;
+        }
+        code += `
+    [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
+    public class ${definitionName}
+    {
+        static ${definitionName}()
+        {
+            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+        }
+
+`;
+        for (let propertyName in api.definitions[definitionName].properties) {
+          let propertyValue = api.definitions[definitionName].properties[propertyName];
+          let propertyType = CSharpGenerator.getCSharpTypeFromDefinition(namespace, propertyValue, false);
+          let name = propertyName[0].toUpperCase() + propertyName.substr(1);
+          if (name == definitionName) {
+            // C# does not allow member names to be the same as their types.
+            name += "_";
+          }
+          code += `
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(propertyValue.description, "        /// ")}
+        /// </summary>
+        [Newtonsoft.Json.JsonProperty("${propertyName}")]
+        public ${propertyType} ${name} { get; set; }
+`;
+        }
+        code += `
+    }
+`;
       }
 
       for (let tag in tags) {
@@ -217,18 +244,19 @@ namespace ${namespace}
           let returnValue = 'void';
           let asyncReturnValue = 'System.Threading.Tasks.Task';
           if (methodValue.responses != null && methodValue.responses["200"] != null) {
-            returnValue = CSharp45Generator.getCSharpTypeFromDefinition(namespace, methodValue.responses["200"], false);
+            returnValue = CSharpGenerator.getCSharpTypeFromDefinition(namespace, methodValue.responses["200"], false);
             if (returnValue == null) {
               returnValue = 'void';
             } else {
               asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
             }
           }
-          let parameters = CSharp45Generator.getParametersFromMethodParameter(namespace, methodValue.parameters);
+          let parameters = CSharpGenerator.getParametersFromMethodParameter(namespace, methodValue.parameters);
+          let argumentsSuffix = parameters != '' ? ', ' : '';
           code += `
 #if HAS_TASKS
         ${asyncReturnValue} ${methodName}Async(${parameters});
-        ${asyncReturnValue} ${methodName}Async(${parameters}, System.Threading.CancellationToken cancellationToken);
+        ${asyncReturnValue} ${methodName}Async(${parameters}${argumentsSuffix}System.Threading.CancellationToken cancellationToken);
 #endif
         ${returnValue} ${methodName}(${parameters});
 `;
@@ -240,6 +268,11 @@ namespace ${namespace}
     [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
     public class ${tag}Client : I${tag}Client
     {
+        static ${tag}Client()
+        {
+            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+        }
+
         /// <summary>
         /// The API key sent in requests to Hive.  When calling methods that require no API key, this should
         /// be null, otherwise set it to the API key.
@@ -260,7 +293,7 @@ namespace ${namespace}
         
         private void PrepareRequest(HiveMP.Api.RetryableHttpClient request, string url)
         {
-          request.DefaultRequestHeaders.Add("X-API-Key", ApiKey ?? string.Empty);
+            request.DefaultRequestHeaders.Add("X-API-Key", ApiKey ?? string.Empty);
         }
 
         private void PrepareRequest(HiveMP.Api.RetryableHttpClient request, System.Text.StringBuilder urlBuilder)
@@ -269,13 +302,9 @@ namespace ${namespace}
             {
                 var url = urlBuilder.ToString();
                 var newUrl = InterceptRequest(request, url);
-                urlBuilder.Clear();
+                urlBuilder.Remove(0, urlBuilder.Length);
                 urlBuilder.Append(newUrl);
             }
-        }
-
-        private void ProcessResponse(HiveMP.Api.RetryableHttpClient request, System.Net.Http.HttpResponseMessage response)
-        {
         }
 
         /// <summary>
@@ -293,7 +322,7 @@ namespace ${namespace}
         /// </summary>
         public ${tag}Client()
         {
-            ApiKey = string.Emptys;
+            ApiKey = string.Empty;
             BaseUrl = "https://${api.host}${api.basePath}";
         }
 `;
@@ -309,25 +338,24 @@ namespace ${namespace}
           let returnValue = 'void';
           let asyncReturnValue = 'System.Threading.Tasks.Task';
           if (methodValue.responses != null && methodValue.responses["200"] != null) {
-            returnValue = CSharp45Generator.getCSharpTypeFromDefinition(namespace, methodValue.responses["200"], false);
+            returnValue = CSharpGenerator.getCSharpTypeFromDefinition(namespace, methodValue.responses["200"], false);
             if (returnValue == null) {
               returnValue = 'void';
             } else {
               asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
             }
           }
-          let parameters = CSharp45Generator.getParametersFromMethodParameter(namespace, methodValue.parameters);
-          let argumentsCs = CSharp45Generator.getArgumentsFromMethodParameter(namespace, methodValue.parameters);
-          let argumentsSuffix = argumentsCs != '' ? ', ' : '';
+          let parameters = CSharpGenerator.getParametersFromMethodParameter(namespace, methodValue.parameters);
+          let argumentsSuffix = parameters != '' ? ', ' : '';
           let returnSyncPrefix = returnValue == 'void' ? '' : 'return ';
           let createRequest = `new ${methodName}Request
             {`;
           if (methodValue.parameters != null) {
             for (let parameter of methodValue.parameters) {
-              let csharpType = CSharp45Generator.getCSharpTypeFromDefinition(namespace, parameter, false);
+              let csharpType = CSharpGenerator.getCSharpTypeFromDefinition(namespace, parameter, false);
               let name = parameter.name[0].toUpperCase() + parameter.name.substr(1);
               createRequest += `
-                  ${name} = ${parameter.name},`;
+                  ${name} = @${parameter.name},`;
             }
           }
           createRequest += `
@@ -335,16 +363,16 @@ namespace ${namespace}
           code += `
 #if HAS_TASKS
         /// <summary>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
         /// </summary>
         /// <remarks>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.description, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
         /// </remarks>`;
           if (methodValue.parameters != null) {
             for (let parameter of methodValue.parameters) {
               let name = parameter.name[0].toUpperCase() + parameter.name.substr(1);
               code += `
-        /// <param name="${xmlescape(name)}">${CSharp45Generator.applyCommentLines(parameter.description, "        /// ")}</param>`;
+        /// <param name="${xmlescape(name)}">${CSharpGenerator.applyCommentLines(parameter.description, "        /// ")}</param>`;
             }
           }
           code += `
@@ -358,15 +386,15 @@ namespace ${namespace}
         }
 
         /// <summary>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
         /// </summary>
         /// <remarks>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.description, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
         /// </remarks>`;
           if (methodValue.parameters != null) {
             for (let parameter of methodValue.parameters) {
               code += `
-        /// <param name="${xmlescape(parameter.name)}">${CSharp45Generator.applyCommentLines(parameter.description, "        /// ")}</param>`;
+        /// <param name="${xmlescape(parameter.name)}">${CSharpGenerator.applyCommentLines(parameter.description, "        /// ")}</param>`;
             }
           }
           code += `
@@ -375,16 +403,16 @@ namespace ${namespace}
             "API calls with fixed position parameters are subject to change when new optional parameters " +
             "are added to the API; use the ${methodName}Async(${methodName}Request,CancellationToken) version of this method " +
             "instead to ensure forward compatibility")]
-        public ${asyncReturnValue} ${methodName}Async(${parameters}, System.Threading.CancellationToken cancellationToken)
+        public ${asyncReturnValue} ${methodName}Async(${parameters}${argumentsSuffix}System.Threading.CancellationToken cancellationToken)
         {
             return ${methodName}Async(${createRequest}, cancellationToken);
         }
         
         /// <summary>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
         /// </summary>
         /// <remarks>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.description, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
         /// </remarks>
         /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
         public ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments)
@@ -393,27 +421,31 @@ namespace ${namespace}
         }
 
         /// <summary>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
         /// </summary>
         /// <remarks>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.description, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
         /// </remarks>
         /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
         /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
-        public ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments, System.Threading.CancellationToken cancellationToken)
+        public async ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments, System.Threading.CancellationToken cancellationToken)
         {
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append(BaseUrl).Append("${el.pathName}?");`;
           if (methodValue.parameters != null) {
             for (let parameter of methodValue.parameters) {
-              let csharpType = CSharp45Generator.getCSharpTypeFromDefinition(namespace, parameter, false);
+              let csharpType = CSharpGenerator.getCSharpTypeFromDefinition(namespace, parameter, false);
               let name = parameter.name[0].toUpperCase() + parameter.name.substr(1);
               if (parameter.required) {
+                if (!csharpType.startsWith("int") && csharpType != "long" && csharpType != "float" && csharpType != "double") {
+                  code += `
+            if (arguments.${name} == null) throw new System.ArgumentNullException("arguments.${name}");`;
+                }
                 code += `
             urlBuilder_.Append("${parameter.name}=").Append(System.Uri.EscapeDataString(arguments.${name} == null ? "" : arguments.${name}.ToString())).Append("&");`;
               } else {
                 code += `
-            if (${parameter.name} != null) urlBuilder_.Append("${parameter.name}=").Append(System.Uri.EscapeDataString(arguments.${name}.ToString())).Append("&");`;
+            if (arguments.${name} != null) urlBuilder_.Append("${parameter.name}=").Append(System.Uri.EscapeDataString(arguments.${name}.ToString())).Append("&");`;
               }
             }
           }
@@ -429,7 +461,9 @@ namespace ${namespace}
                     var url_ = urlBuilder_.ToString();
                     PrepareRequest(client_, url_);
     
+                    // TODO: Support methods with body parameters.
                     var content_ = new System.Net.Http.StringContent(string.Empty);
+                    
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("${el.methodName.toUpperCase()}");
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
@@ -440,8 +474,6 @@ namespace ${namespace}
                         var headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers, h_ => h_.Key, h_ => h_.Value);
                         foreach (var item_ in response_.Content.Headers)
                             headers_[item_.Key] = item_.Value;
-    
-                        ProcessResponse(client_, response_);
     
                         var status_ = ((int)response_.StatusCode).ToString();
                         if (status_ == "200") 
@@ -477,7 +509,7 @@ namespace ${namespace}
                                 throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, 0, "Could not deserialize the response body.", string.Empty);
                             }
     
-                            throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_.code, result_.message, result_.fields);
+                            throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_.Code, result_.Message, result_.Fields);
                         }
                     }
                     finally
@@ -496,15 +528,15 @@ namespace ${namespace}
 #endif
 
         /// <summary>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
         /// </summary>
         /// <remarks>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.description, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
         /// </remarks>`;
           if (methodValue.parameters != null) {
             for (let parameter of methodValue.parameters) {
               code += `
-        /// <param name="${xmlescape(parameter.name)}">${xmlescape(parameter.description)}</param>`;
+        /// <param name="${xmlescape(parameter.name)}">${CSharpGenerator.applyCommentLines(parameter.description, "        /// ")}</param>`;
             }
           }
           code += `
@@ -517,15 +549,15 @@ namespace ${namespace}
 #if HAS_TASKS
             ${returnSyncPrefix}System.Threading.Tasks.Task.Run(async () => await ${methodName}Async(${createRequest}, System.Threading.CancellationToken.None)).GetAwaiter().GetResult();
 #else
-            return ${methodName}(${createRequest});
+            ${returnSyncPrefix}${methodName}(${createRequest});
 #endif
         }
 
         /// <summary>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
         /// </summary>
         /// <remarks>
-        /// ${CSharp45Generator.applyCommentLines(methodValue.description, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
         /// </remarks>
         /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
         public ${returnValue} ${methodName}(${methodName}Request arguments)
@@ -533,8 +565,109 @@ namespace ${namespace}
 #if HAS_TASKS
             ${returnSyncPrefix}System.Threading.Tasks.Task.Run(async () => await ${methodName}Async(arguments, System.Threading.CancellationToken.None)).GetAwaiter().GetResult();
 #else
-            // TODO
-            throw new System.NotImplementedException();
+            var urlBuilder_ = new System.Text.StringBuilder();
+            urlBuilder_.Append(BaseUrl).Append("${el.pathName}?");`;
+          if (methodValue.parameters != null) {
+            for (let parameter of methodValue.parameters) {
+              let csharpType = CSharpGenerator.getCSharpTypeFromDefinition(namespace, parameter, false);
+              let name = parameter.name[0].toUpperCase() + parameter.name.substr(1);
+              if (parameter.required) {
+                if (!csharpType.startsWith("int") && csharpType != "long" && csharpType != "float" && csharpType != "double") {
+                  code += `
+            if (arguments.${name} == null) throw new System.ArgumentNullException("arguments.${name}");`;
+                }
+                code += `
+            urlBuilder_.Append("${parameter.name}=").Append(System.Uri.EscapeDataString(arguments.${name} == null ? "" : arguments.${name}.ToString())).Append("&");`;
+              } else {
+                code += `
+            if (arguments.${name} != null) urlBuilder_.Append("${parameter.name}=").Append(System.Uri.EscapeDataString(arguments.${name}.ToString())).Append("&");`;
+              }
+            }
+          }
+          code += `
+            urlBuilder_.Length--;
+    
+            var client_ = new HiveMP.Api.RetryableHttpClient();
+            try
+            {
+                PrepareRequest(client_, urlBuilder_);
+                var url_ = urlBuilder_.ToString();
+                PrepareRequest(client_, url_);
+
+                // TODO: Support methods with body parameters.
+                var content = string.Empty;
+                
+                var request_ = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(url_);
+                request_.Method = "${el.methodName.toUpperCase()}";
+                request_.ContentLength = content.Length;
+                request_.Accept = "application/json";
+                client_.UpdateRequest(request_);
+
+                if (request_.Method != "GET" && request_.Method != "DELETE")
+                {
+                    request_.ContentType = "application/json";
+
+                    // This will actually start the request, so we can't send any more headers
+                    // after opening the request stream.
+                    using (var writer = new System.IO.StreamWriter(request_.GetRequestStream()))
+                    {
+                        writer.Write(content);
+                    }
+                }
+
+                var response_ = client_.ExecuteRequest(request_);
+                var headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers.AllKeys, h_ => h_, h_ => response_.Headers[h_]);
+
+                var status_ = ((int)response_.StatusCode).ToString();
+                if (status_ == "200") 
+                {
+                    string responseData_;
+                    using (var reader = new System.IO.StreamReader(response_.GetResponseStream()))
+                    {
+                        responseData_ = reader.ReadToEnd();
+                    }
+`;
+          if (returnValue != 'void') {
+            code += `
+                    var result_ = default(${returnValue}); 
+                    try
+                    {
+                        result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<${returnValue}>(responseData_);
+                        return result_; 
+                    } 
+                    catch (System.Exception exception) 
+                    {
+                        throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, 0, "Could not deserialize the response body.", string.Empty);
+                    }
+`;
+          }
+          code += `
+                }
+                else
+                {
+                    string responseData_;
+                    using (var reader = new System.IO.StreamReader(response_.GetResponseStream()))
+                    {
+                        responseData_ = reader.ReadToEnd();
+                    }
+                    var result_ = default(HiveMP.Api.HiveMPSystemError); 
+                    try
+                    {
+                        result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(responseData_);
+                    } 
+                    catch (System.Exception exception_) 
+                    {
+                        throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, 0, "Could not deserialize the response body.", string.Empty);
+                    }
+
+                    throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_.Code, result_.Message, result_.Fields);
+                }
+            }
+            finally
+            {
+                if (client_ != null)
+                    client_.Dispose();
+            }
 #endif
         }
 `;
@@ -559,11 +692,11 @@ namespace ${namespace}
 `;
           if (methodValue.parameters != null) {
             for (let parameter of methodValue.parameters) {
-              let csharpType = CSharp45Generator.getCSharpTypeFromDefinition(namespace, parameter, false);
+              let csharpType = CSharpGenerator.getCSharpTypeFromDefinition(namespace, parameter, false);
               let name = parameter.name[0].toUpperCase() + parameter.name.substr(1);
               code += `
         /// <summary>
-        /// ${CSharp45Generator.applyCommentLines(parameter.description, "        /// ")}
+        /// ${CSharpGenerator.applyCommentLines(parameter.description, "        /// ")}
         /// </summary>
         public ${csharpType} ${name} { get; set; }
   `;
@@ -587,10 +720,12 @@ namespace ${namespace}
 // </auto-generated>
 //------------------------
 
+${this.getDefines()}
+
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && NET_2_0 && NET_2_0_SUBSET))
+#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -598,15 +733,26 @@ namespace ${namespace}
 using Newtonsoft.Json;
 using System;
 using System.IO;
+#if HAS_HTTPCLIENT
 using System.Net.Http;
+#else
+using System.Net;
+#endif
 using System.Threading;
+#if HAS_TASKS
 using System.Threading.Tasks;
+#endif
 
-namespace HiveMP.Api.Core
+namespace HiveMP.Api
 {
 #if HAS_HTTPCLIENT
     public class RetryableHttpClient : HttpClient
     {
+        static RetryableHttpClient()
+        {
+            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+        }
+
         public new async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationToken cancellationToken)
         {
             using (var memory = new MemoryStream())
@@ -679,8 +825,42 @@ namespace HiveMP.Api.Core
                 while (true);
             }
         }
-#endif
     }
+#else
+    public class RetryableHttpClient : System.IDisposable
+    {
+        static RetryableHttpClient()
+        {
+            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+        }
+
+        public RetryableHttpClient()
+        {
+            DefaultRequestHeaders = new System.Collections.Generic.Dictionary<string, string>();
+        }
+
+        public System.Collections.Generic.Dictionary<string, string> DefaultRequestHeaders { get; set; }
+        
+        public HttpWebRequest UpdateRequest(HttpWebRequest request)
+        {
+            foreach (var kv in DefaultRequestHeaders)
+            {
+                request.Headers.Add(kv.Key, kv.Value);
+            }
+            return request;
+        }
+
+        public HttpWebResponse ExecuteRequest(HttpWebRequest request)
+        {
+            // TODO: Handle #6001 errors with retry logic
+            return (HttpWebResponse)request.GetResponse();
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+#endif
 }    
 `;
 
@@ -691,40 +871,45 @@ namespace HiveMP.Api.Core
 // </auto-generated>
 //------------------------
 
+${this.getDefines()}
+
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && NET_2_0 && NET_2_0_SUBSET))
+#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
 
-using Newtonsoft.Json;
 using System;
 using System.IO;
-using System.Net.Http;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace HiveMP.Api.Core
+namespace HiveMP.Api
 {
     public class HiveMPException : Exception
     {
+        static HiveMPException()
+        {
+            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+        }
+
         public HiveMPException(int httpStatusCode, int errorCode, string message, string fields)
+            : base("#" + errorCode + ": " + message + " (" + (fields ?? "") + ")")
         {
             HttpStatusCode = httpStatusCode;
-            ErrorCode = errorCode;
-            Message = message;
-            Fields = fields;
+            HiveErrorCode = errorCode;
+            HiveErrorMessage = message;
+            HiveErrorFields = fields;
         }
 
         public int HttpStatusCode { get; set; }
 
-        public int ErrorCode { get; set; }
+        public int HiveErrorCode { get; set; }
 
-        public string Message { get; set; }
+        public string HiveErrorMessage { get; set; }
 
-        public string Fields { get; set; }
+        public string HiveErrorFields { get; set; }
     }
 }    
 `;
@@ -736,10 +921,12 @@ namespace HiveMP.Api.Core
 // </auto-generated>
 //------------------------
 
+${this.getDefines()}
+
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && NET_2_0 && NET_2_0_SUBSET))
+#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -747,22 +934,74 @@ namespace HiveMP.Api.Core
 using Newtonsoft.Json;
 using System;
 using System.IO;
-using System.Net.Http;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace HiveMP.Api.Core
+namespace HiveMP.Api
 {
     public class HiveMPSystemError
     {
+        static HiveMPSystemError()
+        {
+            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+        }
+
         [JsonProperty("code")]
-        public int? Code { get; set; }
+        public int Code { get; set; }
 
         [JsonProperty("message")]
         public string Message { get; set; }
 
         [JsonProperty("fields")]
         public string Fields { get; set; }
+    }
+}    
+`;
+
+    let hiveSdkSetup = `
+//------------------------
+// <auto-generated>
+//     Generated with HiveMP SDK Generator
+// </auto-generated>
+//------------------------
+
+${this.getDefines()}
+
+#if UNITY_5 || UNITY_5_3_OR_NEWER
+#define IS_UNITY
+#endif
+#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#define HAS_TASKS
+#define HAS_HTTPCLIENT
+#endif
+
+using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+
+namespace HiveMP.Api
+{
+    public static class HiveMPSDKSetup
+    {
+        static HiveMPSDKSetup()
+        {
+#if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
+            ServicePointManager.ServerCertificateValidationCallback = HiveMPCertificateValidationCheck;
+#endif
+        }
+
+#if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
+        public static bool HiveMPCertificateValidationCheck(System.Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            // TODO: Before we ship a public SDK, we must change this to validate
+            // that the root of the certificate chain is Let's Encrypt, and that the
+            // certificate chain is valid.
+            return true;
+        }
+#endif
+
+        public static void EnsureInited()
+        {
+        }
     }
 }    
 `;
@@ -788,11 +1027,37 @@ namespace HiveMP.Api.Core
                 reject(err);
                 return;
               }
-              resolve();
+              fs.writeFile(path.join(outputDir, 'HiveMPSDKSetup.cs'), hiveSdkSetup, (err) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                resolve();
+              });
             });
           });
         });
       });
     });
+  }
+}
+
+export class CSharp35Generator extends CSharpGenerator {
+  get name(): string {
+    return 'CSharp-3.5';
+  }
+
+  getDefines(): string {
+    return '#define NET35';
+  }
+}
+
+export class CSharp45Generator extends CSharpGenerator {
+  get name(): string {
+    return 'CSharp-4.5';
+  }
+  
+  getDefines(): string {
+    return '';
   }
 }
