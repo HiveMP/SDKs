@@ -1,6 +1,6 @@
 import * as swagger from 'swagger2';
 import * as schema from 'swagger2/src/schema';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as xmlescape from 'xml-escape';
 import { TargetGenerator, GeneratorUtility } from './TargetGenerator';
@@ -9,6 +9,27 @@ abstract class CSharpGenerator implements TargetGenerator {
   abstract get name(): string;
 
   abstract getDefines(): string;
+
+  async postGenerate(outputDir: string): Promise<void> {
+    // Copy Client Connect SDK binaries.
+    const copyClientConnectPlatformBinaries = async (platform: string) => {
+      await new Promise<void>((resolve, reject) => {
+        fs.mkdirp(outputDir + "/" + platform, (err) => {
+          if (err) {
+            reject(err);
+          }
+          fs.copy("deps/HiveMP.ClientConnect/" + platform, outputDir + "/" + platform, { overwrite: true }, (err) => {
+            if (err) {
+              reject(err);
+            }
+            resolve();
+          });
+        });
+      });
+    }
+    await copyClientConnectPlatformBinaries("Win32");
+    await copyClientConnectPlatformBinaries("Win64");
+  }
   
   static stripDefinition(s: string): string {
     if (s.startsWith('#/definitions/')) {
@@ -982,11 +1003,84 @@ namespace HiveMP.Api
 {
     public static class HiveMPSDKSetup
     {
+        private static IClientConnect _clientConnect;
+
         static HiveMPSDKSetup()
         {
 #if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
             ServicePointManager.ServerCertificateValidationCallback = HiveMPCertificateValidationCheck;
 #endif
+            SetupClientConnect();
+        }
+
+#if HAS_TASKS
+        [System.Runtime.ExceptionServices.HandleProcessCorruptedStateExceptions]
+#endif
+        private static void SetupClientConnect()
+        {
+#if IS_UNITY
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            // Windows
+            if (System.IntPtr.Size == 8)
+            {
+                // 64-bit
+                _clientConnect = new ClientConnectWin64Platform();
+            }
+            else
+            {
+                // 32-bit
+                _clientConnect = new ClientConnectWin32Platform(); 
+            }
+#else
+            // Client Connect SDK not supported on this platform yet.
+            _clientConnect = null;
+#endif
+#else
+            if (System.IO.Path.DirectorySeparatorChar == '\\\\')
+            {
+                // Windows
+                if (System.IntPtr.Size == 8)
+                {
+                    // 64-bit
+                    _clientConnect = new ClientConnectWin64Platform();
+                }
+                else
+                {
+                    // 32-bit
+                    _clientConnect = new ClientConnectWin32Platform(); 
+                }
+            }
+            else
+            {
+                // Client Connect SDK not supported on this platform yet.
+                _clientConnect = null;
+            }
+#endif
+
+            if (_clientConnect != null)
+            {
+                try
+                {
+                    _clientConnect.MapChunk("_startupTest.lua", System.Text.Encoding.ASCII.GetBytes(@"
+function _startupTest_hotpatch(id, endpoint, api_key, parameters_json)
+    return 403, ""Nope""
+end
+register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
+                    _clientConnect.Run("_startupTest.lua");
+                    int statusCode;
+                    var response = _clientConnect.CallHotpatch("no-api", "testPUT", "https://no-api.hivemp.nonexistent.com", "", "{}", out statusCode);
+                    if (response != "Nope")
+                    {
+                        // Something went wrong and we can't use Client Connect.
+                        _clientConnect = null;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    // We can't use Client Connect
+                    _clientConnect = null;
+                }
+            }
         }
 
 #if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
@@ -1002,6 +1096,63 @@ namespace HiveMP.Api
         public static void EnsureInited()
         {
         }
+
+        private interface IClientConnect
+        {
+            void MapChunk(string name, byte[] data);
+            void FreeChunk(string name);
+            void Run(string name);
+            bool IsHotpatched(string api, string operation);
+            string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode);
+        }
+`;
+    let clientConnectPlatforms = [
+      'Win32',
+      'Win64'
+    ];
+    for (let platform of clientConnectPlatforms) {
+      hiveSdkSetup += `
+        private class ClientConnect${platform}Platform : IClientConnect
+        {
+            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_map_chunk(string name, byte[] data, int len);
+            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_free_chunk(string name);
+            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_run(string name);
+            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern bool cc_is_hotpatched(string api, string operation);
+            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern string cc_call_hotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode);
+
+            public void MapChunk(string name, byte[] data)
+            {
+                cc_map_chunk(name, data, data.Length);
+            }
+
+            public void FreeChunk(string name)
+            {
+                cc_free_chunk(name);
+            }
+
+            public void Run(string name)
+            {
+                cc_run(name);
+            }
+
+            public bool IsHotpatched(string api, string operation)
+            {
+                return cc_is_hotpatched(api, operation);
+            }
+
+            public string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode)
+            {
+                return cc_call_hotpatch(api, operation, endpoint, apiKey, parametersAsJson, out statusCode);
+            }
+        }
+`
+    }
+    hiveSdkSetup += `
     }
 }    
 `;
@@ -1032,6 +1183,7 @@ namespace HiveMP.Api
                   reject(err);
                   return;
                 }
+
                 resolve();
               });
             });
@@ -1039,6 +1191,7 @@ namespace HiveMP.Api
         });
       });
     });
+    await this.postGenerate(outputDir);
   }
 }
 
@@ -1059,5 +1212,29 @@ export class CSharp45Generator extends CSharpGenerator {
   
   getDefines(): string {
     return '';
+  }
+}
+
+export class UnityGenerator extends CSharpGenerator {
+  get name(): string {
+    return 'Unity';
+  }
+  
+  getDefines(): string {
+    return '';
+  }
+  
+  async postGenerate(outputDir: string): Promise<void> {
+    await super.postGenerate(outputDir);
+
+    // Copy Unity-specific dependencies out.
+    await new Promise<void>((resolve, reject) => {
+      fs.copy("deps/Unity-3.5/", outputDir, { overwrite: true }, (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
   }
 }

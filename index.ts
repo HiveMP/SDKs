@@ -8,6 +8,7 @@ import fetch from 'node-fetch';
 import {
   CSharp35Generator,
   CSharp45Generator,
+  UnityGenerator,
 } from './targets/csharp';
 import {
   UnrealEngine416Generator,
@@ -16,6 +17,7 @@ import {
 let targets = [
   new CSharp35Generator(),
   new CSharp45Generator(),
+  new UnityGenerator(),
   new UnrealEngine416Generator(),
 ];
 
