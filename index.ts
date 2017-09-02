@@ -56,6 +56,10 @@ program
     '--include-cluster-only',
     'include API calls that can only be made with intracluster API keys'
   )
+  .option(
+    '-c, --enable-client-connect',
+    'enable experimental Client Connect support if this target allows it'
+  )
   .action((target: string, outputDir: string, options: any) => {
     let t = target;
     let found = false;
@@ -97,7 +101,7 @@ program
               resolve();
             });
           });
-          await target.generate(documents, outputDir, options.includeClusterOnly);
+          await target.generate(documents, outputDir, options.includeClusterOnly, options.enableClientConnect);
         })()
           .then(() => {
             console.log('generated for target \'' + t + '\'');
