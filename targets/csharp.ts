@@ -4,22 +4,27 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as xmlescape from 'xml-escape';
 import { TargetGenerator, GeneratorUtility } from './TargetGenerator';
+import { TargetOptions } from "./TargetOptions";
 
 abstract class CSharpGenerator implements TargetGenerator {
   abstract get name(): string;
 
   abstract getDefines(): string;
 
-  async postGenerate(outputDir: string, enableClientConnect: boolean): Promise<void> {
-    if (enableClientConnect) {
+  async postGenerate(opts: TargetOptions): Promise<void> {
+    if (opts.enableClientConnect) {
       // Copy Client Connect SDK binaries.
       const copyClientConnectPlatformBinaries = async (platform: string) => {
         await new Promise<void>((resolve, reject) => {
-          fs.mkdirp(outputDir + "/" + platform, (err) => {
+          fs.mkdirp(opts.outputDir + "/" + platform, (err) => {
             if (err) {
               reject(err);
             }
-            fs.copy("deps/HiveMP.ClientConnect/" + platform, outputDir + "/" + platform, { overwrite: true }, (err) => {
+            let src = "deps/HiveMP.ClientConnect/" + platform;
+            if (opts.clientConnectSdkPath != null) {
+              src = opts.clientConnectSdkPath + "/" + platform;
+            }
+            fs.copy(src, opts.outputDir + "/" + platform, { overwrite: true }, (err) => {
               if (err) {
                 reject(err);
               }
@@ -83,7 +88,12 @@ abstract class CSharpGenerator implements TargetGenerator {
             type = 'bool' + nullableSuffix;
             break;
           case 'object':
-            type = 'string /* JSON STRING */';
+            if ((definition as any).additionalProperties != null) {
+              // This is a dictionary.
+              type = 'System.Collections.Generic.Dictionary<object, ' + CSharpGenerator.getCSharpTypeFromDefinition(namespace, (definition as any).additionalProperties, false, useConstIn) + '>';
+            } else {
+              type = 'string /* JSON STRING */';
+            }
             break;
           case 'array':
             type = 
@@ -152,9 +162,9 @@ abstract class CSharpGenerator implements TargetGenerator {
     return xmlescape(s).replace(/(?:\r\n|\r|\n)/g, "\n" + i);
   }
 
-  async generate(documents: {[id: string]: swagger.Document}, outputDir: string, includeClusterOnly: boolean, enableClientConnect: boolean): Promise<void> {
+  async generate(documents: {[id: string]: swagger.Document}, opts: TargetOptions): Promise<void> {
     let clientConnectDefines = '';
-    if (enableClientConnect) {
+    if (opts.enableClientConnect) {
       clientConnectDefines = `
 #define ENABLE_CLIENT_CONNECT_SDK`;
     }
@@ -264,7 +274,7 @@ namespace ${namespace}
 
         for (let el of tags[tag]) {
           let methodValue = api.paths[el.pathName][el.methodName];
-          if (GeneratorUtility.isClusterOnlyMethod(methodValue) && !includeClusterOnly) {
+          if (GeneratorUtility.isClusterOnlyMethod(methodValue) && !opts.includeClusterOnly) {
             continue;
           }
           let methodName = 
@@ -291,16 +301,34 @@ namespace ${namespace}
 `;
         }
 
+        let startupCode = '';
+        let clientConnectWaitAsync = '';
+        let clientConnectWait = '';
+        if (!(tag == 'Files' && apiId == 'client-connect')) {
+          startupCode = `
+        static ${tag}Client()
+        {
+            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+        }`;
+          clientConnectWait = `
+#if ENABLE_CLIENT_CONNECT_SDK
+            HiveMP.Api.HiveMPSDKSetup.WaitForClientConnect();
+#endif
+`;
+          clientConnectWaitAsync = `
+#if ENABLE_CLIENT_CONNECT_SDK
+            await HiveMP.Api.HiveMPSDKSetup.WaitForClientConnectAsync();
+#endif
+`;
+        }
+
         code += `
     }
 
     [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
     public class ${tag}Client : I${tag}Client
     {
-        static ${tag}Client()
-        {
-            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
-        }
+        ${startupCode}
 
         /// <summary>
         /// The API key sent in requests to Hive.  When calling methods that require no API key, this should
@@ -358,7 +386,7 @@ namespace ${namespace}
 
         for (let el of tags[tag]) {
           let methodValue = api.paths[el.pathName][el.methodName];
-          if (GeneratorUtility.isClusterOnlyMethod(methodValue) && !includeClusterOnly) {
+          if (GeneratorUtility.isClusterOnlyMethod(methodValue) && !opts.includeClusterOnly) {
             continue;
           }
           let methodName = 
@@ -459,6 +487,72 @@ namespace ${namespace}
         /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
         public async ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments, System.Threading.CancellationToken cancellationToken)
         {
+            ${clientConnectWaitAsync}
+
+#if ENABLE_CLIENT_CONNECT_SDK
+            // TODO: Make threaded when Client Connect supports it!
+            if (HiveMP.Api.HiveMPSDKSetup.IsHotpatched("${apiId}", "${methodValue.operationId}"))
+            {
+                var delay = 1000;
+                do
+                {
+                    int statusCode;
+                    var response = HiveMP.Api.HiveMPSDKSetup.CallHotpatch(
+                        "${apiId}",
+                        "${methodValue.operationId}",
+                        BaseUrl,
+                        ApiKey,
+                        Newtonsoft.Json.JsonConvert.SerializeObject(arguments),
+                        out statusCode);
+                    if (statusCode >= 200 && statusCode < 300)
+                    {
+`;
+          if (returnValue != 'void') {
+            code += `
+                        var result_ = default(${returnValue}); 
+                        try
+                        {
+                            result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<${returnValue}>(response);
+                            return result_; 
+                        } 
+                        catch (System.Exception exception) 
+                        {
+                            throw new HiveMP.Api.HiveMPException(statusCode, 0, "Could not deserialize the response body.", string.Empty);
+                        }
+`;
+          } else {
+            code += `
+                        return;
+`;
+          }
+          code += `
+                    }
+                    else
+                    {
+                        var result_ = default(HiveMP.Api.HiveMPSystemError); 
+                        try
+                        {
+                            result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(response);
+                            if (result_.Code >= 6000 && result_.Code < 7000)
+                            {
+                                await System.Threading.Tasks.Task.Delay(delay);
+                                delay *= 2;
+                                delay = System.Math.Min(30000, delay);
+                                continue;
+                            }
+                        } 
+                        catch (System.Exception exception_) 
+                        {
+                            throw new HiveMP.Api.HiveMPException(statusCode, 0, "Could not deserialize the response body.", string.Empty);
+                        }
+
+                        throw new HiveMP.Api.HiveMPException(statusCode, result_.Code, result_.Message, result_.Fields);
+                    }
+                }
+                while (true);
+            }
+#endif
+
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append(BaseUrl).Append("${el.pathName}?");`;
           if (methodValue.parameters != null) {
@@ -493,7 +587,10 @@ namespace ${namespace}
                     // TODO: Support methods with body parameters.
                     var content_ = new System.Net.Http.StringContent(string.Empty);
                     
-                    request_.Content = content_;
+                    if ("${el.methodName.toUpperCase()}" != "GET" && "${el.methodName.toUpperCase()}" != "DELETE")
+                    {
+                        request_.Content = content_;
+                    }
                     request_.Method = new System.Net.Http.HttpMethod("${el.methodName.toUpperCase()}");
                     request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
                     request_.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
@@ -594,6 +691,71 @@ namespace ${namespace}
 #if HAS_TASKS
             ${returnSyncPrefix}System.Threading.Tasks.Task.Run(async () => await ${methodName}Async(arguments, System.Threading.CancellationToken.None)).GetAwaiter().GetResult();
 #else
+            ${clientConnectWait}
+
+#if ENABLE_CLIENT_CONNECT_SDK
+            if (HiveMP.Api.HiveMPSDKSetup.IsHotpatched("${apiId}", "${methodValue.operationId}"))
+            {
+                var delay = 1000;
+                do
+                {
+                    int statusCode;
+                    var response = HiveMP.Api.HiveMPSDKSetup.CallHotpatch(
+                        "${apiId}",
+                        "${methodValue.operationId}",
+                        BaseUrl,
+                        ApiKey,
+                        Newtonsoft.Json.JsonConvert.SerializeObject(arguments),
+                        out statusCode);
+                    if (statusCode >= 200 && statusCode < 300)
+                    {
+`;
+          if (returnValue != 'void') {
+            code += `
+                        var result_ = default(${returnValue}); 
+                        try
+                        {
+                            result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<${returnValue}>(response);
+                            return result_; 
+                        } 
+                        catch (System.Exception exception) 
+                        {
+                            throw new HiveMP.Api.HiveMPException(statusCode, 0, "Could not deserialize the response body.", string.Empty);
+                        }
+`;
+          } else {
+            code += `
+                        return;
+`;
+          }
+          code += `
+                    }
+                    else
+                    {
+                        var result_ = default(HiveMP.Api.HiveMPSystemError); 
+                        try
+                        {
+                            result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(response);
+                            if (result_.Code >= 6000 && result_.Code < 7000)
+                            {
+                                await System.Threading.Thread.Sleep(delay);
+                                delay *= 2;
+                                delay = System.Math.Min(30000, delay);
+                                continue;
+                            }
+                        } 
+                        catch (System.Exception exception_) 
+                        {
+                            throw new HiveMP.Api.HiveMPException(statusCode, 0, "Could not deserialize the response body.", string.Empty);
+                        }
+
+                        throw new HiveMP.Api.HiveMPException(statusCode, result_.Code, result_.Message, result_.Fields);
+                    }
+                }
+                while (true);
+            }
+#endif
+
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append(BaseUrl).Append("${el.pathName}?");`;
           if (methodValue.parameters != null) {
@@ -708,7 +870,7 @@ namespace ${namespace}
 
         for (let el of tags[tag]) {
           let methodValue = api.paths[el.pathName][el.methodName];
-          if (GeneratorUtility.isClusterOnlyMethod(methodValue) && !includeClusterOnly) {
+          if (GeneratorUtility.isClusterOnlyMethod(methodValue) && !opts.includeClusterOnly) {
             continue;
           }
           let methodName = 
@@ -727,6 +889,7 @@ namespace ${namespace}
         /// <summary>
         /// ${CSharpGenerator.applyCommentLines(parameter.description, "        /// ")}
         /// </summary>
+        [Newtonsoft.Json.JsonProperty("${parameter.name}")]
         public ${csharpType} ${name} { get; set; }
   `;
             }
@@ -841,7 +1004,7 @@ namespace HiveMP.Api
                             return response;
                         }
 
-                        if (result.Code == 6001)
+                        if (result.Code >= 6000 && result.Code < 7000)
                         {
                             await Task.Delay(delay);
                             delay *= 2;
@@ -1016,16 +1179,11 @@ namespace HiveMP.Api
     public static class HiveMPSDKSetup
     {
         private static IClientConnect _clientConnect;
-
-        static HiveMPSDKSetup()
-        {
-#if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
-            ServicePointManager.ServerCertificateValidationCallback = HiveMPCertificateValidationCheck;
-#endif
-#if ENABLE_CLIENT_CONNECT_SDK
-            SetupClientConnect();
-#endif
-        }
+        private static byte[] _clientConnectCustomInit = null;
+        private static string _clientConnectEndpoint = "https://client-connect-api.hivemp.com/v1";
+        private static bool _didInit;
+        private static object _initLock = new object();
+        private static System.Threading.ManualResetEvent _clientConnectEvent = new System.Threading.ManualResetEvent(false);
 
 #if ENABLE_CLIENT_CONNECT_SDK
 #if HAS_TASKS
@@ -1081,9 +1239,9 @@ function _startupTest_hotpatch(id, endpoint, api_key, parameters_json)
     return 403, ""Nope""
 end
 register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
-                    _clientConnect.Run("_startupTest.lua");
+                    _clientConnect.SetStartup("_startupTest.lua");
                     int statusCode;
-                    var response = _clientConnect.CallHotpatch("no-api", "testPUT", "https://no-api.hivemp.nonexistent.com", "", "{}", out statusCode);
+                    var response = _clientConnect.CallHotpatch("no-api", "testPUT", "https://no-api.hivemp.nonexistent.com/v1", "", "{}", out statusCode);
                     if (response != "Nope")
                     {
                         // Something went wrong and we can't use Client Connect.
@@ -1095,7 +1253,137 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
                     // We can't use Client Connect
                     _clientConnect = null;
                 }
+
+                if (_clientConnect != null)
+                {
+                    // TODO: Wait on startup whenever we have to make an API call.
+                    var t = new System.Threading.Thread(new System.Threading.ThreadStart(FinalizeClientConnectSetup));
+                    t.IsBackground = true;
+                    t.Start();
+                }
             }
+
+            if (_clientConnect == null)
+            {
+                _clientConnectEvent.Set();
+            }
+        }
+
+        private static void FinalizeClientConnectSetup()
+        {
+            var filesClient = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
+            var doInit = false;
+            var cacheFolder = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "HiveMP", "ClientConnectAssets");
+            try
+            {
+                System.IO.Directory.CreateDirectory(cacheFolder);
+            }
+            catch
+            {
+                // Cache may not be available, continue anyway.
+            }
+            var f = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
+            f.BaseUrl = _clientConnectEndpoint;
+            var files = f.FilesGET(new HiveMP.ClientConnect.Api.FilesGETRequest());
+            foreach (var file in files)
+            {
+                var filename = file.Key as string;
+                if (filename == null)
+                {
+                    continue;
+                }
+
+                if (filename == "init.lua")
+                {
+                    doInit = true;
+                }
+                
+                var fileCache = System.IO.Path.Combine(cacheFolder, file.Value.Sha1.ToLower());
+                if (System.IO.File.Exists(fileCache))
+                {
+                    try
+                    {
+                        using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+                        {
+                            var data = new byte[stream.Length];
+                            stream.Read(data, 0, data.Length);
+                            _clientConnect.MapChunk(filename, data);
+                            continue;
+                        }
+                    }
+                    catch
+                    {
+                        // Fallback to download.
+                    }
+                }
+
+                using (var client = new System.Net.WebClient())
+                {
+                    client.Headers.Add("X-API-Key", string.Empty);
+                    var data = client.DownloadData(file.Value.Url);
+                    _clientConnect.MapChunk(filename, data);
+
+                    try
+                    {
+                        if (!System.IO.File.Exists(fileCache))
+                        {
+                            using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None))
+                            {
+                                stream.Write(data, 0, data.Length);
+                                continue;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Failed to optionally cache, ignore.
+                    }
+                }
+            }
+            if (_clientConnectCustomInit != null)
+            {
+                if (doInit)
+                {
+                    // Free existing chunk.
+                    _clientConnect.FreeChunk("init.lua");
+                }
+
+                _clientConnect.MapChunk("init.lua", _clientConnectCustomInit);
+                doInit = true;
+            }
+            if (doInit)
+            {
+                _clientConnect.SetStartup("init.lua");
+            }
+
+            _clientConnectEvent.Set();
+        }
+
+#if HAS_TASKS
+        internal static System.Threading.Tasks.Task WaitForClientConnectAsync()
+        {
+            return AsTask(_clientConnectEvent);
+        }
+
+        private static System.Threading.Tasks.Task AsTask(System.Threading.WaitHandle handle)
+        {
+            var tcs = new System.Threading.Tasks.TaskCompletionSource<object>();
+            var registration = System.Threading.ThreadPool.RegisterWaitForSingleObject(handle, (state, timedOut) =>
+            {
+                var localTcs = (System.Threading.Tasks.TaskCompletionSource<object>)state;
+                if (timedOut)
+                    localTcs.TrySetCanceled();
+                else
+                    localTcs.TrySetResult(null);
+            }, tcs, System.Threading.Timeout.InfiniteTimeSpan, executeOnlyOnce: true);
+            tcs.Task.ContinueWith((_, state) => ((System.Threading.RegisteredWaitHandle)state).Unregister(null), registration, System.Threading.Tasks.TaskScheduler.Default);
+            return tcs.Task;
+        }
+#endif
+
+        internal static void WaitForClientConnect()
+        {
+            _clientConnectEvent.WaitOne();
         }
 #endif
 
@@ -1109,15 +1397,68 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
         }
 #endif
 
-        public static void EnsureInited()
+        /// <summary>
+        /// Sets custom init code to be used by the Client Connect SDK
+        /// instead of the init.lua file provided by the API server.
+        /// </summary>
+        /// <remarks>
+        /// There is no support for using this method.
+        /// </remarks>
+        public static void SetClientConnectCustomInit(byte[] init)
         {
+            _clientConnectCustomInit = init;
+        }
+
+        /// <summary>
+        /// Sets a custom endpoint for the Client Connect files retrieval
+        /// that occurs during SDK startup.
+        /// </summary>
+        /// <remarks>
+        /// There is no support for using this method.
+        /// </remarks>
+        public static void SetClientConnectEndpoint(string endpoint)
+        {
+            _clientConnectEndpoint = endpoint;
+        }
+
+        internal static bool IsHotpatched(string api, string operation)
+        {
+            if (_clientConnect == null)
+            {
+                return false; 
+            }
+
+            return _clientConnect.IsHotpatched(api, operation);
+        }
+
+        internal static string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode)
+        {
+            return _clientConnect.CallHotpatch(api, operation, endpoint, apiKey, parametersAsJson, out statusCode);
+        }
+
+        internal static void EnsureInited()
+        {
+            if (!_didInit)
+            {
+                lock (_initLock)
+                {
+#if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
+                    ServicePointManager.ServerCertificateValidationCallback = HiveMPCertificateValidationCheck;
+#endif
+#if ENABLE_CLIENT_CONNECT_SDK
+                    SetupClientConnect();
+#endif
+                    _didInit = true;
+                }
+            }
         }
 
         private interface IClientConnect
         {
             void MapChunk(string name, byte[] data);
             void FreeChunk(string name);
-            void Run(string name);
+            void SetStartup(string name);
+            void SetConfig(byte[] data);
             bool IsHotpatched(string api, string operation);
             string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode);
         }
@@ -1135,7 +1476,9 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
             [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
             private static extern void cc_free_chunk([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
             [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_run([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
+            private static extern void cc_set_startup([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
+            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_set_config(byte[] data, int len);
             [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
             private static extern bool cc_is_hotpatched([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation);
             [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
@@ -1153,9 +1496,14 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
                 cc_free_chunk(name);
             }
 
-            public void Run(string name)
+            public void SetStartup(string name)
             {
-                cc_run(name);
+                cc_set_startup(name);
+            }
+
+            public void SetConfig(byte[] data)
+            {
+                cc_set_config(data, data.Length);
             }
 
             public bool IsHotpatched(string api, string operation)
@@ -1179,27 +1527,27 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
 `;
     
     await new Promise((resolve, reject) => {
-      fs.writeFile(path.join(outputDir, 'HiveMP.cs'), code, (err) => {
+      fs.writeFile(path.join(opts.outputDir, 'HiveMP.cs'), code, (err) => {
         if (err) {
           reject(err);
           return;
         }
-        fs.writeFile(path.join(outputDir, 'RetryableHttpClient.cs'), httpClient, (err) => {
+        fs.writeFile(path.join(opts.outputDir, 'RetryableHttpClient.cs'), httpClient, (err) => {
           if (err) {
             reject(err);
             return;
           }
-          fs.writeFile(path.join(outputDir, 'HiveMPException.cs'), hiveException, (err) => {
+          fs.writeFile(path.join(opts.outputDir, 'HiveMPException.cs'), hiveException, (err) => {
             if (err) {
               reject(err);
               return;
             }
-            fs.writeFile(path.join(outputDir, 'HiveMPSystemError.cs'), hiveSystemError, (err) => {
+            fs.writeFile(path.join(opts.outputDir, 'HiveMPSystemError.cs'), hiveSystemError, (err) => {
               if (err) {
                 reject(err);
                 return;
               }
-              fs.writeFile(path.join(outputDir, 'HiveMPSDKSetup.cs'), hiveSdkSetup, (err) => {
+              fs.writeFile(path.join(opts.outputDir, 'HiveMPSDKSetup.cs'), hiveSdkSetup, (err) => {
                 if (err) {
                   reject(err);
                   return;
@@ -1212,7 +1560,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
         });
       });
     });
-    await this.postGenerate(outputDir, enableClientConnect);
+    await this.postGenerate(opts);
   }
 }
 
@@ -1245,12 +1593,12 @@ export class UnityGenerator extends CSharpGenerator {
     return '';
   }
   
-  async postGenerate(outputDir: string, enableClientConnect: boolean): Promise<void> {
-    await super.postGenerate(outputDir, enableClientConnect);
+  async postGenerate(opts: TargetOptions): Promise<void> {
+    await super.postGenerate(opts);
 
     // Copy Unity-specific dependencies out.
     await new Promise<void>((resolve, reject) => {
-      fs.copy("deps/Unity-3.5/", outputDir, { overwrite: true }, (err) => {
+      fs.copy("deps/Unity-3.5/", opts.outputDir, { overwrite: true }, (err) => {
         if (err) {
           reject(err);
         }

@@ -25,6 +25,7 @@ let apis = [
   'admin-session',
   'attribute',
   //'audit',
+  'client-connect',
   //'error',
   'event',
   'game-server',
@@ -59,6 +60,10 @@ program
   .option(
     '-c, --enable-client-connect',
     'enable experimental Client Connect support if this target allows it'
+  )
+  .option(
+    '--client-connect-sdk-path <dir>',
+    'path to the compiled Client Connect SDK, if not provided uses the one in this repo'
   )
   .action((target: string, outputDir: string, options: any) => {
     let t = target;
@@ -101,7 +106,14 @@ program
               resolve();
             });
           });
-          await target.generate(documents, outputDir, options.includeClusterOnly, options.enableClientConnect);
+          await target.generate(
+            documents,
+            {
+              outputDir: outputDir,
+              includeClusterOnly: options.includeClusterOnly,
+              enableClientConnect: options.enableClientConnect,
+              clientConnectSdkPath: options.clientConnectSdkPath,
+            });
         })()
           .then(() => {
             console.log('generated for target \'' + t + '\'');

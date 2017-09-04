@@ -3,6 +3,7 @@ import * as schema from 'swagger2/src/schema';
 import * as fs from 'fs';
 import * as path from 'path';
 import { TargetGenerator } from './TargetGenerator';
+import { TargetOptions } from "./TargetOptions";
 
 export class UnrealEngine416Generator implements TargetGenerator {
   get name(): string {
@@ -144,7 +145,7 @@ export class UnrealEngine416Generator implements TargetGenerator {
     return null;
   }
 
-  async generate(documents: {[id: string]: swagger.Document}, outputDir: string, includeClusterOnly: boolean, enableClientConnect: boolean): Promise<void> {
+  async generate(documents: {[id: string]: swagger.Document}, opts: TargetOptions): Promise<void> {
     let maps = {
       "admin-session": "Administrative Sessions",
       "attribute": "Attributes",
@@ -932,12 +933,12 @@ void U${implName}::Activate()
     }
 
     await new Promise((resolve, reject) => {
-      fs.writeFile(path.join(outputDir, 'HiveBlueprintLibraryImpl.cpp'), code, (err) => {
+      fs.writeFile(path.join(opts.outputDir, 'HiveBlueprintLibraryImpl.cpp'), code, (err) => {
         if (err) {
           reject(err);
           return;
         }
-        fs.writeFile(path.join(outputDir, 'HiveBlueprintLibrary.h'), header, (err) => {
+        fs.writeFile(path.join(opts.outputDir, 'HiveBlueprintLibrary.h'), header, (err) => {
           if (err) {
             reject(err);
             return;
