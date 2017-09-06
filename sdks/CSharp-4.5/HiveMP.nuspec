@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>HiveMP</id>
+        <version>0.1.0</version>
+        <authors>Redpoint Games Pty Ltd</authors>
+        <summary>The official .NET SDK for HiveMP; the cloud gaming service for you.</summary>
+        <language>en-US</language>
+        <projectUrl>https://hivemp.com/</projectUrl>
+        <licenseUrl>https://opensource.org/licenses/MIT</licenseUrl>
+        <description>
+            Ship your next title faster with HiveMP. With everything from multiplayer 
+            APIs to business tools, HiveMP supports you through from development to release.
+
+            This is the official .NET SDK for HiveMP. It supports .NET 3.5 and .NET
+            Standard 2.0 (.NET 4.6.1, .NET Core 2.0, Mono 5.4, Xamarin iOS,
+            Xamarin Mac and Xamarin Android and UWP).
+        </description>
+        <contentFiles>
+            <files include="Win32\*" buildAction="None" copyToOutput="true" />
+            <files include="Win64\*" buildAction="None" copyToOutput="true" />
+            <files include="Mac64\*" buildAction="None" copyToOutput="true" />
+            <files include="Linux32\*" buildAction="None" copyToOutput="true" />
+            <files include="Linux64\*" buildAction="None" copyToOutput="true" />
+        </contentFiles>
+    </metadata>
+    <files>
+        <file src="..\CSharp-3.5\bin\Release\HiveMP.dll" target="lib\net35\" />
+        <file src="..\CSharp-3.5\bin\Release\HiveMP.pdb" target="lib\net35\" />
+        <file src="bin\Release\netstandard2.0\HiveMP.dll" target="lib\netstandard2.0\" />
+        <file src="bin\Release\netstandard2.0\HiveMP.pdb" target="lib\netstandard2.0\" />
+    </files>
+</package>

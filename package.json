@@ -12,6 +12,8 @@
     "fs-extra": "^4.0.1",
     "mkdirp": "^0.5.1",
     "node-fetch": "^1.7.2",
+    "node-tar.gz": "^1.0.0",
+    "request": "^2.81.0",
     "swagger2": "^0.0.24",
     "ts-node": "^3.3.0",
     "typescript": "^2.4.2",
@@ -24,6 +26,7 @@
     "@types/node-fetch": "^1.6.7"
   },
   "scripts": {
-    "generator": "node ./node_modules/ts-node/dist/bin.js index.ts"
+    "generator": "node ./node_modules/ts-node/dist/bin.js index.ts",
+    "getsdk": "node ./node_modules/ts-node/dist/bin.js getsdk.ts"
   }
 }

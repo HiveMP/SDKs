@@ -35,6 +35,9 @@ abstract class CSharpGenerator implements TargetGenerator {
       }
       await copyClientConnectPlatformBinaries("Win32");
       await copyClientConnectPlatformBinaries("Win64");
+      await copyClientConnectPlatformBinaries("Mac64");
+      await copyClientConnectPlatformBinaries("Linux32");
+      await copyClientConnectPlatformBinaries("Linux64");
     }
   }
   
@@ -738,7 +741,7 @@ namespace ${namespace}
                             result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(response);
                             if (result_.Code >= 6000 && result_.Code < 7000)
                             {
-                                await System.Threading.Thread.Sleep(delay);
+                                System.Threading.Thread.Sleep(delay);
                                 delay *= 2;
                                 delay = System.Math.Min(30000, delay);
                                 continue;
@@ -1204,11 +1207,35 @@ namespace HiveMP.Api
                 // 32-bit
                 _clientConnect = new ClientConnectWin32Platform(); 
             }
+#elif UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+            // macOS
+            if (System.IntPtr.Size == 8)
+            {
+                // 64-bit
+                _clientConnect = new ClientConnectMac64Platform();
+            }
+            else
+            {
+                // 32-bit macOS is not supported.  32-bit support for
+                // macOS is being removed by Apple in the near future.
+            }
+#elif UNITY_STANDALONE_LINUX
+            // Linux
+            if (System.IntPtr.Size == 8)
+            {
+                // 64-bit
+                _clientConnect = new ClientConnectLinux64Platform();
+            }
+            else
+            {
+                // 32-bit
+                _clientConnect = new ClientConnectLinux32Platform();
+            }
 #else
             // Client Connect SDK not supported on this platform yet.
             _clientConnect = null;
 #endif
-#else
+#elif NET35
             if (System.IO.Path.DirectorySeparatorChar == '\\\\')
             {
                 // Windows
@@ -1225,7 +1252,92 @@ namespace HiveMP.Api
             }
             else
             {
-                // Client Connect SDK not supported on this platform yet.
+                if (System.IO.Directory.Exists("/Library"))
+                {
+                    // macOS
+                    if (System.IntPtr.Size == 8)
+                    {
+                        // 64-bit
+                        _clientConnect = new ClientConnectMac64Platform();
+                    }
+                    else
+                    {
+                        // 32-bit macOS is not supported.  32-bit support for
+                        // macOS is being removed by Apple in the near future.
+                    }
+                }
+                else
+                {
+                    // Linux
+                    if (System.IntPtr.Size == 8)
+                    {
+                        // 64-bit
+                        _clientConnect = new ClientConnectLinux64Platform();
+                    }
+                    else
+                    {
+                        // 32-bit
+                        _clientConnect = new ClientConnectLinux32Platform();
+                    }
+                }
+            }
+#else
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            {
+                // Windows
+                if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X64)
+                {
+                    // 64-bit
+                    _clientConnect = new ClientConnectWin64Platform();
+                }
+                else if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X86)
+                {
+                    // 32-bit
+                    _clientConnect = new ClientConnectWin32Platform(); 
+                }
+                else
+                {
+                    // Other unsupported (like ARM/ARM64)
+                    _clientConnect = null;
+                }
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+            {
+                if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X64)
+                {
+                    // 64-bit
+                    _clientConnect = new ClientConnectMac64Platform();
+                }
+                else
+                {
+                    // Other unsupported (like ARM/ARM64)
+                    // 32-bit macOS is not supported.  32-bit support for
+                    // macOS is being removed by Apple in the near future.
+                    _clientConnect = null;
+                }
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
+            {
+                // Linux
+                if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X64)
+                {
+                    // 64-bit
+                    _clientConnect = new ClientConnectLinux64Platform();
+                }
+                else if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X86)
+                {
+                    // 32-bit
+                    _clientConnect = new ClientConnectLinux32Platform();
+                }
+                else
+                {
+                    // Other unsupported (like ARM/ARM64)
+                    _clientConnect = null;
+                }
+            }
+            else
+            {
+                // Unsupported platform
                 _clientConnect = null;
             }
 #endif
@@ -1248,7 +1360,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
                         _clientConnect = null;
                     }
                 }
-                catch (System.Exception ex)
+                catch (System.Exception)
                 {
                     // We can't use Client Connect
                     _clientConnect = null;
@@ -1273,7 +1385,8 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
         {
             var filesClient = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
             var doInit = false;
-            var cacheFolder = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "HiveMP", "ClientConnectAssets");
+            var cacheFolder = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "HiveMP");
+            cacheFolder = System.IO.Path.Combine(cacheFolder, "ClientConnectAssets");
             try
             {
                 System.IO.Directory.CreateDirectory(cacheFolder);
@@ -1465,7 +1578,10 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
 `;
     let clientConnectPlatforms = [
       'Win32',
-      'Win64'
+      'Win64',
+      'Mac64',
+      'Linux32',
+      'Linux64'
     ];
     for (let platform of clientConnectPlatforms) {
       hiveSdkSetup += `
@@ -1572,6 +1688,14 @@ export class CSharp35Generator extends CSharpGenerator {
   getDefines(): string {
     return '#define NET35';
   }
+  
+  async postGenerate(opts: TargetOptions): Promise<void> {
+    await super.postGenerate(opts);
+
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.sln"), path.join(opts.outputDir, "HiveMP.sln"));
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/packages.config"), path.join(opts.outputDir, "packages.config"));
+  }
 }
 
 export class CSharp45Generator extends CSharpGenerator {
@@ -1581,6 +1705,14 @@ export class CSharp45Generator extends CSharpGenerator {
   
   getDefines(): string {
     return '';
+  }
+  
+  async postGenerate(opts: TargetOptions): Promise<void> {
+    await super.postGenerate(opts);
+
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.sln"), path.join(opts.outputDir, "HiveMP.sln"));
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.nuspec"), path.join(opts.outputDir, "HiveMP.nuspec"));
   }
 }
 
