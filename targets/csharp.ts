@@ -35,6 +35,9 @@ abstract class CSharpGenerator implements TargetGenerator {
       }
       await copyClientConnectPlatformBinaries("Win32");
       await copyClientConnectPlatformBinaries("Win64");
+      await copyClientConnectPlatformBinaries("Mac64");
+      await copyClientConnectPlatformBinaries("Linux32");
+      await copyClientConnectPlatformBinaries("Linux64");
     }
   }
   
