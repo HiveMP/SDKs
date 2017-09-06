@@ -1204,11 +1204,35 @@ namespace HiveMP.Api
                 // 32-bit
                 _clientConnect = new ClientConnectWin32Platform(); 
             }
+#elseif UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+            // macOS
+            if (System.IntPtr.Size == 8)
+            {
+                // 64-bit
+                _clientConnect = new ClientConnectMac64Platform();
+            }
+            else
+            {
+                // 32-bit macOS is not supported.  32-bit support for
+                // macOS is being removed by Apple in the near future.
+            }
+#elseif UNITY_STANDALONE_LINUX
+            // Linux
+            if (System.IntPtr.Size == 8)
+            {
+                // 64-bit
+                _clientConnect = new ClientConnectLinux64Platform();
+            }
+            else
+            {
+                // 32-bit
+                _clientConnect = new ClientConnectLinux32Platform();
+            }
 #else
             // Client Connect SDK not supported on this platform yet.
             _clientConnect = null;
 #endif
-#else
+#elseif NET35
             if (System.IO.Path.DirectorySeparatorChar == '\\\\')
             {
                 // Windows
@@ -1225,7 +1249,92 @@ namespace HiveMP.Api
             }
             else
             {
-                // Client Connect SDK not supported on this platform yet.
+                if (System.IO.Directory.Exists("/Library"))
+                {
+                    // macOS
+                    if (System.IntPtr.Size == 8)
+                    {
+                        // 64-bit
+                        _clientConnect = new ClientConnectMac64Platform();
+                    }
+                    else
+                    {
+                        // 32-bit macOS is not supported.  32-bit support for
+                        // macOS is being removed by Apple in the near future.
+                    }
+                }
+                else
+                {
+                    // Linux
+                    if (System.IntPtr.Size == 8)
+                    {
+                        // 64-bit
+                        _clientConnect = new ClientConnectLinux64Platform();
+                    }
+                    else
+                    {
+                        // 32-bit
+                        _clientConnect = new ClientConnectLinux32Platform();
+                    }
+                }
+            }
+#else
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            {
+                // Windows
+                if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X64)
+                {
+                    // 64-bit
+                    _clientConnect = new ClientConnectWin64Platform();
+                }
+                else if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X86)
+                {
+                    // 32-bit
+                    _clientConnect = new ClientConnectWin32Platform(); 
+                }
+                else
+                {
+                    // Other unsupported (like ARM/ARM64)
+                    _clientConnect = null;
+                }
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+            {
+                if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X64)
+                {
+                    // 64-bit
+                    _clientConnect = new ClientConnectMac64Platform();
+                }
+                else
+                {
+                    // Other unsupported (like ARM/ARM64)
+                    // 32-bit macOS is not supported.  32-bit support for
+                    // macOS is being removed by Apple in the near future.
+                    _clientConnect = null;
+                }
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
+            {
+                // Linux
+                if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X64)
+                {
+                    // 64-bit
+                    _clientConnect = new ClientConnectLinux64Platform();
+                }
+                else if (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.X86)
+                {
+                    // 32-bit
+                    _clientConnect = new ClientConnectLinux32Platform();
+                }
+                else
+                {
+                    // Other unsupported (like ARM/ARM64)
+                    _clientConnect = null;
+                }
+            }
+            else
+            {
+                // Unsupported platform
                 _clientConnect = null;
             }
 #endif
@@ -1465,7 +1574,10 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
 `;
     let clientConnectPlatforms = [
       'Win32',
-      'Win64'
+      'Win64',
+      'Mac64',
+      'Linux32',
+      'Linux64'
     ];
     for (let platform of clientConnectPlatforms) {
       hiveSdkSetup += `

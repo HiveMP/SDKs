@@ -4,6 +4,9 @@ import * as program from 'commander';
 import * as swagger from 'swagger2';
 import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
+import * as request from 'request';
+import * as targz from 'node-tar.gz';
+import * as path from 'path';
 import fetch from 'node-fetch';
 import {
   CSharp35Generator,
@@ -63,11 +66,19 @@ program
   )
   .option(
     '--client-connect-sdk-path <dir>',
-    'path to the compiled Client Connect SDK, if not provided uses the one in this repo'
+    'path to the compiled Client Connect SDK, if not provided downloads the latest SDK'
   )
   .action((target: string, outputDir: string, options: any) => {
     let t = target;
     let found = false;
+    if (options.enableClientConnect &&
+        options.clientConnectSdkPath == null) {
+      console.log("Downloading and extracting HiveMP Client Connect SDK...")
+      let read = request.get("https://github.com/HiveMP/HiveMP.ClientConnect/releases/download/latest/HiveMP.ClientConnect-SDK.tar.gz");
+      let write = targz().createWriteStream(path.join(__dirname, 'deps/HiveMP.ClientConnect'));
+      read.pipe(write);
+      options.clientConnectSdkPath = path.join(__dirname, 'deps/HiveMP.ClientConnect');
+    }
     for (let target of targets) {
       if (target.name == t) {
         // download swagger documents first.
