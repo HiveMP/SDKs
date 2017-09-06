@@ -36,9 +36,7 @@ node('windows') {
             }
         )
     }
-    stage("Stash + Archive") {
-        nuget pack HiveMP.nuspec
-        stash includes: 'dist/**', name: 'sdks'
+    stage("Archive SDKs") {
         archiveArtifacts 'dist/**'
     }
 }
