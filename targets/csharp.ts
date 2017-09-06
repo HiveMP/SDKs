@@ -1687,6 +1687,14 @@ export class CSharp35Generator extends CSharpGenerator {
   getDefines(): string {
     return '#define NET35';
   }
+  
+  async postGenerate(opts: TargetOptions): Promise<void> {
+    await super.postGenerate(opts);
+
+    fs.copySync(path.join(__dirname, "sdks/CSharp-3.5/HiveMP.ClientConnect.csproj"), path.join(opts.outputDir, "HiveMP.ClientConnect.csproj"));
+    fs.copySync(path.join(__dirname, "sdks/CSharp-3.5/HiveMP.sln"), path.join(opts.outputDir, "HiveMP.sln"));
+    fs.copySync(path.join(__dirname, "sdks/CSharp-3.5/packages.config"), path.join(opts.outputDir, "packages.config"));
+  }
 }
 
 export class CSharp45Generator extends CSharpGenerator {
@@ -1696,6 +1704,13 @@ export class CSharp45Generator extends CSharpGenerator {
   
   getDefines(): string {
     return '';
+  }
+  
+  async postGenerate(opts: TargetOptions): Promise<void> {
+    await super.postGenerate(opts);
+
+    fs.copySync(path.join(__dirname, "sdks/CSharp-4.5/HiveMP.ClientConnect.csproj"), path.join(opts.outputDir, "HiveMP.ClientConnect.csproj"));
+    fs.copySync(path.join(__dirname, "sdks/CSharp-4.5/HiveMP.sln"), path.join(opts.outputDir, "HiveMP.sln"));
   }
 }
 
