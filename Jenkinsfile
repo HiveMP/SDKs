@@ -14,7 +14,7 @@ node('windows') {
             "CSharp-3.5" : {
                 bat 'yarn run generator -- generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c CSharp-3.5 dist/CSharp-3.5'
                 powershell 'wget -OutFile dist\\CSharp-3.5\\nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
-                bat 'cd dist/CSharp-3.5 && nuget restore && %windir%\Microsoft.NET\Framework64\v4.0.30319\msbuild /p:Configuration=Release /m HiveMP.sln'
+                bat 'cd dist/CSharp-3.5 && nuget restore && %windir%\\Microsoft.NET\\Framework64\\v4.0.30319\\msbuild /p:Configuration=Release /m HiveMP.sln'
             },
             "Unity" : {
                 bat 'yarn run generator -- generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c Unity dist/Unity'
