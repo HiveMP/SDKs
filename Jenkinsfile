@@ -29,12 +29,14 @@ node('windows') {
             }
         )
     }
-    stage("Push") {
-        parallel (
-            "CSharp" : {
-                bat 'cd dist/CSharp-4.5 && nuget push -Source nuget.org -NonInteractive HiveMP.1.0.%BUILD_NUMBER%.nupkg'
-            }
-        )
+    if (env.BRANCH_NAME == 'master') {
+        stage("Push") {
+            parallel (
+                "CSharp" : {
+                    bat 'cd dist/CSharp-4.5 && nuget push -Source nuget.org -NonInteractive HiveMP.1.0.%BUILD_NUMBER%.nupkg'
+                }
+            )
+        }
     }
     stage("Archive SDKs") {
         archiveArtifacts 'dist/**'
