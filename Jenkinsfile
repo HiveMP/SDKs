@@ -25,7 +25,7 @@ node('windows') {
         parallel (
             "CSharp" : {
                 powershell 'wget -OutFile dist\\CSharp-4.5\\nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
-                bat 'cd dist/CSharp-4.5 && nuget pack -Verbose 1.0.%BUILD_NUMBER% -NonInteractive HiveMP.nuspec'
+                bat 'cd dist/CSharp-4.5 && nuget pack -Version 1.0.%BUILD_NUMBER% -NonInteractive HiveMP.nuspec'
             }
         )
     }
