@@ -7,8 +7,8 @@
     <ProjectGuid>{3B29526B-9A23-4446-BB56-1083D4F0C597}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>HiveMP.ClientConnect</RootNamespace>
-    <AssemblyName>HiveMP.ClientConnect</AssemblyName>
+    <RootNamespace>HiveMP</RootNamespace>
+    <AssemblyName>HiveMP</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile>
@@ -46,34 +46,34 @@
     <Compile Include="*.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="Linux32\libcurl.so">
+    <None Include="Linux32\libcurl.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Linux32\libHiveMP.ClientConnect.so">
+    <None Include="Linux32\libHiveMP.ClientConnect.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Linux64\libcurl.so">
+    <None Include="Linux64\libcurl.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Linux64\libHiveMP.ClientConnect.so">
+    <None Include="Linux64\libHiveMP.ClientConnect.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Mac64\libcurl.dylib">
+    <None Include="Mac64\libcurl.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Mac64\libHiveMP.ClientConnect.dylib">
+    <None Include="Mac64\libHiveMP.ClientConnect.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Win32\HiveMP.ClientConnect.dll">
+    <None Include="Win32\HiveMP.ClientConnect.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Win32\libcurl.dll">
+    <None Include="Win32\libcurl.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Win64\HiveMP.ClientConnect.dll">
+    <None Include="Win64\HiveMP.ClientConnect.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Win64\libcurl.dll">
+    <None Include="Win64\libcurl.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />

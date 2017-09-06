@@ -741,7 +741,7 @@ namespace ${namespace}
                             result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(response);
                             if (result_.Code >= 6000 && result_.Code < 7000)
                             {
-                                await System.Threading.Thread.Sleep(delay);
+                                System.Threading.Thread.Sleep(delay);
                                 delay *= 2;
                                 delay = System.Math.Min(30000, delay);
                                 continue;
@@ -1207,7 +1207,7 @@ namespace HiveMP.Api
                 // 32-bit
                 _clientConnect = new ClientConnectWin32Platform(); 
             }
-#elseif UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+#elif UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
             // macOS
             if (System.IntPtr.Size == 8)
             {
@@ -1219,7 +1219,7 @@ namespace HiveMP.Api
                 // 32-bit macOS is not supported.  32-bit support for
                 // macOS is being removed by Apple in the near future.
             }
-#elseif UNITY_STANDALONE_LINUX
+#elif UNITY_STANDALONE_LINUX
             // Linux
             if (System.IntPtr.Size == 8)
             {
@@ -1235,7 +1235,7 @@ namespace HiveMP.Api
             // Client Connect SDK not supported on this platform yet.
             _clientConnect = null;
 #endif
-#elseif NET35
+#elif NET35
             if (System.IO.Path.DirectorySeparatorChar == '\\\\')
             {
                 // Windows
@@ -1360,7 +1360,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
                         _clientConnect = null;
                     }
                 }
-                catch (System.Exception ex)
+                catch (System.Exception)
                 {
                     // We can't use Client Connect
                     _clientConnect = null;
@@ -1385,7 +1385,8 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
         {
             var filesClient = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
             var doInit = false;
-            var cacheFolder = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "HiveMP", "ClientConnectAssets");
+            var cacheFolder = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "HiveMP");
+            cacheFolder = System.IO.Path.Combine(cacheFolder, "ClientConnectAssets");
             try
             {
                 System.IO.Directory.CreateDirectory(cacheFolder);
@@ -1691,9 +1692,9 @@ export class CSharp35Generator extends CSharpGenerator {
   async postGenerate(opts: TargetOptions): Promise<void> {
     await super.postGenerate(opts);
 
-    fs.copySync(path.join(__dirname, "sdks/CSharp-3.5/HiveMP.ClientConnect.csproj"), path.join(opts.outputDir, "HiveMP.ClientConnect.csproj"));
-    fs.copySync(path.join(__dirname, "sdks/CSharp-3.5/HiveMP.sln"), path.join(opts.outputDir, "HiveMP.sln"));
-    fs.copySync(path.join(__dirname, "sdks/CSharp-3.5/packages.config"), path.join(opts.outputDir, "packages.config"));
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.sln"), path.join(opts.outputDir, "HiveMP.sln"));
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/packages.config"), path.join(opts.outputDir, "packages.config"));
   }
 }
 
@@ -1709,8 +1710,9 @@ export class CSharp45Generator extends CSharpGenerator {
   async postGenerate(opts: TargetOptions): Promise<void> {
     await super.postGenerate(opts);
 
-    fs.copySync(path.join(__dirname, "sdks/CSharp-4.5/HiveMP.ClientConnect.csproj"), path.join(opts.outputDir, "HiveMP.ClientConnect.csproj"));
-    fs.copySync(path.join(__dirname, "sdks/CSharp-4.5/HiveMP.sln"), path.join(opts.outputDir, "HiveMP.sln"));
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.sln"), path.join(opts.outputDir, "HiveMP.sln"));
+    fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.nuspec"), path.join(opts.outputDir, "HiveMP.nuspec"));
   }
 }
 
