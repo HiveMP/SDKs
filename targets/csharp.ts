@@ -184,7 +184,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || ((NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -921,7 +921,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || ((NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1073,7 +1073,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || ((NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1124,7 +1124,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || ((NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1168,7 +1168,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || ((NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1195,46 +1195,8 @@ namespace HiveMP.Api
         private static void SetupClientConnect()
         {
 #if IS_UNITY
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
-            // Windows
-            if (System.IntPtr.Size == 8)
-            {
-                // 64-bit
-                _clientConnect = new ClientConnectWin64Platform();
-            }
-            else
-            {
-                // 32-bit
-                _clientConnect = new ClientConnectWin32Platform(); 
-            }
-#elif UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
-            // macOS
-            if (System.IntPtr.Size == 8)
-            {
-                // 64-bit
-                _clientConnect = new ClientConnectMac64Platform();
-            }
-            else
-            {
-                // 32-bit macOS is not supported.  32-bit support for
-                // macOS is being removed by Apple in the near future.
-            }
-#elif UNITY_STANDALONE_LINUX
-            // Linux
-            if (System.IntPtr.Size == 8)
-            {
-                // 64-bit
-                _clientConnect = new ClientConnectLinux64Platform();
-            }
-            else
-            {
-                // 32-bit
-                _clientConnect = new ClientConnectLinux32Platform();
-            }
-#else
-            // Client Connect SDK not supported on this platform yet.
-            _clientConnect = null;
-#endif
+            // Unity handles the mapping of native DLLs in it's .meta files.
+            _clientConnect = new ClientConnectUnityPlatform();
 #elif NET35
             if (System.IO.Path.DirectorySeparatorChar == '\\\\')
             {
@@ -1500,7 +1462,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
         }
 #endif
 
-#if (NET_2_0 || NET_2_0_SUBSET)
+#if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
         public static bool HiveMPCertificateValidationCheck(System.Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             // TODO: Before we ship a public SDK, we must change this to validate
@@ -1555,7 +1517,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
             {
                 lock (_initLock)
                 {
-#if (NET_2_0 || NET_2_0_SUBSET)
+#if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
                     ServicePointManager.ServerCertificateValidationCallback = HiveMPCertificateValidationCheck;
 #endif
 #if ENABLE_CLIENT_CONNECT_SDK
@@ -1575,6 +1537,58 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
             bool IsHotpatched(string api, string operation);
             string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode);
         }
+
+        private class ClientConnectUnityPlatform : IClientConnect
+        {
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_map_chunk([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name, byte[] data, int len);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_free_chunk([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_set_startup([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_set_config(byte[] data, int len);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern bool cc_is_hotpatched([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern System.IntPtr cc_call_hotpatch([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string endpoint, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string apiKey, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string parametersAsJson, out System.Int32 statusCode);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_free_string(System.IntPtr ptr);
+
+            public void MapChunk(string name, byte[] data)
+            {
+                cc_map_chunk(name, data, data.Length);
+            }
+
+            public void FreeChunk(string name)
+            {
+                cc_free_chunk(name);
+            }
+
+            public void SetStartup(string name)
+            {
+                cc_set_startup(name);
+            }
+
+            public void SetConfig(byte[] data)
+            {
+                cc_set_config(data, data.Length);
+            }
+
+            public bool IsHotpatched(string api, string operation)
+            {
+                return cc_is_hotpatched(api, operation);
+            }
+
+            public string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode)
+            {
+                var strPtr = cc_call_hotpatch(api, operation, endpoint, apiKey, parametersAsJson, out statusCode);
+                var ret = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(strPtr);
+                cc_free_string(strPtr);
+                return ret;
+            }
+        }
+
 `;
     let clientConnectPlatforms = [
       'Win32',
@@ -1738,7 +1752,11 @@ export class UnityGenerator extends CSharpGenerator {
 
 ${this.getDefines()}
 
-#if (NET35 || ((NET_2_0 || NET_2_0_SUBSET)))
+#if UNITY_5 || UNITY_5_3_OR_NEWER
+#define IS_UNITY
+#endif
+
+#if (NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
 
 using System;
 using System.Collections;
@@ -1854,5 +1872,16 @@ namespace HiveMP.Api
         resolve();
       });
     });
+
+    if (opts.enableClientConnect) {
+      await new Promise<void>((resolve, reject) => {
+        fs.copy("sdks/Unity/", opts.outputDir, { overwrite: true }, (err) => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        });
+      });
+    }
   }
 }
