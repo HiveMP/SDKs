@@ -12,7 +12,12 @@ function Wait-For-Unity-Exit($path) {
       Write-Host "Waiting for Unity to start...";
       continue;
     }
-    $l = (Get-Content -Raw $path).Substring($offset);
+    $s = (Get-Content -Raw $path);
+    if ($s.Length -le $offset) {
+      sleep 1;
+      continue;
+    }
+    $l = $s.Substring($offset);
     if ($l.Length -eq 0) {
       sleep 1;
       continue;
