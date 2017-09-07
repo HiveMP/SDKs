@@ -12,3 +12,6 @@ bin/
 /tests/UnityTest/Temp/
 /tests/UnityTest/UnityTest.csproj
 /tests/UnityTest/UnityTest.sln
+
+tests/UnityTest/Assembly-CSharp.csproj
+yarn-error.log

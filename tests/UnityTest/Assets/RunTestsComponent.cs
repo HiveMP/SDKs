@@ -1,5 +1,7 @@
 ﻿using HiveMP.Api;
+using HiveMP.Lobby.Api;
 using HiveMP.TemporarySession.Api;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,16 +10,25 @@ public class RunTestsComponent : MonoBehaviour
 {
     public void Start()
     {
+        // Create new temporary session.
         var temporaryClient = new TemporarySessionClient("test");
-        var promise = new HiveMPUnityPromise<TempSessionWithSecrets>(() =>
+        temporaryClient.SessionPUTPromise(new HiveMP.TemporarySession.Api.SessionPUTRequest(), session =>
         {
-            return temporaryClient.SessionPUT();
-        }, session =>
-        {
-            Debug.Log(session.Id);
-        }, error =>
-        {
-            Debug.LogException(error);
-        });
+            // Create a game lobby.
+            var gameLobbiesClient = new LobbyClient(session.ApiKey);
+            gameLobbiesClient.LobbyPUTPromise(new LobbyPUTRequest
+            {
+                Name = "Test Lobby",
+                MaxSessions = 4,
+            }, lobby =>
+            {
+                Debug.Log("Created game lobby " + lobby.Id);
+            }, Bail);
+        }, Bail);
+    }
+
+    private void Bail(HiveMPException ex)
+    {
+        Debug.LogException(ex);
     }
 }

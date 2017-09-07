@@ -184,7 +184,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -293,14 +293,51 @@ namespace ${namespace}
               asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
             }
           }
-          let parameters = CSharpGenerator.getParametersFromMethodParameter(namespace, methodValue.parameters);
-          let argumentsSuffix = parameters != '' ? ', ' : '';
+          let promiseResolve = 'System.Action<' + returnValue + '>';
+          if (returnValue == 'void') {
+            promiseResolve = 'System.Action';
+          }
           code += `
 #if HAS_TASKS
-        ${asyncReturnValue} ${methodName}Async(${parameters});
-        ${asyncReturnValue} ${methodName}Async(${parameters}${argumentsSuffix}System.Threading.CancellationToken cancellationToken);
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// </summary>
+        /// <remarks>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
+        /// </remarks>
+        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
+        ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments);
+
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// </summary>
+        /// <remarks>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
+        /// </remarks>
+        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
+        /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
+        async ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments, System.Threading.CancellationToken cancellationToken);
 #endif
-        ${returnValue} ${methodName}(${parameters});
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// </summary>
+        /// <remarks>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
+        /// </remarks>
+        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
+        ${returnValue} ${methodName}(${methodName}Request arguments);
+#if IS_UNITY && !NET_4_6 && !HAS_TASKS
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// </summary>
+        /// <remarks>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
+        /// </remarks>
+        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
+        /// <param name="resolve">The callback to run when the API call returns. This is always executed on the main thread.</param>
+        /// <param name="reject">The callback to run when the API call failed. This is always executed on the main thread.</param>
+        void ${methodName}Promise(${methodName}Request arguments, ${promiseResolve} resolve, System.Action<HiveMP.Api.HiveMPException> reject);
+#endif
 `;
         }
 
@@ -404,6 +441,10 @@ namespace ${namespace}
             } else {
               asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
             }
+          }
+          let promiseResolve = 'System.Action<' + returnValue + '>';
+          if (returnValue == 'void') {
+            promiseResolve = 'System.Action';
           }
           let parameters = CSharpGenerator.getParametersFromMethodParameter(namespace, methodValue.parameters);
           let argumentsSuffix = parameters != '' ? ', ' : '';
@@ -682,6 +723,39 @@ namespace ${namespace}
 #endif
         }
 
+#if IS_UNITY && !NET_4_6 && !HAS_TASKS
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// </summary>
+        /// <remarks>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
+        /// </remarks>
+        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
+        /// <param name="resolve">The callback to run when the API call returns. This is always executed on the main thread.</param>
+        /// <param name="reject">The callback to run when the API call failed. This is always executed on the main thread.</param>
+        public void ${methodName}Promise(${methodName}Request arguments, ${promiseResolve} resolve, System.Action<HiveMP.Api.HiveMPException> reject)
+        {
+`;
+          if (returnValue != 'void') {
+            code += `
+            new HiveMP.Api.HiveMPUnityPromise<${returnValue}>(() =>
+            {
+                return ${methodName}(arguments);
+            }, resolve, reject);
+`;
+          } else {
+            code += `
+            new HiveMP.Api.HiveMPUnityPromise<bool>(() =>
+            {
+                ${methodName}(arguments);
+                return true;
+            }, _ => resolve(), reject);
+`;
+          }
+          code += `
+        }
+#endif
+
         /// <summary>
         /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
         /// </summary>
@@ -921,7 +995,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1073,7 +1147,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1124,7 +1198,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1168,7 +1242,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1462,7 +1536,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
         }
 #endif
 
-#if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
+#if IS_UNITY && !NET_4_6
         public static bool HiveMPCertificateValidationCheck(System.Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             // TODO: Before we ship a public SDK, we must change this to validate
@@ -1517,7 +1591,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
             {
                 lock (_initLock)
                 {
-#if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
+#if IS_UNITY && !NET_4_6
                     ServicePointManager.ServerCertificateValidationCallback = HiveMPCertificateValidationCheck;
 #endif
 #if ENABLE_CLIENT_CONNECT_SDK
@@ -1756,7 +1830,7 @@ ${this.getDefines()}
 #define IS_UNITY
 #endif
 
-#if (NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if (NET35 || (IS_UNITY && !NET_4_6))
 
 using System;
 using System.Collections;
