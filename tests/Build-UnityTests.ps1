@@ -37,7 +37,7 @@ function Wait-For-Unity-Exit($path) {
     Write-Host "Waiting for Unity to exit...";
     sleep -Seconds 1;
   }
-  return $result;
+  return $outcome;
 }
 
 function Do-Unity-Build($uPlatform, $platform) {
