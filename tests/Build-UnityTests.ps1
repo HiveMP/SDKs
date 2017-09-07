@@ -38,6 +38,10 @@ function Do-Unity-Build($uPlatform, $platform) {
   if (Test-Path "$PSScriptRoot\..\tests\UnityTest\Unity.log") {
     rm -Force "$PSScriptRoot\..\tests\UnityTest\Unity.log"
   }
+  $unity = "C:\Program Files\Unity\Editor\Unity.exe"
+  if (Test-Path "C:\Program Files\Unity_5.4.1f\Editor\Unity.exe") {
+    $unity = "C:\Program Files\Unity_5.4.1f\\Editor\Unity.exe"
+  }
   & "C:\Program Files\Unity\Editor\Unity.exe" -quit -batchmode -nographics -projectPath "$PSScriptRoot\..\tests\UnityTest" $uPlatform "$PSScriptRoot\..\tests\UnityTest\Builds\$platform\HiveMPTest" -logFile "$PSScriptRoot\..\tests\UnityTest\Unity.log"
   if ($LastExitCode -ne 0) {
     Write-Error "Unity didn't start correctly!"
