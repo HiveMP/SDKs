@@ -1,9 +1,11 @@
+def props;
 node('windows') {
     stage("Checkout + Get Deps") {
         checkout poll: false, changelog: false, scm: scm
         bat 'git clean -xdff'
         bat 'yarn'
         bat 'yarn run getsdk'
+        props = readProperties file: 'build.props'
     }
     stage("Generate") {
         parallel (
@@ -25,7 +27,55 @@ node('windows') {
         parallel (
             "CSharp" : {
                 powershell 'wget -OutFile dist\\CSharp-4.5\\nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
-                bat 'cd dist/CSharp-4.5 && nuget pack -Version 1.1.%BUILD_NUMBER% -NonInteractive HiveMP.nuspec'
+                bat ('cd dist/CSharp-4.5 && nuget pack -Version ' + props['SdkVersion'] + '.%BUILD_NUMBER% -NonInteractive HiveMP.nuspec')
+            },
+            "Unity" : {
+                powershell ('. ./util/Make-Zip.ps1; if (Test-Path Unity-SDK.' + props['SdkVersion'] + '.\$env:BUILD_NUMBER.zip) { rm Unity-SDK.' + props['SdkVersion'] + '.\$env:BUILD_NUMBER.zip }; ZipFiles Unity-SDK.' + props['SdkVersion'] + '.\$env:BUILD_NUMBER.zip dist/Unity')
+                stash includes: ('Unity-SDK.' + props['SdkVersion'] + '.' + env.BUILD_NUMBER + '.zip'), name: 'unitysdk'
+            }
+        )
+    }
+    stage("Test") {
+        parallel (
+            "Unity" : {
+                powershell 'tests/Build-UnityTests.ps1'
+                stash includes: 'tests/UnityTest/Builds/Linux32/**', name: 'unitytest-linux32'
+                stash includes: 'tests/UnityTest/Builds/Linux64/**', name: 'unitytest-linux64'
+                stash includes: 'tests/UnityTest/Builds/Mac64/**', name: 'unitytest-mac64'
+                stash includes: 'tests/UnityTest/Builds/Win32/**', name: 'unitytest-win32'
+                stash includes: 'tests/UnityTest/Builds/Win64/**', name: 'unitytest-win64'
+                /*parallel (
+                    "Unity-Linux32" : {
+                        node('linux') {
+                            unstash 'unitytest-linux32'
+                            powershell 'tests/Run-UnityTest.sh Linux32'
+                        }
+                    },
+                    "Unity-Win64" : {
+                        node('linux') {
+                            unstash 'unitytest-linux64'
+                            powershell 'tests/Run-UnityTest.sh Linux64'
+                        }
+                    },
+                    "Unity-Win64" : {
+                        node('mac') {
+                            unstash 'unitytest-mac64'
+                            powershell 'Run-UnityTest.sh Mac64'
+                        }
+                    },
+                    "Unity-Win32" : {
+                        node('windows') {
+                            unstash 'unitytest-win32'
+                            powershell 'tests/Run-UnityTest.ps1 -Platform Win32'
+                        }
+                    },
+                    "Unity-Win64" : {
+                        node('windows') {
+                            unstash 'unitytest-win64'
+                            powershell 'tests/Run-UnityTest.ps1 -Platform Win32'
+                        }
+                    }
+                )*/
             }
         )
     }
@@ -33,7 +83,7 @@ node('windows') {
         stage("Push") {
             parallel (
                 "CSharp" : {
-                    bat 'cd dist/CSharp-4.5 && nuget push -Source nuget.org -NonInteractive HiveMP.1.1.%BUILD_NUMBER%.nupkg'
+                    bat ('cd dist/CSharp-4.5 && nuget push -Source nuget.org -NonInteractive HiveMP.' + props['SdkVersion'] + '.%BUILD_NUMBER%.nupkg')
                 }
             )
         }

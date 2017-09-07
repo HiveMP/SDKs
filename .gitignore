@@ -15,3 +15,6 @@ bin/
 
 tests/UnityTest/Assembly-CSharp.csproj
 yarn-error.log
+/tests/UnityTest/Builds/
+/tests/UnityTest/Unity.log
+/Unity-SDK.*.zip

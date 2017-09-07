@@ -1,9 +1,6 @@
 ﻿using HiveMP.Api;
 using HiveMP.Lobby.Api;
 using HiveMP.TemporarySession.Api;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class RunTestsComponent : MonoBehaviour
@@ -23,6 +20,7 @@ public class RunTestsComponent : MonoBehaviour
             }, lobby =>
             {
                 Debug.Log("Created game lobby " + lobby.Id);
+                Application.Quit();
             }, Bail);
         }, Bail);
     }
@@ -30,5 +28,6 @@ public class RunTestsComponent : MonoBehaviour
     private void Bail(HiveMPException ex)
     {
         Debug.LogException(ex);
+        Application.Quit();
     }
 }
