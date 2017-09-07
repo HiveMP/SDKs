@@ -35,6 +35,9 @@ function Wait-For-Unity-Exit($path) {
 }
 
 function Do-Unity-Build($uPlatform, $platform) {
+  if (Test-Path "$PSScriptRoot\..\tests\UnityTest\Unity.log") {
+    rm -Force "$PSScriptRoot\..\tests\UnityTest\Unity.log"
+  }
   & "C:\Program Files\Unity\Editor\Unity.exe" -quit -batchmode -nographics -projectPath "$PSScriptRoot\..\tests\UnityTest" $uPlatform "$PSScriptRoot\..\tests\UnityTest\Builds\$platform\HiveMPTest" -logFile "$PSScriptRoot\..\tests\UnityTest\Unity.log"
   if ($LastExitCode -ne 0) {
     Write-Error "Unity didn't start correctly!"
