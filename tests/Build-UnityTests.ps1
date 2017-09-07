@@ -1,6 +1,12 @@
+#!/usr/bin/env powershell
 param()
 
 $global:ErrorActionPreference = "Stop"
+
+trap {
+  Write-Output $_
+  exit 1
+}
 
 function Wait-For-Unity-Exit($path) {
   $offset = 0
@@ -76,7 +82,11 @@ function Do-Unity-Build($uPlatform, $platform) {
     if (Test-Path "C:\Program Files\Unity_5.4.1f\Editor\Unity.exe") {
       $unity = "C:\Program Files\Unity_5.4.1f\\Editor\Unity.exe"
     }
-    & $unity -quit -batchmode -force-d3d9 -nographics -projectPath "$PSScriptRoot\..\tests\UnityTest" $uPlatform "$PSScriptRoot\..\tests\UnityBuilds\$platform\HiveMPTest" -logFile "$PSScriptRoot\..\tests\UnityTest\Unity.log"
+    $suffix = ""
+    if ($platform.Contains("Win")) {
+      $suffix = ".exe";
+    }
+    & $unity -quit -batchmode -force-d3d9 -nographics -projectPath "$PSScriptRoot\..\tests\UnityTest$suffix" $uPlatform "$PSScriptRoot\..\tests\UnityBuilds\$platform\HiveMPTest" -logFile "$PSScriptRoot\..\tests\UnityTest\Unity.log"
     if ($LastExitCode -ne 0) {
       Write-Error "Unity didn't start correctly!"
       exit 1;
