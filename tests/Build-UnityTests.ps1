@@ -74,13 +74,13 @@ $sdkName = (Get-Item $PSScriptRoot\..\Unity-SDK*.zip).FullName;
 echo $sdkName
 [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnityTest\Assets\HiveMP");
 
-#echo "Building project for Linux32..."
-#Do-Unity-Build "-buildLinux32Player" "Linux32"
+echo "Building project for Linux32..."
+Do-Unity-Build "-buildLinux32Player" "Linux32"
 #echo "Building project for Linux64..."
 #Do-Unity-Build "-buildLinux64Player" "Linux64"
-#echo "Building project for Mac64..."
-#Do-Unity-Build "-buildOSX64Player" "Mac64"
-#echo "Building project for Win32..."
-#Do-Unity-Build "-buildWindowsPlayer" "Win32"
+echo "Building project for Mac64..."
+Do-Unity-Build "-buildOSX64Player" "Mac64"
+echo "Building project for Win32..."
+Do-Unity-Build "-buildWindowsPlayer" "Win32"
 echo "Building project for Win64..."
 Do-Unity-Build "-buildWindows64Player" "Win64"
