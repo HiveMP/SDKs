@@ -18,3 +18,5 @@ yarn-error.log
 /tests/UnityTest/Builds/
 /tests/UnityTest/Unity.log
 /Unity-SDK.*.zip
+
+tests/UnityBuilds/
