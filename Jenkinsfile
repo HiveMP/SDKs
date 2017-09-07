@@ -48,7 +48,7 @@ node('windows') {
                 stash includes: 'tests/UnityBuilds/Mac64/**', name: 'unity5test-mac64'
                 stash includes: 'tests/UnityBuilds/Win32/**', name: 'unity5test-win32'
                 stash includes: 'tests/UnityBuilds/Win64/**', name: 'unity5test-win64'
-                stash includes: 'tests/UnityBuilds/*.ps1', name: 'unity5test-script'
+                stash includes: 'tests/*.ps1', name: 'unity5test-script'
         //    }
         //)
     }
