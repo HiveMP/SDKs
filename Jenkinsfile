@@ -42,11 +42,12 @@ node('windows') {
         parallel (
             "Unity" : {
                 powershell 'tests/Build-UnityTests.ps1'
-                stash includes: 'tests/UnityTest/Builds/Linux32/**', name: 'unitytest-linux32'
-                stash includes: 'tests/UnityTest/Builds/Linux64/**', name: 'unitytest-linux64'
-                stash includes: 'tests/UnityTest/Builds/Mac64/**', name: 'unitytest-mac64'
-                stash includes: 'tests/UnityTest/Builds/Win32/**', name: 'unitytest-win32'
-                stash includes: 'tests/UnityTest/Builds/Win64/**', name: 'unitytest-win64'
+                stash includes: 'tests/UnityBuilds/Linux32/**', name: 'unitytest-linux32'
+                stash includes: 'tests/UnityBuilds/Linux64/**', name: 'unitytest-linux64'
+                stash includes: 'tests/UnityBuilds/Mac32/**', name: 'unitytest-mac32'
+                stash includes: 'tests/UnityBuilds/Mac64/**', name: 'unitytest-mac64'
+                stash includes: 'tests/UnityBuilds/Win32/**', name: 'unitytest-win32'
+                stash includes: 'tests/UnityBuilds/Win64/**', name: 'unitytest-win64'
                 /*parallel (
                     "Unity-Linux32" : {
                         node('linux') {
