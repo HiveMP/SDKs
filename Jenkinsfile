@@ -2,6 +2,11 @@ def sdkVersion = "";
 node('windows') {
     stage("Checkout + Get Deps") {
         checkout poll: false, changelog: false, scm: scm
+
+        // Ensure that untrusted PRs don't run
+        def allFiles = findFiles(glob: "*")
+        for (def file in allFiles) { readTrusted file }
+
         bat 'git clean -xdff'
         bat 'yarn'
         bat 'yarn run getsdk'
