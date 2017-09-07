@@ -316,7 +316,7 @@ namespace ${namespace}
         /// </remarks>
         /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
         /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
-        async ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments, System.Threading.CancellationToken cancellationToken);
+        ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments, System.Threading.CancellationToken cancellationToken);
 #endif
         /// <summary>
         /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
