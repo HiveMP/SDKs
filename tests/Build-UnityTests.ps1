@@ -75,7 +75,9 @@ function Do-Unity-Build($uPlatform, $platform) {
       exit 1;
     }
     $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\..\tests\UnityTest\Unity.log");
+    Write-Host "Outcome is $outcome!";
     if ($outcome -eq "retry") {
+      Sleep -Seconds 30
       continue;
     }
     if ($outcome -eq "success") {
