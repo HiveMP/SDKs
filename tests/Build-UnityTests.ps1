@@ -3,7 +3,7 @@ param()
 $global:ErrorActionPreference = "Stop"
 
 function Wait-For-Unity-Exit($path) {
-  $linesRead = 0
+  $offset = 0
   $outcome = "nothing";
   $running = $true;
   while ($running) {
@@ -12,25 +12,27 @@ function Wait-For-Unity-Exit($path) {
       Write-Host "Waiting for Unity to start...";
       continue;
     }
-    $log = Get-Content $path | Select-Object -Skip $linesRead;
-    foreach ($l in $log) {
-      Write-Host $l
-      if ($l.Contains("Exiting batchmode successfully")) {
-        $outcome = "success";
-        $running = $false;
-        break;
-      } elseif ($l.Contains("cubemap not supported")) {
-        # Intermittent failure? :/
-        $outcome = "retry";
-        $running = $false;
-        break;
-      } elseif ($l.Contains("Exiting batchmode") -or $l.Contains("Aborting batchmode")) {
-        $outcome = "failure";
-        $running = $false;
-        break;
-      }
+    $l = (Get-Content -Raw $path).Substring($offset);
+    if ($l.Length -eq 0) {
+      sleep 1;
+      continue;
     }
-    $linesRead += $log.Count;
+    Write-Host -NoNewline $l
+    if ($l.Contains("Exiting batchmode successfully")) {
+      $outcome = "success";
+      $running = $false;
+      break;
+    } elseif ($l.Contains("cubemap not supported")) {
+      # Intermittent failure? :/
+      $outcome = "retry";
+      $running = $false;
+      break;
+    } elseif ($l.Contains("Exiting batchmode") -or $l.Contains("Aborting batchmode")) {
+      $outcome = "failure";
+      $running = $false;
+      break;
+    }
+    $offset += $l.Length;
     sleep -Milliseconds 100;
   }
   while ((Get-Process | where -FilterScript {$_.Name -eq "Unity"}).Count -gt 0) {
