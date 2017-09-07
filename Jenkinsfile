@@ -1,11 +1,11 @@
-def props;
+def sdkVersion = "";
 node('windows') {
     stage("Checkout + Get Deps") {
         checkout poll: false, changelog: false, scm: scm
         bat 'git clean -xdff'
         bat 'yarn'
         bat 'yarn run getsdk'
-        props = readProperties file: 'build.props'
+        sdkVersion = readFile 'SdkVersion.txt'
     }
     stage("Generate") {
         parallel (
@@ -27,11 +27,11 @@ node('windows') {
         parallel (
             "CSharp" : {
                 powershell 'wget -OutFile dist\\CSharp-4.5\\nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
-                bat ('cd dist/CSharp-4.5 && nuget pack -Version ' + props['SdkVersion'] + '.%BUILD_NUMBER% -NonInteractive HiveMP.nuspec')
+                bat ('cd dist/CSharp-4.5 && nuget pack -Version ' + sdkVersion + '.%BUILD_NUMBER% -NonInteractive HiveMP.nuspec')
             },
             "Unity" : {
-                powershell ('. ./util/Make-Zip.ps1; if (Test-Path Unity-SDK.' + props['SdkVersion'] + '.\$env:BUILD_NUMBER.zip) { rm Unity-SDK.' + props['SdkVersion'] + '.\$env:BUILD_NUMBER.zip }; ZipFiles Unity-SDK.' + props['SdkVersion'] + '.\$env:BUILD_NUMBER.zip dist/Unity')
-                stash includes: ('Unity-SDK.' + props['SdkVersion'] + '.' + env.BUILD_NUMBER + '.zip'), name: 'unitysdk'
+                powershell ('. ./util/Make-Zip.ps1; if (Test-Path Unity-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip) { rm Unity-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip }; ZipFiles Unity-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip dist/Unity')
+                stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'unitysdk'
             }
         )
     }
@@ -83,7 +83,7 @@ node('windows') {
         stage("Push") {
             parallel (
                 "CSharp" : {
-                    bat ('cd dist/CSharp-4.5 && nuget push -Source nuget.org -NonInteractive HiveMP.' + props['SdkVersion'] + '.%BUILD_NUMBER%.nupkg')
+                    bat ('cd dist/CSharp-4.5 && nuget push -Source nuget.org -NonInteractive HiveMP.' + sdkVersion + '.%BUILD_NUMBER%.nupkg')
                 }
             )
         }
