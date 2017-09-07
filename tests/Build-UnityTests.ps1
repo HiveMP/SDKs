@@ -19,7 +19,7 @@ function Wait-For-Unity-Exit($path) {
         $result = $true;
         $running = $false;
         break;
-      } elseif ($l.Contains("Exiting batchmode")) {
+      } elseif ($l.Contains("Exiting batchmode") -or $l.Contains("Aborting batchmode")) {
         $running = $false;
         break;
       }
