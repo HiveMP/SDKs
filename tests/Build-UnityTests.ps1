@@ -86,7 +86,7 @@ function Do-Unity-Build($uPlatform, $platform) {
     if ($platform.Contains("Win")) {
       $suffix = ".exe";
     }
-    & $unity -quit -batchmode -force-d3d9 -nographics -projectPath "$PSScriptRoot\..\tests\UnityTest$suffix" $uPlatform "$PSScriptRoot\..\tests\UnityBuilds\$platform\HiveMPTest" -logFile "$PSScriptRoot\..\tests\UnityTest\Unity.log"
+    & $unity -quit -batchmode -force-d3d9 -nographics -projectPath "$PSScriptRoot\..\tests\UnityTest" $uPlatform "$PSScriptRoot\..\tests\UnityBuilds\$platform\HiveMPTest$suffix" -logFile "$PSScriptRoot\..\tests\UnityTest\Unity.log"
     if ($LastExitCode -ne 0) {
       Write-Error "Unity didn't start correctly!"
       exit 1;
