@@ -53,20 +53,20 @@ function Wait-For-Unity-Exit($path) {
   return $outcome;
 }
 
-if (Test-Path "$PSScriptRoot\..\tests\UnityTest\Unity.log") {
-  rm -Force "$PSScriptRoot\..\tests\UnityTest\Unity.log"
+if (Test-Path "$PSScriptRoot\UnityBuilds\$Platform\Unity.log") {
+  rm -Force "$PSScriptRoot\UnityBuilds\$Platform\Unity.log"
 }
 $suffix = ""
 if ($Platform.Contains("Win")) {
   $suffix = ".exe"
 }
 $game = "$PSScriptRoot\UnityBuilds\$Platform\HiveMPTest$suffix"
-& $game -batchmode -nographics -logFile "$PSScriptRoot\..\tests\UnityTest\Unity.log"
+& $game -batchmode -nographics -logFile "$PSScriptRoot\UnityBuilds\$Platform\Unity.log"
 if ($LastExitCode -ne 0) {
   Write-Error "Game didn't start correctly!"
   exit 1;
 }
-$outcome = (Wait-For-Unity-Exit "$PSScriptRoot\..\tests\UnityTest\Unity.log");
+$outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityBuilds\$Platform\Unity.log");
 Write-Host "Outcome is $outcome!";
 if ($outcome -eq "retry") {
   Sleep -Seconds 30
