@@ -61,8 +61,12 @@ if ($Platform.Contains("Win")) {
   $suffix = ".exe"
 }
 $game = "$PSScriptRoot\UnityBuilds\$Platform\HiveMPTest$suffix"
+cd "$PSScriptRoot\UnityBuilds\$Platform"
+Write-Output "Running in $PSScriptRoot\UnityBuilds\$Platform"
+Write-Output "Executing $PSScriptRoot\UnityBuilds\$Platform\HiveMPTest$suffix"
 & $game -batchmode -nographics -logFile "$PSScriptRoot\UnityBuilds\$Platform\Unity.log"
 if ($LastExitCode -ne 0) {
+  Write-Output "Last exit code was $LastExitCode"
   Write-Error "Game didn't start correctly!"
   exit 1;
 }
