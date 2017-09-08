@@ -70,29 +70,29 @@ node('windows') {
             },*/
             "Unity-5.4.1f-Mac32" : {
                 node('mac') {
-                    unstash 'unitytest-mac32'
-                    unstash 'unitytest-script'
+                    unstash 'unity5test-mac32'
+                    unstash 'unity5test-script'
                     sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
                 }
             },
             "Unity-5.4.1f-Mac64" : {
                 node('mac') {
-                    unstash 'unitytest-mac64'
-                    unstash 'unitytest-script'
+                    unstash 'unity5test-mac64'
+                    unstash 'unity5test-script'
                     sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
                 }
             },
             "Unity-5.4.1f-Win32" : {
                 node('windows') {
-                    unstash 'unitytest-win32'
-                    unstash 'unitytest-script'
+                    unstash 'unity5test-win32'
+                    unstash 'unity5test-script'
                     powershell 'tests/Run-UnityTest.ps1 -Platform Win32'
                 }
             },
             "Unity-5.4.1f-Win64" : {
                 node('windows') {
-                    unstash 'unitytest-win64'
-                    unstash 'unitytest-script'
+                    unstash 'unity5test-win64'
+                    unstash 'unity5test-script'
                     powershell 'tests/Run-UnityTest.ps1 -Platform Win64'
                 }
             }
