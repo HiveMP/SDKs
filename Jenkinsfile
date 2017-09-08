@@ -57,29 +57,37 @@ node('windows') {
             /*"Unity-Linux32" : {
                 node('linux') {
                     unstash 'unitytest-linux32'
-                    unstash 'unitytest-script-unix'
-                    powershell 'tests/Run-UnityTest.sh Linux32'
+                    unstash 'unitytest-script'
+                    sh 'chmod a+x tests/Run-UnityTest.ps1'
+                    sh 'chmod -r a+rwx tests/UnityBuilds/'
+                    sh 'tests/Run-UnityTest.sh Linux32'
                 }
             },
             "Unity-Linux64" : {
                 node('linux') {
                     unstash 'unitytest-linux64'
-                    unstash 'unitytest-script-unix'
-                    powershell 'tests/Run-UnityTest.sh Linux64'
+                    unstash 'unitytest-script'
+                    sh 'chmod a+x tests/Run-UnityTest.ps1'
+                    sh 'chmod -r a+rwx tests/UnityBuilds/'
+                    sh 'tests/Run-UnityTest.sh Linux64'
                 }
             },*/
             "Unity-5.4.1f-Mac32" : {
                 node('mac') {
                     unstash 'unity5test-mac32'
                     unstash 'unity5test-script'
-                    sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
+                    sh 'chmod a+x tests/Run-UnityTest.ps1'
+                    sh 'chmod -r a+rwx tests/UnityBuilds/'
+                    //sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
                 }
             },
             "Unity-5.4.1f-Mac64" : {
                 node('mac') {
                     unstash 'unity5test-mac64'
                     unstash 'unity5test-script'
-                    sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
+                    sh 'chmod a+x tests/Run-UnityTest.ps1'
+                    sh 'chmod -r a+rwx tests/UnityBuilds/'
+                    //sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
                 }
             },
             "Unity-5.4.1f-Win32" : {

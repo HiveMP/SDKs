@@ -57,20 +57,21 @@ if (Test-Path "$PSScriptRoot\UnityBuilds\$Platform\Unity.log") {
   rm -Force "$PSScriptRoot\UnityBuilds\$Platform\Unity.log"
 }
 $suffix = ""
+$outcome = "failure"
 if ($Platform.Contains("Win")) {
   $suffix = ".exe"
+  $game = "$PSScriptRoot\UnityBuilds\$Platform\HiveMPTest$suffix"
+  cd "$PSScriptRoot\UnityBuilds\$Platform"
+  Write-Output "Running in $PSScriptRoot\UnityBuilds\$Platform"
+  Write-Output "Executing $PSScriptRoot\UnityBuilds\$Platform\HiveMPTest$suffix"
+  & $game -batchmode -nographics -logFile "$PSScriptRoot\UnityBuilds\$Platform\Unity.log"
+  $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityBuilds\$Platform\Unity.log");
+} elseif ($Platform.Contains("Mac")) {
+  # Contents/MacOS/HiveMPTest -batchmode -nographics -logFile $(pwd)/../log.txt
+} else {
+  # LINUX TODO
 }
-$game = "$PSScriptRoot\UnityBuilds\$Platform\HiveMPTest$suffix"
-cd "$PSScriptRoot\UnityBuilds\$Platform"
-Write-Output "Running in $PSScriptRoot\UnityBuilds\$Platform"
-Write-Output "Executing $PSScriptRoot\UnityBuilds\$Platform\HiveMPTest$suffix"
-& $game -batchmode -nographics -logFile "$PSScriptRoot\UnityBuilds\$Platform\Unity.log"
-#if ($LastExitCode -ne 0) {
-#  Write-Output "Last exit code was $LastExitCode"
-  #Write-Error "Game didn't start correctly!"
-  #exit 1;
-#}
-$outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityBuilds\$Platform\Unity.log");
+
 Write-Host "Outcome is $outcome!";
 if ($outcome -eq "retry") {
   Sleep -Seconds 30
