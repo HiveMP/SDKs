@@ -68,8 +68,11 @@ if ($Platform.Contains("Win")) {
   $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityBuilds\$Platform\Unity.log");
 } elseif ($Platform.Contains("Mac")) {
   cd "$PSScriptRoot\UnityBuilds\$Platform\HiveMPTest.app"
-  Contents/MacOS/HiveMPTest -batchmode -nographics -logFile $(Get-Location)/../log.txt
+  Write-Host "Running macOS game..."
+  Contents/MacOS/HiveMPTest -batchmode -nographics -logFile "$(Get-Location)/../log.txt"
+  Write-Host "Reading log file..."
   $log = Get-Content -Raw "$(Get-Location)/../log.txt"
+  echo $log
   if ($log.Contains("Created game lobby")) {
     $outcome = "success";
   } elseif ($l.Contains("Exception")) {
