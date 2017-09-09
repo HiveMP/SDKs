@@ -79,6 +79,9 @@ program
         await new Promise((resolve, reject) => {
           fetch('https://github.com/HiveMP/HiveMP.ClientConnect/releases/download/latest/HiveMP.ClientConnect-SDK.tar.gz')
             .then(function(res) {
+              try {
+                fs.mkdirSync(path.join(__dirname, 'deps'));
+              } catch (e) {}
               let write = targz().createWriteStream(path.join(__dirname, 'deps/HiveMP.ClientConnect'));
               let stream = res.body.pipe(write);
               stream.on('finish', function () {

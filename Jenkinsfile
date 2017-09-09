@@ -39,18 +39,28 @@ node('windows') {
         )
     }
     stage("Build Tests") {
-        //parallel (
-        //    "Unity" : {
-                powershell 'tests/Build-UnityTests.ps1'
-                stash includes: 'tests/UnityBuilds/Linux32/**', name: 'unity5test-linux32'
-                stash includes: 'tests/UnityBuilds/Linux64/**', name: 'unity5test-linux64'
-                stash includes: 'tests/UnityBuilds/Mac32/**', name: 'unity5test-mac32'
-                stash includes: 'tests/UnityBuilds/Mac64/**', name: 'unity5test-mac64'
-                stash includes: 'tests/UnityBuilds/Win32/**', name: 'unity5test-win32'
-                stash includes: 'tests/UnityBuilds/Win64/**', name: 'unity5test-win64'
+        parallel (
+            "Unity-5.4.1f" : {
+                powershell 'tests/Build-UnityTests.ps1 -Version 5.4.1f'
+                stash includes: 'tests/UnityBuilds-5.4.1f/Linux32/**', name: 'unity5test-linux32'
+                stash includes: 'tests/UnityBuilds-5.4.1f/Linux64/**', name: 'unity5test-linux64'
+                stash includes: 'tests/UnityBuilds-5.4.1f/Mac32/**', name: 'unity5test-mac32'
+                stash includes: 'tests/UnityBuilds-5.4.1f/Mac64/**', name: 'unity5test-mac64'
+                stash includes: 'tests/UnityBuilds-5.4.1f/Win32/**', name: 'unity5test-win32'
+                stash includes: 'tests/UnityBuilds-5.4.1f/Win64/**', name: 'unity5test-win64'
                 stash includes: 'tests/*.ps1', name: 'unity5test-script'
-        //    }
-        //)
+            },
+            "Unity-2017.1.1f1" : {
+                powershell 'tests/Build-UnityTests.ps1 -Version 2017.1.1f1'
+                stash includes: 'tests/UnityBuilds-2017.1.1f1/Linux32/**', name: 'unity2017test-linux32'
+                stash includes: 'tests/UnityBuilds-2017.1.1f1/Linux64/**', name: 'unity2017test-linux64'
+                stash includes: 'tests/UnityBuilds-2017.1.1f1/Mac32/**', name: 'unity2017test-mac32'
+                stash includes: 'tests/UnityBuilds-2017.1.1f1/Mac64/**', name: 'unity2017test-mac64'
+                stash includes: 'tests/UnityBuilds-2017.1.1f1/Win32/**', name: 'unity2017test-win32'
+                stash includes: 'tests/UnityBuilds-2017.1.1f1/Win64/**', name: 'unity2017test-win64'
+                stash includes: 'tests/*.ps1', name: 'unity2017test-script'
+            }
+        )
     }
     stage("Run Tests") {
         parallel (
@@ -77,9 +87,9 @@ node('windows') {
                     unstash 'unity5test-mac32'
                     unstash 'unity5test-script'
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -R a+rwx tests/UnityBuilds/'
+                    sh 'chmod -R a+rwx tests/UnityBuilds-5.4.1f/'
                     sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                    sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
+                    sh 'tests/Run-UnityTest.ps1 -Version 5.4.1f -Platform Mac64'
                 }
             },
             "Unity-5.4.1f-Mac64" : {
@@ -87,23 +97,75 @@ node('windows') {
                     unstash 'unity5test-mac64'
                     unstash 'unity5test-script'
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -R a+rwx tests/UnityBuilds/'
+                    sh 'chmod -R a+rwx tests/UnityBuilds-5.4.1f/'
                     sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                    sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
+                    sh 'tests/Run-UnityTest.ps1 -Version 5.4.1f -Platform Mac64'
                 }
             },
             "Unity-5.4.1f-Win32" : {
                 node('windows') {
                     unstash 'unity5test-win32'
                     unstash 'unity5test-script'
-                    powershell 'tests/Run-UnityTest.ps1 -Platform Win32'
+                    powershell 'tests/Run-UnityTest.ps1 -Version 5.4.1f -Platform Win32'
                 }
             },
             "Unity-5.4.1f-Win64" : {
                 node('windows') {
                     unstash 'unity5test-win64'
                     unstash 'unity5test-script'
-                    powershell 'tests/Run-UnityTest.ps1 -Platform Win64'
+                    powershell 'tests/Run-UnityTest.ps1 -Version 5.4.1f -Platform Win64'
+                }
+            },
+            /*"Unity-Linux32" : {
+                node('linux') {
+                    unstash 'unitytest-linux32'
+                    unstash 'unitytest-script'
+                    sh 'chmod a+x tests/Run-UnityTest.ps1'
+                    sh 'chmod -r a+rwx tests/UnityBuilds/'
+                    sh 'tests/Run-UnityTest.sh Linux32'
+                }
+            },
+            "Unity-Linux64" : {
+                node('linux') {
+                    unstash 'unitytest-linux64'
+                    unstash 'unitytest-script'
+                    sh 'chmod a+x tests/Run-UnityTest.ps1'
+                    sh 'chmod -r a+rwx tests/UnityBuilds/'
+                    sh 'tests/Run-UnityTest.sh Linux64'
+                }
+            },*/
+            "Unity-2017.1.1f1-Mac32" : {
+                node('mac') {
+                    unstash 'unity2017test-mac32'
+                    unstash 'unity2017test-script'
+                    sh 'chmod a+x tests/Run-UnityTest.ps1'
+                    sh 'chmod -R a+rwx tests/UnityBuilds-2017.1.1f/'
+                    sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
+                    sh 'tests/Run-UnityTest.ps1 -Version 2017.1.1f1 -Platform Mac64'
+                }
+            },
+            "Unity-2017.1.1f1-Mac64" : {
+                node('mac') {
+                    unstash 'unity2017test-mac64'
+                    unstash 'unity2017test-script'
+                    sh 'chmod a+x tests/Run-UnityTest.ps1'
+                    sh 'chmod -R a+rwx tests/UnityBuilds-2017.1.1f/'
+                    sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
+                    sh 'tests/Run-UnityTest.ps1 -Version 2017.1.1f1 -Platform Mac64'
+                }
+            },
+            "Unity-2017.1.1f1-Win32" : {
+                node('windows') {
+                    unstash 'unity2017test-win32'
+                    unstash 'unity2017test-script'
+                    powershell 'tests/Run-UnityTest.ps1 -Version 2017.1.1f1 -Platform Win32'
+                }
+            },
+            "Unity-2017.1.1f1-Win64" : {
+                node('windows') {
+                    unstash 'unity2017test-win64'
+                    unstash 'unity2017test-script'
+                    powershell 'tests/Run-UnityTest.ps1 -Version 2017.1.1f1 -Platform Win64'
                 }
             }
         )

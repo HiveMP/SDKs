@@ -1,5 +1,5 @@
 #!/usr/bin/env powershell
-param()
+param($Version = "5.4.1f")
 
 $global:ErrorActionPreference = "Stop"
 
@@ -55,15 +55,15 @@ function Wait-For-Unity-Exit($path) {
 
 function Do-Unity-Build($uPlatform, $platform) {
   while ($true) {
-    echo "Cleaning tests/UnityTest..."
+    echo "Cleaning tests/UnityTest-$Version..."
     try {
       taskkill /f /im Unity.exe
     } catch { }
-    git clean -xdff "$PSScriptRoot\..\tests\UnityTest"
+    git clean -xdff "$PSScriptRoot\..\tests\UnityTest-$Version"
     if ($LastExitCode -ne 0) {
       exit 1;
     }
-    git checkout HEAD -- "$PSScriptRoot\..\tests\UnityTest"
+    git checkout HEAD -- "$PSScriptRoot\..\tests\UnityTest-$Version"
     if ($LastExitCode -ne 0) {
       exit 1;
     }
@@ -72,26 +72,26 @@ function Do-Unity-Build($uPlatform, $platform) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem;
     $sdkName = (Get-Item $PSScriptRoot\..\Unity-SDK*.zip).FullName;
     echo $sdkName
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnityTest\Assets\HiveMP");
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnityTest-$Version\Assets\HiveMP");
 
     echo "Building project for $platform..."
-    if (Test-Path "$PSScriptRoot\..\tests\UnityTest\Unity.log") {
-      rm -Force "$PSScriptRoot\..\tests\UnityTest\Unity.log"
+    if (Test-Path "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log") {
+      rm -Force "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log"
     }
     $unity = "C:\Program Files\Unity\Editor\Unity.exe"
-    if (Test-Path "C:\Program Files\Unity_5.4.1f\Editor\Unity.exe") {
-      $unity = "C:\Program Files\Unity_5.4.1f\\Editor\Unity.exe"
+    if (Test-Path "C:\Program Files\Unity_$Version\Editor\Unity.exe") {
+      $unity = "C:\Program Files\Unity_$Version\Editor\Unity.exe"
     }
     $suffix = ""
     if ($platform.Contains("Win")) {
       $suffix = ".exe";
     }
-    & $unity -quit -batchmode -force-d3d9 -nographics -projectPath "$PSScriptRoot\..\tests\UnityTest" $uPlatform "$PSScriptRoot\..\tests\UnityBuilds\$platform\HiveMPTest$suffix" -logFile "$PSScriptRoot\..\tests\UnityTest\Unity.log"
+    & $unity -quit -batchmode -force-d3d9 -nographics -projectPath "$PSScriptRoot\..\tests\UnityTest-$Version" $uPlatform "$PSScriptRoot\..\tests\UnityBuilds-$Version\$platform\HiveMPTest$suffix" -logFile "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log"
     if ($LastExitCode -ne 0) {
       Write-Error "Unity didn't start correctly!"
       exit 1;
     }
-    $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\..\tests\UnityTest\Unity.log");
+    $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log");
     Write-Host "Outcome is $outcome!";
     if ($outcome -eq "retry") {
       Sleep -Seconds 30

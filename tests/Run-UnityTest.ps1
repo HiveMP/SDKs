@@ -1,5 +1,5 @@
 #!/usr/bin/env powershell
-param($Platform)
+param($Version = "5.4.1f", $Platform)
 
 $global:ErrorActionPreference = "Stop"
 
@@ -53,21 +53,21 @@ function Wait-For-Unity-Exit($path) {
   return $outcome;
 }
 
-if (Test-Path "$PSScriptRoot\UnityBuilds\$Platform\Unity.log") {
-  rm -Force "$PSScriptRoot\UnityBuilds\$Platform\Unity.log"
+if (Test-Path "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log") {
+  rm -Force "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log"
 }
 $suffix = ""
 $outcome = "failure"
 if ($Platform.Contains("Win")) {
   $suffix = ".exe"
-  $game = "$PSScriptRoot\UnityBuilds\$Platform\HiveMPTest$suffix"
-  cd "$PSScriptRoot\UnityBuilds\$Platform"
-  Write-Output "Running in $PSScriptRoot\UnityBuilds\$Platform"
-  Write-Output "Executing $PSScriptRoot\UnityBuilds\$Platform\HiveMPTest$suffix"
-  & $game -batchmode -nographics -logFile "$PSScriptRoot\UnityBuilds\$Platform\Unity.log"
-  $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityBuilds\$Platform\Unity.log");
+  $game = "$PSScriptRoot\UnityBuilds-$Version\$Platform\HiveMPTest$suffix"
+  cd "$PSScriptRoot\UnityBuilds-$Version\$Platform"
+  Write-Output "Running in $PSScriptRoot\UnityBuilds-$Version\$Platform"
+  Write-Output "Executing $PSScriptRoot\UnityBuilds-$Version\$Platform\HiveMPTest$suffix"
+  & $game -batchmode -nographics -logFile "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log"
+  $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log");
 } elseif ($Platform.Contains("Mac")) {
-  cd "$PSScriptRoot\UnityBuilds\$Platform\HiveMPTest.app"
+  cd "$PSScriptRoot\UnityBuilds-$Version\$Platform\HiveMPTest.app"
   Write-Host "Running macOS game..."
   Contents/MacOS/HiveMPTest -batchmode -nographics -logFile "$(Get-Location)/../log.txt"
   Write-Host "Reading log file..."
