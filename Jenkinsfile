@@ -78,6 +78,7 @@ node('windows') {
                     unstash 'unity5test-script'
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
                     sh 'chmod -R a+rwx tests/UnityBuilds/'
+                    sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
                     sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
                 }
             },
@@ -87,6 +88,7 @@ node('windows') {
                     unstash 'unity5test-script'
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
                     sh 'chmod -R a+rwx tests/UnityBuilds/'
+                    sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
                     sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
                 }
             },
