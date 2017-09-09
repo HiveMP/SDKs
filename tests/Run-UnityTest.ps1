@@ -69,7 +69,7 @@ if ($Platform.Contains("Win")) {
 } elseif ($Platform.Contains("Mac")) {
   cd "$PSScriptRoot\UnityBuilds\$Platform\HiveMPTest.app"
   Contents/MacOS/HiveMPTest -batchmode -nographics -logFile $(Get-Location)/../log.txt
-  $log = Get-Content -Raw "$(Get-Location)/../logs.txt"
+  $log = Get-Content -Raw "$(Get-Location)/../log.txt"
   if ($log.Contains("Created game lobby")) {
     $outcome = "success";
   } elseif ($l.Contains("Exception")) {
