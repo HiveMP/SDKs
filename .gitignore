@@ -6,3 +6,17 @@ dist/
 .vs/
 obj/
 bin/
+/tests/UnityTest/Assets/HiveMP/
+/tests/UnityTest/Assets/HiveMP.meta
+/tests/UnityTest/Library/
+/tests/UnityTest/Temp/
+/tests/UnityTest/UnityTest.csproj
+/tests/UnityTest/UnityTest.sln
+
+tests/UnityTest/Assembly-CSharp.csproj
+yarn-error.log
+/tests/UnityTest/Builds/
+/tests/UnityTest/Unity.log
+/Unity-SDK.*.zip
+
+tests/UnityBuilds/

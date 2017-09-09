@@ -184,7 +184,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -293,14 +293,51 @@ namespace ${namespace}
               asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
             }
           }
-          let parameters = CSharpGenerator.getParametersFromMethodParameter(namespace, methodValue.parameters);
-          let argumentsSuffix = parameters != '' ? ', ' : '';
+          let promiseResolve = 'System.Action<' + returnValue + '>';
+          if (returnValue == 'void') {
+            promiseResolve = 'System.Action';
+          }
           code += `
 #if HAS_TASKS
-        ${asyncReturnValue} ${methodName}Async(${parameters});
-        ${asyncReturnValue} ${methodName}Async(${parameters}${argumentsSuffix}System.Threading.CancellationToken cancellationToken);
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// </summary>
+        /// <remarks>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
+        /// </remarks>
+        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
+        ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments);
+
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// </summary>
+        /// <remarks>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
+        /// </remarks>
+        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
+        /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
+        ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments, System.Threading.CancellationToken cancellationToken);
 #endif
-        ${returnValue} ${methodName}(${parameters});
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// </summary>
+        /// <remarks>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
+        /// </remarks>
+        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
+        ${returnValue} ${methodName}(${methodName}Request arguments);
+#if IS_UNITY && !NET_4_6 && !HAS_TASKS
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// </summary>
+        /// <remarks>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
+        /// </remarks>
+        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
+        /// <param name="resolve">The callback to run when the API call returns. This is always executed on the main thread.</param>
+        /// <param name="reject">The callback to run when the API call failed. This is always executed on the main thread.</param>
+        void ${methodName}Promise(${methodName}Request arguments, ${promiseResolve} resolve, System.Action<HiveMP.Api.HiveMPException> reject);
+#endif
 `;
         }
 
@@ -404,6 +441,10 @@ namespace ${namespace}
             } else {
               asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
             }
+          }
+          let promiseResolve = 'System.Action<' + returnValue + '>';
+          if (returnValue == 'void') {
+            promiseResolve = 'System.Action';
           }
           let parameters = CSharpGenerator.getParametersFromMethodParameter(namespace, methodValue.parameters);
           let argumentsSuffix = parameters != '' ? ', ' : '';
@@ -682,6 +723,39 @@ namespace ${namespace}
 #endif
         }
 
+#if IS_UNITY && !NET_4_6 && !HAS_TASKS
+        /// <summary>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
+        /// </summary>
+        /// <remarks>
+        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
+        /// </remarks>
+        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
+        /// <param name="resolve">The callback to run when the API call returns. This is always executed on the main thread.</param>
+        /// <param name="reject">The callback to run when the API call failed. This is always executed on the main thread.</param>
+        public void ${methodName}Promise(${methodName}Request arguments, ${promiseResolve} resolve, System.Action<HiveMP.Api.HiveMPException> reject)
+        {
+`;
+          if (returnValue != 'void') {
+            code += `
+            new HiveMP.Api.HiveMPUnityPromise<${returnValue}>(() =>
+            {
+                return ${methodName}(arguments);
+            }, resolve, reject);
+`;
+          } else {
+            code += `
+            new HiveMP.Api.HiveMPUnityPromise<bool>(() =>
+            {
+                ${methodName}(arguments);
+                return true;
+            }, _ => resolve(), reject);
+`;
+          }
+          code += `
+        }
+#endif
+
         /// <summary>
         /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
         /// </summary>
@@ -921,7 +995,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1073,7 +1147,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1124,7 +1198,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1168,7 +1242,7 @@ ${clientConnectDefines}
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
 #endif
-#if !(NET35 || (IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)))
+#if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
 #define HAS_HTTPCLIENT
 #endif
@@ -1195,46 +1269,8 @@ namespace HiveMP.Api
         private static void SetupClientConnect()
         {
 #if IS_UNITY
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
-            // Windows
-            if (System.IntPtr.Size == 8)
-            {
-                // 64-bit
-                _clientConnect = new ClientConnectWin64Platform();
-            }
-            else
-            {
-                // 32-bit
-                _clientConnect = new ClientConnectWin32Platform(); 
-            }
-#elif UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
-            // macOS
-            if (System.IntPtr.Size == 8)
-            {
-                // 64-bit
-                _clientConnect = new ClientConnectMac64Platform();
-            }
-            else
-            {
-                // 32-bit macOS is not supported.  32-bit support for
-                // macOS is being removed by Apple in the near future.
-            }
-#elif UNITY_STANDALONE_LINUX
-            // Linux
-            if (System.IntPtr.Size == 8)
-            {
-                // 64-bit
-                _clientConnect = new ClientConnectLinux64Platform();
-            }
-            else
-            {
-                // 32-bit
-                _clientConnect = new ClientConnectLinux32Platform();
-            }
-#else
-            // Client Connect SDK not supported on this platform yet.
-            _clientConnect = null;
-#endif
+            // Unity handles the mapping of native DLLs in it's .meta files.
+            _clientConnect = new ClientConnectUnityPlatform();
 #elif NET35
             if (System.IO.Path.DirectorySeparatorChar == '\\\\')
             {
@@ -1500,7 +1536,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
         }
 #endif
 
-#if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
+#if IS_UNITY && !NET_4_6
         public static bool HiveMPCertificateValidationCheck(System.Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             // TODO: Before we ship a public SDK, we must change this to validate
@@ -1555,7 +1591,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
             {
                 lock (_initLock)
                 {
-#if IS_UNITY && (NET_2_0 || NET_2_0_SUBSET)
+#if IS_UNITY && !NET_4_6
                     ServicePointManager.ServerCertificateValidationCallback = HiveMPCertificateValidationCheck;
 #endif
 #if ENABLE_CLIENT_CONNECT_SDK
@@ -1575,6 +1611,58 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
             bool IsHotpatched(string api, string operation);
             string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode);
         }
+
+        private class ClientConnectUnityPlatform : IClientConnect
+        {
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_map_chunk([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name, byte[] data, int len);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_free_chunk([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_set_startup([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_set_config(byte[] data, int len);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern bool cc_is_hotpatched([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern System.IntPtr cc_call_hotpatch([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string endpoint, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string apiKey, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string parametersAsJson, out System.Int32 statusCode);
+            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_free_string(System.IntPtr ptr);
+
+            public void MapChunk(string name, byte[] data)
+            {
+                cc_map_chunk(name, data, data.Length);
+            }
+
+            public void FreeChunk(string name)
+            {
+                cc_free_chunk(name);
+            }
+
+            public void SetStartup(string name)
+            {
+                cc_set_startup(name);
+            }
+
+            public void SetConfig(byte[] data)
+            {
+                cc_set_config(data, data.Length);
+            }
+
+            public bool IsHotpatched(string api, string operation)
+            {
+                return cc_is_hotpatched(api, operation);
+            }
+
+            public string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode)
+            {
+                var strPtr = cc_call_hotpatch(api, operation, endpoint, apiKey, parametersAsJson, out statusCode);
+                var ret = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(strPtr);
+                cc_free_string(strPtr);
+                return ret;
+            }
+        }
+
 `;
     let clientConnectPlatforms = [
       'Win32',
@@ -1728,6 +1816,127 @@ export class UnityGenerator extends CSharpGenerator {
   async postGenerate(opts: TargetOptions): Promise<void> {
     await super.postGenerate(opts);
 
+    // Copy Unity promise code.
+    const promiseCode = `
+//------------------------
+// <auto-generated>
+//     Generated with HiveMP SDK Generator
+// </auto-generated>
+//------------------------
+
+${this.getDefines()}
+
+#if UNITY_5 || UNITY_5_3_OR_NEWER
+#define IS_UNITY
+#endif
+
+#if (NET35 || (IS_UNITY && !NET_4_6))
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Threading;
+using UnityEngine;
+
+namespace HiveMP.Api
+{
+    /// <summary>
+    /// Much like a ES6 Promise, this class provides a way of asynchronously
+    /// notifying the caller that a HiveMP operation has finished. This class
+    /// is not available under .NET 4.5 or higher where C# provides native 
+    /// await / async, so if you're currently using .NET 3.5 in your current
+    /// Unity project, you'll need to migrate to using await / async calls.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class HiveMPUnityPromise<T>
+    {
+        private readonly Action<T> _resolve;
+        private readonly Action<HiveMPException> _reject;
+        private bool _hasT;
+        private T _t;
+        private HiveMPException _ex;
+
+        public HiveMPUnityPromise(Func<T> task, Action<T> resolve, Action<HiveMPException> reject)
+        {
+            _resolve = resolve;
+            _reject = reject;
+
+            StartCoroutine(WaitUntilResult());
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    _t = task();
+                    _hasT = true;
+                }
+                catch (HiveMPException ex)
+                {
+                    _ex = ex;
+                }
+                catch
+                {
+                    // Ignore all other exceptions.
+                }
+            });
+        }
+
+        private static GameObject _hiveCallbackObject;
+        private static MonoBehaviour _hiveCallbackBehaviour;
+
+        private static void StartCoroutine(IEnumerator e)
+        {
+            if (_hiveCallbackObject == null)
+            {
+                _hiveCallbackObject = new GameObject();
+                _hiveCallbackBehaviour = _hiveCallbackObject.AddComponent<HiveMPUnityCallbackMonoBehaviour>();
+            }
+
+            _hiveCallbackBehaviour.StartCoroutine(e);
+        }
+
+        private IEnumerator<object> WaitUntilResult()
+        {
+            yield return new WaitForFixedUpdate();
+
+            while (!_hasT && _ex == null)
+            {
+                yield return new WaitForFixedUpdate();
+            }
+
+            if (_hasT)
+            {
+                _resolve(_t);
+            }
+            else
+            {
+                _reject(_ex);
+            }
+        }
+    }
+
+    public class HiveMPUnityCallbackMonoBehaviour : MonoBehaviour
+    {
+        public void Start()
+        {
+            DontDestroyOnLoad(gameObject);
+        }
+    }
+}
+
+#endif
+`;
+
+    await new Promise((resolve, reject) => {
+      fs.writeFile(path.join(opts.outputDir, 'HiveMPUnityPromise.cs'), promiseCode, (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        resolve();
+      });
+    });
+
     // Copy Unity-specific dependencies out.
     await new Promise<void>((resolve, reject) => {
       fs.copy("deps/Unity-3.5/", opts.outputDir, { overwrite: true }, (err) => {
@@ -1737,5 +1946,16 @@ export class UnityGenerator extends CSharpGenerator {
         resolve();
       });
     });
+
+    if (opts.enableClientConnect) {
+      await new Promise<void>((resolve, reject) => {
+        fs.copy("sdks/Unity/", opts.outputDir, { overwrite: true }, (err) => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        });
+      });
+    }
   }
 }
