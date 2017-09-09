@@ -56,9 +56,6 @@ function Wait-For-Unity-Exit($path) {
 function Do-Unity-Build($uPlatform, $platform) {
   while ($true) {
     echo "Cleaning tests/UnityTest-$Version..."
-    try {
-      taskkill /f /im Unity.exe
-    } catch { }
     git clean -xdff "$PSScriptRoot\..\tests\UnityTest-$Version"
     if ($LastExitCode -ne 0) {
       exit 1;
