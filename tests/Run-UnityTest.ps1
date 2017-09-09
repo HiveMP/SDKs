@@ -67,7 +67,17 @@ if ($Platform.Contains("Win")) {
   & $game -batchmode -nographics -logFile "$PSScriptRoot\UnityBuilds\$Platform\Unity.log"
   $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityBuilds\$Platform\Unity.log");
 } elseif ($Platform.Contains("Mac")) {
-  # Contents/MacOS/HiveMPTest -batchmode -nographics -logFile $(pwd)/../log.txt
+  cd "$PSScriptRoot\UnityBuilds\$Platform\HiveMPTest.app"
+  Contents/MacOS/HiveMPTest -batchmode -nographics -logFile $(Get-Location)/../log.txt
+  $log = Get-Content -Raw $(Get-Location)/../logs.txt
+  if ($log.Contains("Created game lobby")) {
+    $outcome = "success";
+  } elseif ($l.Contains("Exception")) {
+    $outcome = "failure";
+  } else {
+    # Game exited but we didn't see "Created game lobby"
+    $outcome = "failure";
+  }
 } else {
   # LINUX TODO
 }

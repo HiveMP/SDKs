@@ -77,8 +77,8 @@ node('windows') {
                     unstash 'unity5test-mac32'
                     unstash 'unity5test-script'
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -r a+rwx tests/UnityBuilds/'
-                    //sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
+                    sh 'chmod -R a+rwx tests/UnityBuilds/'
+                    sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
                 }
             },
             "Unity-5.4.1f-Mac64" : {
@@ -86,8 +86,8 @@ node('windows') {
                     unstash 'unity5test-mac64'
                     unstash 'unity5test-script'
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -r a+rwx tests/UnityBuilds/'
-                    //sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
+                    sh 'chmod -R a+rwx tests/UnityBuilds/'
+                    sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
                 }
             },
             "Unity-5.4.1f-Win32" : {
