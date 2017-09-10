@@ -28,6 +28,9 @@ node('windows') {
             },
             "Unity" : {
                 bat 'yarn run generator -- generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c Unity dist/Unity'
+            },
+            "UnrealEngine-4.16" : {
+                bat 'yarn run generator -- generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c UnrealEngine-4.16 dist/UnrealEngine-4.16'
             }
         )
     }
@@ -40,6 +43,10 @@ node('windows') {
             "Unity" : {
                 powershell ('. ./util/Make-Zip.ps1; if (Test-Path Unity-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip) { rm Unity-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip }; ZipFiles Unity-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip dist/Unity')
                 stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'unitysdk'
+            },
+            "UnrealEngine-4.16" : {
+                powershell ('. ./util/Make-Zip.ps1; if (Test-Path UnrealEngine-4.16-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip) { rm UnrealEngine-4.16-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip }; ZipFiles UnrealEngine-4.16-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip dist/UnrealEngine-4.16')
+                stash includes: ('UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'ue416sdk'
             }
         )
     }
@@ -59,6 +66,13 @@ node('windows') {
                 stash includes: 'tests/*.ps1', name: 'unity-' + version + '-test-script'
             };
         }
+        /*parallelMap["UnrealEngine-4.16"] =
+        {
+            powershell 'tests/Build-UE4Tests.ps1 -Name UnrealEngine416 -Version UE_4.16'
+            stash includes: 'tests/UE4Builds-4.16/Win32/**', name: 'unity-' + version + '-test-win32'
+            stash includes: 'tests/UnityBuilds-' + version + '/Win64/**', name: 'unity-' + version + '-test-win64'
+            stash includes: 'tests/*.ps1', name: 'unity-' + version + '-test-script'
+        };*/
         parallel (parallelMap)
     }
     stage("Run Tests") {
