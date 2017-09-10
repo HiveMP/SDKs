@@ -1,6 +1,6 @@
 import * as swagger from 'swagger2';
 import * as schema from 'swagger2/src/schema';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 import * as path from 'path';
 import { TargetGenerator } from './TargetGenerator';
 import { TargetOptions } from "./TargetOptions";
@@ -931,14 +931,23 @@ void U${implName}::Activate()
         }
       }
     }
+    
+    await new Promise<void>((resolve, reject) => {
+      fs.copy("sdks/UnrealEngine-4.16/", opts.outputDir, { overwrite: true }, (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
 
     await new Promise((resolve, reject) => {
-      fs.writeFile(path.join(opts.outputDir, 'HiveBlueprintLibraryImpl.cpp'), code, (err) => {
+      fs.writeFile(path.join(opts.outputDir, 'Source/Public/HiveBlueprintLibrary.cpp'), code, (err) => {
         if (err) {
           reject(err);
           return;
         }
-        fs.writeFile(path.join(opts.outputDir, 'HiveBlueprintLibrary.h'), header, (err) => {
+        fs.writeFile(path.join(opts.outputDir, 'Source/Public/HiveBlueprintLibrary.h'), header, (err) => {
           if (err) {
             reject(err);
             return;

@@ -17,3 +17,6 @@ bin/
 
 yarn-error.log
 Unity.log
+tests/UnrealTest416/Intermediate/
+
+tests/UnrealTest416/Saved/

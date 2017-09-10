@@ -1,0 +1,17 @@
+{
+  "FileVersion": 3,
+  "FriendlyName": "HiveMP SDK",
+  "Version": 1,
+  "VersionName": "1.0",
+  "Description": "Provides access to the HiveMP APIs in Unreal Engine 4.",
+  "Category": "Online Platform",
+  "CreatedBy": "Redpoint Games",
+  "CreatedByURL": "https://hivemp.com",
+  "Modules": [
+    {
+      "Name": "HiveMPSDK",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}
