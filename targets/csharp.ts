@@ -1669,6 +1669,9 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
                 {
 #if IS_UNITY
                     ServicePointManager.ServerCertificateValidationCallback = HiveMPCertificateValidationCheck;
+#if (UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX) && NET_4_6 && UNITY_2017_2_OR_NEWER
+                    System.Environment.SetEnvironmentVariable("MONO_TLS_PROVIDER", "legacy");
+#endif
 #endif
 #if ENABLE_CLIENT_CONNECT_SDK
                     SetupClientConnect();
