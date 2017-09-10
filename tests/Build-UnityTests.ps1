@@ -57,13 +57,13 @@ function Do-Unity-Build($uPlatform, $platform) {
   while ($true) {
     echo "Cleaning tests/UnityTest-$Version..."
     git clean -xdff "$PSScriptRoot\..\tests\UnityTest-$Version"
-    if ($LastExitCode -ne 0) {
-      exit 1;
-    }
+    #if ($LastExitCode -ne 0) {
+    #  exit 1;
+    #}
     git checkout HEAD -- "$PSScriptRoot\..\tests\UnityTest-$Version"
-    if ($LastExitCode -ne 0) {
-      exit 1;
-    }
+    #if ($LastExitCode -ne 0) {
+    #  exit 1;
+    #}
     
     echo "Unpacking SDK package..."
     Add-Type -AssemblyName System.IO.Compression.FileSystem;

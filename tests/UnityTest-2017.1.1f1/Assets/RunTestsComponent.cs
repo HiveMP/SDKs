@@ -30,6 +30,7 @@ public class RunTestsComponent : MonoBehaviour
             {
                 Bail(ex);
             }
+            Application.Quit();
         });
     }
 
