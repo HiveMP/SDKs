@@ -1,5 +1,5 @@
 #!/usr/bin/env powershell
-param()
+param($Version = "5.4.1f")
 
 $global:ErrorActionPreference = "Stop"
 
@@ -8,10 +8,11 @@ trap {
   exit 1
 }
 
-function Wait-For-Unity-Exit($path) {
+function Wait-For-Unity-Exit($path, $processId) {
   $offset = 0
   $outcome = "nothing";
   $running = $true;
+  $cleanupTime = $null
   while ($running) {
     if (!(Test-Path $path)) {
       sleep 1;
@@ -20,15 +21,61 @@ function Wait-For-Unity-Exit($path) {
     }
     $s = (Get-Content -Raw $path);
     if ($s.Length -le $offset) {
+      if ($cleanupTime -ne $null) {
+        if (((Get-Date)-$cleanupTime).TotalSeconds -gt 20) {
+          Write-Host "Mono cleanup took longer than 20 seconds - Unity is stalled!";
+          Stop-Process -Force -Id $processId;
+          while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+            Write-Host "Waiting for Unity to exit...";
+            sleep -Seconds 1;
+          }
+          return "retry";
+        }
+      }
       sleep 1;
       continue;
     }
     $l = $s.Substring($offset);
     if ($l.Length -eq 0) {
+      if ($cleanupTime -ne $null) {
+        if (((Get-Date)-$cleanupTime).TotalSeconds -gt 20) {
+          Write-Host "Mono cleanup took longer than 20 seconds - Unity is stalled!";
+          Stop-Process -Force -Id $processId;
+          while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+            Write-Host "Waiting for Unity to exit...";
+            sleep -Seconds 1;
+          }
+          return "retry";
+        }
+      }
       sleep 1;
       continue;
     }
     Write-Host -NoNewline $l
+    if ($cleanupTime -ne $null) {
+      if (((Get-Date)-$cleanupTime).TotalSeconds -gt 20) {
+        Write-Host "Mono cleanup took longer than 20 seconds - Unity is stalled!";
+        Stop-Process -Force -Id $processId;
+        while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+          Write-Host "Waiting for Unity to exit...";
+          sleep -Seconds 1;
+        }
+        return "retry";
+      }
+    }
+    if ($l.Contains("Cleanup mono")) {
+      # Wait at most 20 seconds for Cleanup mono to finish, otherwise kill and retry
+      $cleanupTime = (Get-Date)
+    }
+    if ($l.Contains("Failed to start Unity Package Manager: operation timed out")) {
+      Write-Host "Package manager timeout - Unity has stalled!";
+      Stop-Process -Force -Id $processId;
+      while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+        Write-Host "Waiting for Unity to exit...";
+        sleep -Seconds 1;
+      }
+      return "retry";
+    }
     if ($l.Contains("Exiting batchmode successfully")) {
       $outcome = "success";
       $running = $false;
@@ -46,7 +93,7 @@ function Wait-For-Unity-Exit($path) {
     $offset += $l.Length;
     sleep -Milliseconds 100;
   }
-  while ((Get-Process | where -FilterScript {$_.Name -eq "Unity"}).Count -gt 0) {
+  while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
     Write-Host "Waiting for Unity to exit...";
     sleep -Seconds 1;
   }
@@ -55,43 +102,58 @@ function Wait-For-Unity-Exit($path) {
 
 function Do-Unity-Build($uPlatform, $platform) {
   while ($true) {
-    echo "Cleaning tests/UnityTest..."
-    try {
-      taskkill /f /im Unity.exe
-    } catch { }
-    git clean -xdff "$PSScriptRoot\..\tests\UnityTest"
-    if ($LastExitCode -ne 0) {
-      exit 1;
+    echo "Cleaning tests/UnityTest-$Version..."
+    for ($i=0; $i -lt 30; $i++) {
+      try {
+        git clean -xdff "$PSScriptRoot\..\tests\UnityTest-$Version";
+        break;
+      } catch {}
     }
-    git checkout HEAD -- "$PSScriptRoot\..\tests\UnityTest"
-    if ($LastExitCode -ne 0) {
-      exit 1;
+    for ($i=0; $i -lt 30; $i++) {
+      try {
+        git checkout HEAD -- "$PSScriptRoot\..\tests\UnityTest-$Version";
+        break;
+      } catch {}
     }
     
     echo "Unpacking SDK package..."
     Add-Type -AssemblyName System.IO.Compression.FileSystem;
     $sdkName = (Get-Item $PSScriptRoot\..\Unity-SDK*.zip).FullName;
     echo $sdkName
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnityTest\Assets\HiveMP");
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnityTest-$Version\Assets\HiveMP");
 
     echo "Building project for $platform..."
-    if (Test-Path "$PSScriptRoot\..\tests\UnityTest\Unity.log") {
-      rm -Force "$PSScriptRoot\..\tests\UnityTest\Unity.log"
+    if (Test-Path "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log") {
+      rm -Force "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log"
     }
     $unity = "C:\Program Files\Unity\Editor\Unity.exe"
-    if (Test-Path "C:\Program Files\Unity_5.4.1f\Editor\Unity.exe") {
-      $unity = "C:\Program Files\Unity_5.4.1f\\Editor\Unity.exe"
+    if (Test-Path "C:\Program Files\Unity_$Version\Editor\Unity.exe") {
+      $unity = "C:\Program Files\Unity_$Version\Editor\Unity.exe"
     }
     $suffix = ""
     if ($platform.Contains("Win")) {
       $suffix = ".exe";
     }
-    & $unity -quit -batchmode -force-d3d9 -nographics -projectPath "$PSScriptRoot\..\tests\UnityTest" $uPlatform "$PSScriptRoot\..\tests\UnityBuilds\$platform\HiveMPTest$suffix" -logFile "$PSScriptRoot\..\tests\UnityTest\Unity.log"
-    if ($LastExitCode -ne 0) {
+    $process = Start-Process `
+      -FilePath $unity `
+      -ArgumentList @(
+        "-quit",
+        "-batchmode",
+        "-force-d3d9",
+        "-nographics",
+        "-projectPath",
+        "$PSScriptRoot\..\tests\UnityTest-$Version",
+        $uPlatform,
+        "$PSScriptRoot\..\tests\UnityBuilds-$Version\$platform\HiveMPTest$suffix",
+        "-logFile",
+        "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log"
+      ) `
+      -PassThru
+    if ($process -eq $null) {
       Write-Error "Unity didn't start correctly!"
       exit 1;
     }
-    $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\..\tests\UnityTest\Unity.log");
+    $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log" $process.Id);
     Write-Host "Outcome is $outcome!";
     if ($outcome -eq "retry") {
       Sleep -Seconds 30

@@ -1,4 +1,9 @@
 def sdkVersion = "";
+def supportedUnityVersions = [
+    "5.4.1f",
+    "2017.1.1f1",
+    "2017.2.0b10"
+]
 if (env.CHANGE_TARGET != null) {
     input "Approve this PR build to run? Check the PR first!"
 }
@@ -39,74 +44,67 @@ node('windows') {
         )
     }
     stage("Build Tests") {
-        //parallel (
-        //    "Unity" : {
-                powershell 'tests/Build-UnityTests.ps1'
-                stash includes: 'tests/UnityBuilds/Linux32/**', name: 'unity5test-linux32'
-                stash includes: 'tests/UnityBuilds/Linux64/**', name: 'unity5test-linux64'
-                stash includes: 'tests/UnityBuilds/Mac32/**', name: 'unity5test-mac32'
-                stash includes: 'tests/UnityBuilds/Mac64/**', name: 'unity5test-mac64'
-                stash includes: 'tests/UnityBuilds/Win32/**', name: 'unity5test-win32'
-                stash includes: 'tests/UnityBuilds/Win64/**', name: 'unity5test-win64'
-                stash includes: 'tests/*.ps1', name: 'unity5test-script'
-        //    }
-        //)
+        def parallelMap = [:]
+        supportedUnityVersions.each { v ->
+            def version = v
+            parallelMap["Unity-" + version] =
+            {
+                powershell 'tests/Build-UnityTests.ps1 -Version ' + version
+                stash includes: 'tests/UnityBuilds-' + version + '/Linux32/**', name: 'unity-' + version + '-test-linux32'
+                stash includes: 'tests/UnityBuilds-' + version + '/Linux64/**', name: 'unity-' + version + '-test-linux64'
+                stash includes: 'tests/UnityBuilds-' + version + '/Mac32/**', name: 'unity-' + version + '-test-mac32'
+                stash includes: 'tests/UnityBuilds-' + version + '/Mac64/**', name: 'unity-' + version + '-test-mac64'
+                stash includes: 'tests/UnityBuilds-' + version + '/Win32/**', name: 'unity-' + version + '-test-win32'
+                stash includes: 'tests/UnityBuilds-' + version + '/Win64/**', name: 'unity-' + version + '-test-win64'
+                stash includes: 'tests/*.ps1', name: 'unity-' + version + '-test-script'
+            };
+        }
+        parallel (parallelMap)
     }
     stage("Run Tests") {
-        parallel (
-            /*"Unity-Linux32" : {
-                node('linux') {
-                    unstash 'unitytest-linux32'
-                    unstash 'unitytest-script'
-                    sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -r a+rwx tests/UnityBuilds/'
-                    sh 'tests/Run-UnityTest.sh Linux32'
-                }
-            },
-            "Unity-Linux64" : {
-                node('linux') {
-                    unstash 'unitytest-linux64'
-                    unstash 'unitytest-script'
-                    sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -r a+rwx tests/UnityBuilds/'
-                    sh 'tests/Run-UnityTest.sh Linux64'
-                }
-            },*/
-            "Unity-5.4.1f-Mac32" : {
+        def parallelMap = [:]
+        supportedUnityVersions.each { v ->
+            def version = v
+            parallelMap["Unity-" + version + "-Mac32"] =
+            {
                 node('mac') {
-                    unstash 'unity5test-mac32'
-                    unstash 'unity5test-script'
+                    unstash 'unity-' + version + '-test-mac32'
+                    unstash 'unity-' + version + '-test-script'
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -R a+rwx tests/UnityBuilds/'
+                    sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
                     sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                    sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
+                    sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac32'
                 }
-            },
-            "Unity-5.4.1f-Mac64" : {
+            };
+            parallelMap["Unity-" + version + "-Mac64"] =
+            {
                 node('mac') {
-                    unstash 'unity5test-mac64'
-                    unstash 'unity5test-script'
+                    unstash 'unity-' + version + '-test-mac64'
+                    unstash 'unity-' + version + '-test-script'
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -R a+rwx tests/UnityBuilds/'
+                    sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
                     sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                    sh 'tests/Run-UnityTest.ps1 -Platform Mac64'
+                    sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac64'
                 }
-            },
-            "Unity-5.4.1f-Win32" : {
+            };
+            parallelMap["Unity-" + version + "-Win32"] =
+            {
                 node('windows') {
-                    unstash 'unity5test-win32'
-                    unstash 'unity5test-script'
-                    powershell 'tests/Run-UnityTest.ps1 -Platform Win32'
+                    unstash 'unity-' + version + '-test-win32'
+                    unstash 'unity-' + version + '-test-script'
+                    powershell 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win32'
                 }
-            },
-            "Unity-5.4.1f-Win64" : {
+            };
+            parallelMap["Unity-" + version + "-Win64"] =
+            {
                 node('windows') {
-                    unstash 'unity5test-win64'
-                    unstash 'unity5test-script'
-                    powershell 'tests/Run-UnityTest.ps1 -Platform Win64'
+                    unstash 'unity-' + version + '-test-win64'
+                    unstash 'unity-' + version + '-test-script'
+                    powershell 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win64'
                 }
-            }
-        )
+            };
+        }
+        parallel (parallelMap)
     }
     if (env.BRANCH_NAME == 'master') {
         stage("Push") {
