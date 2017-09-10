@@ -20,3 +20,5 @@ Unity.log
 tests/UnrealTest416/Intermediate/
 
 tests/UnrealTest416/Saved/
+tests/UnrealTest416/Plugins/
+tests/UnrealTest416/Binaries/

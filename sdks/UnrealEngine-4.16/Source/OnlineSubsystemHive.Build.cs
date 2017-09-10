@@ -2,11 +2,11 @@
 
 namespace UnrealBuildTool.Rules
 {
-	public class HiveMPSDK : ModuleRules
+	public class OnlineSubsystemHive : ModuleRules
 	{
-		public HiveMPSDK(ReadOnlyTargetRules Target) : base(Target)
+		public OnlineSubsystemHive(ReadOnlyTargetRules Target) : base(Target)
         {
-            Definitions.Add("HIVEMPSDK_PACKAGE=1");
+            Definitions.Add("ONLINESUBSYSTEMHIVE_PACKAGE=1");
             PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
             PublicDependencyModuleNames.AddRange(

@@ -1,15 +1,16 @@
 {
   "FileVersion": 3,
-  "FriendlyName": "HiveMP SDK",
+
+  "FriendlyName": "Online Subsystem Hive",
   "Version": 1,
   "VersionName": "1.0",
-  "Description": "Provides access to the HiveMP APIs in Unreal Engine 4.",
+  "Description": "The online subsystem which uses HiveMP.",
   "Category": "Online Platform",
   "CreatedBy": "Redpoint Games",
   "CreatedByURL": "https://hivemp.com",
   "Modules": [
     {
-      "Name": "HiveMPSDK",
+      "Name": "OnlineSubsystemHive",
       "Type": "Runtime",
       "LoadingPhase": "Default"
     }
