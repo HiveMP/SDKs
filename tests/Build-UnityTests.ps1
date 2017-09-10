@@ -94,14 +94,18 @@ function Wait-For-Unity-Exit($path, $processId) {
 function Do-Unity-Build($uPlatform, $platform) {
   while ($true) {
     echo "Cleaning tests/UnityTest-$Version..."
-    git clean -xdff "$PSScriptRoot\..\tests\UnityTest-$Version"
-    #if ($LastExitCode -ne 0) {
-    #  exit 1;
-    #}
-    git checkout HEAD -- "$PSScriptRoot\..\tests\UnityTest-$Version"
-    #if ($LastExitCode -ne 0) {
-    #  exit 1;
-    #}
+    for ($i=0; $i -lt 30; $i++) {
+      try {
+        git clean -xdff "$PSScriptRoot\..\tests\UnityTest-$Version";
+        break;
+      } catch {}
+    }
+    for ($i=0; $i -lt 30; $i++) {
+      try {
+        git checkout HEAD -- "$PSScriptRoot\..\tests\UnityTest-$Version";
+        break;
+      } catch {}
+    }
     
     echo "Unpacking SDK package..."
     Add-Type -AssemblyName System.IO.Compression.FileSystem;
