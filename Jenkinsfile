@@ -89,7 +89,7 @@ node('windows') {
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
                     sh 'chmod -R a+rwx tests/UnityBuilds-5.4.1f/'
                     sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                    sh 'tests/Run-UnityTest.ps1 -Version 5.4.1f -Platform Mac64'
+                    sh 'tests/Run-UnityTest.ps1 -Version 5.4.1f -Platform Mac32'
                 }
             },
             "Unity-5.4.1f-Mac64" : {
@@ -141,7 +141,7 @@ node('windows') {
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
                     sh 'chmod -R a+rwx tests/UnityBuilds-2017.1.1f/'
                     sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                    sh 'tests/Run-UnityTest.ps1 -Version 2017.1.1f1 -Platform Mac64'
+                    sh 'tests/Run-UnityTest.ps1 -Version 2017.1.1f1 -Platform Mac32'
                 }
             },
             "Unity-2017.1.1f1-Mac64" : {

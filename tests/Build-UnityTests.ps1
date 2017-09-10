@@ -8,7 +8,7 @@ trap {
   exit 1
 }
 
-function Wait-For-Unity-Exit($path) {
+function Wait-For-Unity-Exit($path, $processId) {
   $offset = 0
   $outcome = "nothing";
   $running = $true;
@@ -46,7 +46,7 @@ function Wait-For-Unity-Exit($path) {
     $offset += $l.Length;
     sleep -Milliseconds 100;
   }
-  while ((Get-Process | where -FilterScript {$_.Name -eq "Unity"}).Count -gt 0) {
+  while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
     Write-Host "Waiting for Unity to exit...";
     sleep -Seconds 1;
   }
@@ -83,12 +83,26 @@ function Do-Unity-Build($uPlatform, $platform) {
     if ($platform.Contains("Win")) {
       $suffix = ".exe";
     }
-    & $unity -quit -batchmode -force-d3d9 -nographics -projectPath "$PSScriptRoot\..\tests\UnityTest-$Version" $uPlatform "$PSScriptRoot\..\tests\UnityBuilds-$Version\$platform\HiveMPTest$suffix" -logFile "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log"
-    if ($LastExitCode -ne 0) {
+    $process = Start-Process `
+      -FilePath $unity `
+      -ArgumentList @(
+        "-quit",
+        "-batchmode",
+        "-force-d3d9",
+        "-nographics",
+        "-projectPath",
+        "$PSScriptRoot\..\tests\UnityTest-$Version",
+        $uPlatform,
+        "$PSScriptRoot\..\tests\UnityBuilds-$Version\$platform\HiveMPTest$suffix",
+        "-logFile",
+        "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log"
+      ) `
+      -PassThru
+    if ($process -eq $null) {
       Write-Error "Unity didn't start correctly!"
       exit 1;
     }
-    $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log");
+    $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log" $process.Id);
     Write-Host "Outcome is $outcome!";
     if ($outcome -eq "retry") {
       Sleep -Seconds 30
