@@ -8,7 +8,7 @@ trap {
   exit 1
 }
 
-function Wait-For-Unity-Exit($path) {
+function Wait-For-Unity-Exit($path, $processId) {
   $offset = 0
   $outcome = "nothing";
   $running = $true;
@@ -37,7 +37,7 @@ function Wait-For-Unity-Exit($path) {
       $outcome = "failure";
       $running = $false;
       break;
-    } elseif ((Get-Process | where -FilterScript {$_.Name -eq "HiveMPTest"}).Count -eq 0) {
+    } elseif ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -eq 0) {
       # Game exited but we didn't see "Created game lobby"
       $outcome = "failure";
       $running = $false;
@@ -46,7 +46,7 @@ function Wait-For-Unity-Exit($path) {
     $offset += $l.Length;
     sleep -Milliseconds 100;
   }
-  while ((Get-Process | where -FilterScript {$_.Name -eq "HiveMPTest"}).Count -gt 0) {
+  while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
     Write-Host "Waiting for test game to exit...";
     sleep -Seconds 1;
   }
@@ -64,8 +64,20 @@ if ($Platform.Contains("Win")) {
   cd "$PSScriptRoot\UnityBuilds-$Version\$Platform"
   Write-Output "Running in $PSScriptRoot\UnityBuilds-$Version\$Platform"
   Write-Output "Executing $PSScriptRoot\UnityBuilds-$Version\$Platform\HiveMPTest$suffix"
-  & $game -batchmode -nographics -logFile "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log"
-  $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log");
+  $process = Start-Process `
+    -FilePath $game `
+    -ArgumentList @(
+      "-batchmode",
+      "-nographics",
+      "-logFile",
+      "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log"
+    ) `
+    -PassThru
+  if ($process -eq $null) {
+    Write-Error "Test game didn't start correctly!"
+    exit 1;
+  }
+  $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log" $process.Id);
 } elseif ($Platform.Contains("Mac")) {
   cd "$PSScriptRoot\UnityBuilds-$Version\$Platform\HiveMPTest.app"
   Write-Host "Running macOS game..."
