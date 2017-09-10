@@ -24,6 +24,7 @@ public class RunTestsComponent : MonoBehaviour
                     MaxSessions = 4,
                 });
                 Debug.Log("Created game lobby " + lobby.Id);
+                Application.Quit();
             }
             catch (HiveMPException ex)
             {
