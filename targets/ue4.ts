@@ -175,6 +175,7 @@ export class UnrealEngine416Generator implements TargetGenerator {
 #include "JsonReader.h"
 #include "JsonSerializer.h"
 #include "IHttpResponse.h"
+#include "HttpModule.h"
 #include "GenericPlatformHttp.h"
 #include "Base64.h"
 #include "HiveBlueprintLibrary.generated.h"
