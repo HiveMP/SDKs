@@ -1,20 +1,29 @@
 ﻿using HiveMP.Api;
 using HiveMP.Lobby.Api;
 using HiveMP.TemporarySession.Api;
+using System;
 using System.Threading.Tasks;
 using UnityEngine;
 
 public class RunTestsComponent : MonoBehaviour
 {
+    private bool _shouldExit = false;
+
     public void Start()
     {
+        Debug.Log("Creating client...");
         // Create new temporary session.
         var temporaryClient = new TemporarySessionClient("test");
+
+        Debug.Log("Running async task...");
         Task.Run(async () =>
         {
+            Debug.Log("Entering try / catch...");
             try
             {
+                Debug.Log("Creating session...");
                 var session = await temporaryClient.SessionPUTAsync(new HiveMP.TemporarySession.Api.SessionPUTRequest());
+                Debug.Log("Session created " + session.Id);
 
                 // Create a game lobby.
                 var gameLobbiesClient = new LobbyClient(session.ApiKey);
@@ -24,19 +33,22 @@ public class RunTestsComponent : MonoBehaviour
                     MaxSessions = 4,
                 });
                 Debug.Log("Created game lobby " + lobby.Id);
-                Application.Quit();
+                _shouldExit = true;
             }
-            catch (HiveMPException ex)
+            catch (Exception ex)
             {
-                Bail(ex);
+                Debug.LogException(ex);
+                _shouldExit = true;
             }
-            Application.Quit();
+            _shouldExit = true;
         });
     }
 
-    private void Bail(HiveMPException ex)
+    public void Update()
     {
-        Debug.LogException(ex);
-        Application.Quit();
+        if (_shouldExit)
+        {
+            Application.Quit();
+        }
     }
 }

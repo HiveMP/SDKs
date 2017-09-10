@@ -1609,7 +1609,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
         }
 #endif
 
-#if IS_UNITY && !NET_4_6
+#if IS_UNITY
         public static bool HiveMPCertificateValidationCheck(System.Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             // TODO: Before we ship a public SDK, we must change this to validate
@@ -1664,7 +1664,7 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
             {
                 lock (_initLock)
                 {
-#if IS_UNITY && !NET_4_6
+#if IS_UNITY
                     ServicePointManager.ServerCertificateValidationCallback = HiveMPCertificateValidationCheck;
 #endif
 #if ENABLE_CLIENT_CONNECT_SDK
