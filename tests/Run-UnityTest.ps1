@@ -24,16 +24,16 @@ function Wait-For-Unity-Exit($path, $processId) {
       continue;
     }
     $l = $s.Substring($offset);
-    if ($l.Length -eq 0) {
+    if ($l -ne $null -and $l.Length -eq 0) {
       sleep 1;
       continue;
     }
     Write-Host -NoNewline $l
-    if ($l.Contains("Created game lobby")) {
+    if ($l -ne $null -and $l.Contains("Created game lobby")) {
       $outcome = "success";
       $running = $false;
       break;
-    } elseif ($l.Contains("Exception")) {
+    } elseif ($l -ne $null -and $l.Contains("Exception")) {
       $outcome = "failure";
       $running = $false;
       break;
@@ -43,7 +43,9 @@ function Wait-For-Unity-Exit($path, $processId) {
       $running = $false;
       break;
     }
-    $offset += $l.Length;
+    if ($l -ne $null) {
+      $offset += $l.Length;
+    }
     sleep -Milliseconds 100;
   }
   while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {

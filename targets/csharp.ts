@@ -177,9 +177,9 @@ abstract class CSharpGenerator implements TargetGenerator {
 #endif
 #if !(NET35 || (IS_UNITY && !NET_4_6))
 #define HAS_TASKS
+#define HAS_HTTPCLIENT
 #endif
 #if !NET35 && !IS_UNITY
-#define HAS_HTTPCLIENT
 #endif
 `;
     let code = `
