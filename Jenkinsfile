@@ -139,7 +139,7 @@ node('windows') {
                     unstash 'unity2017test-mac32'
                     unstash 'unity2017test-script'
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -R a+rwx tests/UnityBuilds-2017.1.1f/'
+                    sh 'chmod -R a+rwx tests/UnityBuilds-2017.1.1f1/'
                     sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
                     sh 'tests/Run-UnityTest.ps1 -Version 2017.1.1f1 -Platform Mac32'
                 }
@@ -149,7 +149,7 @@ node('windows') {
                     unstash 'unity2017test-mac64'
                     unstash 'unity2017test-script'
                     sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -R a+rwx tests/UnityBuilds-2017.1.1f/'
+                    sh 'chmod -R a+rwx tests/UnityBuilds-2017.1.1f1/'
                     sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
                     sh 'tests/Run-UnityTest.ps1 -Version 2017.1.1f1 -Platform Mac64'
                 }
