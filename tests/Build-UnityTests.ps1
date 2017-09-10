@@ -12,6 +12,7 @@ function Wait-For-Unity-Exit($path, $processId) {
   $offset = 0
   $outcome = "nothing";
   $running = $true;
+  $cleanupTime = $null
   while ($running) {
     if (!(Test-Path $path)) {
       sleep 1;
@@ -20,15 +21,52 @@ function Wait-For-Unity-Exit($path, $processId) {
     }
     $s = (Get-Content -Raw $path);
     if ($s.Length -le $offset) {
+      if ($cleanupTime -ne $null) {
+        if (((Get-Date)-$cleanupTime).TotalSeconds -gt 20) {
+          Write-Host "Mono cleanup took longer than 20 seconds - Unity is stalled!";
+          Stop-Process -Force -Id $processId;
+          while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+            Write-Host "Waiting for Unity to exit...";
+            sleep -Seconds 1;
+          }
+          return "retry";
+        }
+      }
       sleep 1;
       continue;
     }
     $l = $s.Substring($offset);
     if ($l.Length -eq 0) {
+      if ($cleanupTime -ne $null) {
+        if (((Get-Date)-$cleanupTime).TotalSeconds -gt 20) {
+          Write-Host "Mono cleanup took longer than 20 seconds - Unity is stalled!";
+          Stop-Process -Force -Id $processId;
+          while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+            Write-Host "Waiting for Unity to exit...";
+            sleep -Seconds 1;
+          }
+          return "retry";
+        }
+      }
       sleep 1;
       continue;
     }
     Write-Host -NoNewline $l
+    if ($cleanupTime -ne $null) {
+      if (((Get-Date)-$cleanupTime).TotalSeconds -gt 20) {
+        Write-Host "Mono cleanup took longer than 20 seconds - Unity is stalled!";
+        Stop-Process -Force -Id $processId;
+        while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+          Write-Host "Waiting for Unity to exit...";
+          sleep -Seconds 1;
+        }
+        return "retry";
+      }
+    }
+    if ($l.Contains("Cleanup mono")) {
+      # Wait at most 20 seconds for Cleanup mono to finish, otherwise kill and retry
+      $cleanupTime = (Get-Date)
+    }
     if ($l.Contains("Exiting batchmode successfully")) {
       $outcome = "success";
       $running = $false;
