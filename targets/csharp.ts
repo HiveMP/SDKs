@@ -182,7 +182,7 @@ abstract class CSharpGenerator implements TargetGenerator {
 #define HAS_HTTPCLIENT
 #endif
 #if IS_UNITY && NET_4_6 && UNITY_2017_1
-#error Unity 2017.1 with a .NET 4.6 runtime is not supported due to this bug in Unity: https://goo.gl/H1kCiV. Either upgrade to 2017.2 or use the .NET 2.0 runtime.
+#error Unity 2017.1 with a .NET 4.6 runtime is not supported due to known bugs in Unity (bit.ly/2xeicxY). Either upgrade to 2017.2 or use the .NET 2.0 runtime.
 #endif
 `;
     let code = `
