@@ -4,6 +4,9 @@ def supportedUnityVersions = [
     "2017.1.1f1",
     "2017.2.0b10"
 ]
+def supportedUnrealVersions = [
+    "4.16"
+]
 if (env.CHANGE_TARGET != null) {
     input "Approve this PR build to run? Check the PR first!"
 }
@@ -66,13 +69,16 @@ node('windows') {
                 stash includes: 'tests/*.ps1', name: 'unity-' + version + '-test-script'
             };
         }
-        /*parallelMap["UnrealEngine-4.16"] =
-        {
-            powershell 'tests/Build-UE4Tests.ps1 -Name UnrealEngine416 -Version UE_4.16'
-            stash includes: 'tests/UE4Builds-4.16/Win32/**', name: 'unity-' + version + '-test-win32'
-            stash includes: 'tests/UnityBuilds-' + version + '/Win64/**', name: 'unity-' + version + '-test-win64'
-            stash includes: 'tests/*.ps1', name: 'unity-' + version + '-test-script'
-        };*/
+        supportedUnrealVersions.each { v ->
+            def version = v
+            parallelMap["UnrealEngine-" + version] =
+            {
+                powershell 'tests/Build-UE4Tests.ps1 -Version ' + version
+                stash includes: 'tests/UnrealBuilds-' + version + '/Win32/**', name: 'unreal-' + version + '-test-win32'
+                stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
+                stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
+            };
+        }
         parallel (parallelMap)
     }
     stage("Run Tests") {
