@@ -63,7 +63,7 @@ function Wait-For-Unity-Exit($path, $processId) {
         return "retry";
       }
     }
-    if ($l.Contains("Cleanup mono")) {
+    if ($l.Contains("Cleanup mono") -or $l.Contains("Failed to build player")) {
       # Wait at most 20 seconds for Cleanup mono to finish, otherwise kill and retry
       $cleanupTime = (Get-Date)
     }
