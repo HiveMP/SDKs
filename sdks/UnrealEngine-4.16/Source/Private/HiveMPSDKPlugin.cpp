@@ -20,5 +20,9 @@ void FHiveMPSDKPlugin::ShutdownModule()
 {
 }
 
+// Required for some builds for some reason?
+void EmptyLinkFunctionForStaticInitializationHiveMPSDK(void)
+{
+}
 
 

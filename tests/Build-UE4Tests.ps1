@@ -61,3 +61,5 @@ cd $PSScriptRoot\..
 
 Do-Unreal-Build "Win64"
 Do-Unreal-Build "Win32"
+
+cd $OriginalLocation
