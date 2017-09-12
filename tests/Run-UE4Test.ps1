@@ -1,5 +1,5 @@
 #!/usr/bin/env powershell
-param($Version = "4.16", $Platform)
+param([string] $Version = "4.16", [string] $Platform)
 
 $global:ErrorActionPreference = "Stop"
 
