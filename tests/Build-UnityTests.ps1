@@ -13,8 +13,18 @@ function Wait-For-Unity-Exit($path, $processId) {
   $outcome = "nothing";
   $running = $true;
   $cleanupTime = $null
+  $startTime = (Get-Date)
   while ($running) {
     if (!(Test-Path $path)) {
+      if (((Get-Date)-$startTime).TotalSeconds -gt 30) {
+        Write-Host "Unity didn't start in time.. killing and retrying...";
+        Stop-Process -Force -Id $processId;
+        while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+          Write-Host "Waiting for Unity to exit...";
+          sleep -Seconds 1;
+        }
+        return "retry";
+      }
       sleep 1;
       Write-Host "Waiting for Unity to start...";
       continue;
