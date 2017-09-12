@@ -124,6 +124,25 @@ node('windows') {
                 }
             };
         }
+        supportedUnrealVersions.each { v ->
+            def version = v
+            parallelMap["UnrealEngine-" + version + "-Win32"] =
+            {
+                node('windows') {
+                    unstash 'unreal-' + version + '-test-win32'
+                    unstash 'unreal-' + version + '-test-script'
+                    powershell 'tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win32'
+                }
+            };
+            parallelMap["UnrealEngine-" + version + "-Win64"] =
+            {
+                node('windows') {
+                    unstash 'unreal-' + version + '-test-win64'
+                    unstash 'unreal-' + version + '-test-script'
+                    powershell 'tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
+                }
+            };
+        }
         parallel (parallelMap)
     }
     if (env.BRANCH_NAME == 'master') {

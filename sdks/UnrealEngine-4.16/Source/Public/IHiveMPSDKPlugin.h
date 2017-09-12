@@ -6,7 +6,26 @@
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
 
-class IHiveMPSDKPlugin : public IModuleInterface
+class FHiveMPSDKPlugin : public IModuleInterface
 {
+
+public:
+
+	FHiveMPSDKPlugin()
+	{}
+
+  virtual ~FHiveMPSDKPlugin() {}
+  
+  virtual void StartupModule() override;
+  virtual void ShutdownModule() override;
+  virtual bool SupportsDynamicReloading() override
+  {
+    return false;
+  }
+
+  virtual bool SupportsAutomaticShutdown() override
+  {
+    return false;
+  }
 };
 

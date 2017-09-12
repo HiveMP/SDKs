@@ -2,27 +2,17 @@
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
+#include "OnlineSubsystem.h"
 #include "IHiveMPSDKPlugin.h"
 
-class FHiveMPSDKPlugin : public IHiveMPSDKPlugin
-{
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
-};
-
-IMPLEMENT_MODULE( FHiveMPSDKPlugin, IHiveMPSDKPlugin )
+IMPLEMENT_MODULE( FHiveMPSDKPlugin, HiveMPSDK )
 
 void FHiveMPSDKPlugin::StartupModule()
 {
+	UE_LOG_ONLINE(Display, TEXT("FHiveMPSDKPlugin::StartupModule()"));
 }
 
 void FHiveMPSDKPlugin::ShutdownModule()
 {
+  UE_LOG_ONLINE(Display, TEXT("FHiveMPSDKPlugin::ShutdownModule()"));
 }
-
-// Required for some builds for some reason?
-void EmptyLinkFunctionForStaticInitializationHiveMPSDK(void)
-{
-}
-
-

@@ -10,43 +10,17 @@ trap {
   exit 1
 }
 
+$TestPath = "$PSScriptRoot\..\tests\UnrealTest" + $Version.Replace(".", "");
 function Do-Unreal-Build($Platform) {
   $ProjectNameNoExt = "UnrealTest" + $Version.Replace(".", "");
   $ProjectName = "UnrealTest" + $Version.Replace(".", "") + ".uproject";
-  $TestPath = "$PSScriptRoot\..\tests\UnrealTest" + $Version.Replace(".", "");
   $UnrealEnginePath = "C:\Program Files\Epic Games\UE_" + $Version + "\Engine";
   $RunUAT = "$UnrealEnginePath\Build\BatchFiles\RunUAT.bat";
   $UnrealBuildTool = "$UnrealEnginePath\Binaries\DotNET\UnrealBuildTool.exe";
   $OutputDir = "$PSScriptRoot\..\tests\UnrealBuilds-$Version\$Platform"
 
-  if (!$NoCleanAndSdkUnpack) {
-    echo "Cleaning tests/UnrealBuilds-$Version..."
-    for ($i=0; $i -lt 30; $i++) {
-      try {
-        git clean -xdff "$TestPath";
-        break;
-      } catch {}
-    }
-    for ($i=0; $i -lt 30; $i++) {
-      try {
-        git checkout HEAD -- "$TestPath";
-        break;
-      } catch {}
-    }
-    
-    echo "Unpacking SDK package..."
-    Add-Type -AssemblyName System.IO.Compression.FileSystem;
-    $sdkName = (Get-Item $PSScriptRoot\..\UnrealEngine-$Version-SDK*.zip).FullName;
-    echo $sdkName
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$TestPath\Plugins\HiveMPSDK");
-  }
-
   echo "Building project for $Platform..."
   cd $TestPath
-  & $UnrealBuildTool $ProjectNameNoExt Development Win64 -project="$TestPath\$ProjectName" -editorrecompile -NoHotReloadFromIDE
-  if ($LASTEXITCODE -ne 0) {
-    throw "Unreal Engine failed to build!"
-  }
   & $RunUAT BuildCookRun -project="$TestPath\$ProjectName" -noP4 -platform="$Platform" -editorconfig=Development -clientconfig=Development -serverconfig=Development -cook -maps=AllMaps -build -stage -pak -archive -archivedirectory="$OutputDir" -unattended
   if ($LASTEXITCODE -eq 0) {
     return;
@@ -56,6 +30,34 @@ function Do-Unreal-Build($Platform) {
 }
 
 cd $PSScriptRoot\..
+
+if (!$NoCleanAndSdkUnpack) {
+  echo "Cleaning tests/UnrealBuilds-$Version..."
+  for ($i=0; $i -lt 30; $i++) {
+    try {
+      git clean -xdff "$TestPath";
+      break;
+    } catch {}
+  }
+  for ($i=0; $i -lt 30; $i++) {
+    try {
+      git checkout HEAD -- "$TestPath";
+      break;
+    } catch {}
+  }
+  
+  echo "Unpacking SDK package..."
+  Add-Type -AssemblyName System.IO.Compression.FileSystem;
+  $sdkName = (Get-Item $PSScriptRoot\..\UnrealEngine-$Version-SDK*.zip).FullName;
+  echo $sdkName
+  [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$TestPath\Plugins\HiveMPSDK");
+}
+
+cd $TestPath
+& $UnrealBuildTool $ProjectNameNoExt Development Win64 -project="$TestPath\$ProjectName" -editorrecompile -NoHotReloadFromIDE
+if ($LASTEXITCODE -ne 0) {
+  throw "Unreal Engine failed to build!"
+}
 
 Do-Unreal-Build "Win64"
 Do-Unreal-Build "Win32"
