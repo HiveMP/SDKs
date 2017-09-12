@@ -14,9 +14,10 @@ $TestPath = "$PSScriptRoot\..\tests\UnrealTest" + $Version.Replace(".", "");
 $UnrealEnginePath = "C:\Program Files\Epic Games\UE_" + $Version + "\Engine";
 $RunUAT = "$UnrealEnginePath\Build\BatchFiles\RunUAT.bat";
 $UnrealBuildTool = "$UnrealEnginePath\Binaries\DotNET\UnrealBuildTool.exe";
+$ProjectNameNoExt = "UnrealTest" + $Version.Replace(".", "");
+$ProjectName = "UnrealTest" + $Version.Replace(".", "") + ".uproject";
+
 function Do-Unreal-Build($Platform) {
-  $ProjectNameNoExt = "UnrealTest" + $Version.Replace(".", "");
-  $ProjectName = "UnrealTest" + $Version.Replace(".", "") + ".uproject";
   $OutputDir = "$PSScriptRoot\..\tests\UnrealBuilds-$Version\$Platform";
 
   echo "Building project for $Platform...";
