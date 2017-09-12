@@ -43,11 +43,9 @@ function Do-Unreal-Build($Platform) {
 
   echo "Building project for $Platform..."
   cd $TestPath
-  if ($Platform -eq "Win64") {
-    & $UnrealBuildTool $ProjectNameNoExt Development Win64 -project="$TestPath\$ProjectName" -editorrecompile -NoHotReloadFromIDE
-    if ($LASTEXITCODE -ne 0) {
-      throw "Unreal Engine failed to build!"
-    }
+  & $UnrealBuildTool $ProjectNameNoExt Development Win64 -project="$TestPath\$ProjectName" -editorrecompile -NoHotReloadFromIDE
+  if ($LASTEXITCODE -ne 0) {
+    throw "Unreal Engine failed to build!"
   }
   & $RunUAT BuildCookRun -project="$TestPath\$ProjectName" -noP4 -platform="$Platform" -editorconfig=Development -clientconfig=Development -serverconfig=Development -cook -maps=AllMaps -build -stage -pak -archive -archivedirectory="$OutputDir" -unattended
   if ($LASTEXITCODE -eq 0) {
