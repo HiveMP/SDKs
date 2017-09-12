@@ -63,7 +63,7 @@ void UHiveUtilBlueprintLibrary::SendNatPunchthroughRequestToClient(UObject* Worl
 		// This will be intercepted by UHiveIpConnection, which must be configured in DefaultEngine.ini with:
 		//
 		// [/Script/OnlineSubsystemUtils.IpNetDriver]
-		// NetConnectionClassName="/Script/OnlineSubsystemHive.HiveIpConnection"
+		// NetConnectionClassName="/Script/HiveMPSDK.HiveIpConnection"
 		//
 		// If you don't configure this, clients will be disconnected when they receive this packet.
 		Packet[0] = 0;

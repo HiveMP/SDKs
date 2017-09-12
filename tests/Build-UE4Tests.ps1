@@ -43,7 +43,7 @@ function Do-Unreal-Build($Platform) {
 
   echo "Building project for $Platform..."
   cd $TestPath
-  & $UnrealBuildTool $ProjectNameNoExt Development Win64 -project="$TestPath\$ProjectName" -editorrecompile -progress -NoHotReloadFromIDE
+  & $UnrealBuildTool $ProjectNameNoExt Development Win64 -project="$TestPath\$ProjectName" -editorrecompile -NoHotReloadFromIDE
   if ($LASTEXITCODE -ne 0) {
     throw "Unreal Engine failed to build!"
   }
