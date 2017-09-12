@@ -11,16 +11,16 @@ trap {
 }
 
 $TestPath = "$PSScriptRoot\..\tests\UnrealTest" + $Version.Replace(".", "");
+$UnrealEnginePath = "C:\Program Files\Epic Games\UE_" + $Version + "\Engine";
+$RunUAT = "$UnrealEnginePath\Build\BatchFiles\RunUAT.bat";
+$UnrealBuildTool = "$UnrealEnginePath\Binaries\DotNET\UnrealBuildTool.exe";
 function Do-Unreal-Build($Platform) {
   $ProjectNameNoExt = "UnrealTest" + $Version.Replace(".", "");
   $ProjectName = "UnrealTest" + $Version.Replace(".", "") + ".uproject";
-  $UnrealEnginePath = "C:\Program Files\Epic Games\UE_" + $Version + "\Engine";
-  $RunUAT = "$UnrealEnginePath\Build\BatchFiles\RunUAT.bat";
-  $UnrealBuildTool = "$UnrealEnginePath\Binaries\DotNET\UnrealBuildTool.exe";
-  $OutputDir = "$PSScriptRoot\..\tests\UnrealBuilds-$Version\$Platform"
+  $OutputDir = "$PSScriptRoot\..\tests\UnrealBuilds-$Version\$Platform";
 
-  echo "Building project for $Platform..."
-  cd $TestPath
+  echo "Building project for $Platform...";
+  cd $TestPath;
   & $RunUAT BuildCookRun -project="$TestPath\$ProjectName" -noP4 -platform="$Platform" -editorconfig=Development -clientconfig=Development -serverconfig=Development -cook -maps=AllMaps -build -stage -pak -archive -archivedirectory="$OutputDir" -unattended
   if ($LASTEXITCODE -eq 0) {
     return;
