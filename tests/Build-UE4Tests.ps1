@@ -17,7 +17,7 @@ function Do-Unreal-Build($Platform) {
   $UnrealEnginePath = "C:\Program Files\Epic Games\UE_" + $Version + "\Engine";
   $RunUAT = "$UnrealEnginePath\Build\BatchFiles\RunUAT.bat";
   $UnrealBuildTool = "$UnrealEnginePath\Binaries\DotNET\UnrealBuildTool.exe";
-  $OutputDir = "$PSScriptRoot\..\tests\UnrealBuilds-$Version"
+  $OutputDir = "$PSScriptRoot\..\tests\UnrealBuilds-$Version\$Platform"
 
   if (!$NoCleanAndSdkUnpack) {
     echo "Cleaning tests/UnrealBuilds-$Version..."
@@ -43,9 +43,11 @@ function Do-Unreal-Build($Platform) {
 
   echo "Building project for $Platform..."
   cd $TestPath
-  & $UnrealBuildTool $ProjectNameNoExt Development Win64 -project="$TestPath\$ProjectName" -editorrecompile -NoHotReloadFromIDE
-  if ($LASTEXITCODE -ne 0) {
-    throw "Unreal Engine failed to build!"
+  if ($Platform -eq "Win64") {
+    & $UnrealBuildTool $ProjectNameNoExt Development Win64 -project="$TestPath\$ProjectName" -editorrecompile -NoHotReloadFromIDE
+    if ($LASTEXITCODE -ne 0) {
+      throw "Unreal Engine failed to build!"
+    }
   }
   & $RunUAT BuildCookRun -project="$TestPath\$ProjectName" -noP4 -platform="$Platform" -editorconfig=Development -clientconfig=Development -serverconfig=Development -cook -maps=AllMaps -build -stage -pak -archive -archivedirectory="$OutputDir" -unattended
   if ($LASTEXITCODE -eq 0) {
@@ -59,7 +61,3 @@ cd $PSScriptRoot\..
 
 Do-Unreal-Build "Win64"
 Do-Unreal-Build "Win32"
-
-
-Creating makefile for UnrealTest416 (no existing makefile)
-Performing full C++ include scan (no include cache file)
