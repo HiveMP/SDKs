@@ -1,8 +1,10 @@
-# HiveMP SDK Generator
+# HiveMP SDKs
 
-This is the HiveMP SDK generator, which generates SDKs from the API definition files of HiveMP.
+This repository contains the official HiveMP SDKs for various game engines and programming languages.
 
-This is intended to replace the current separate SDKs, but is currently experimental.
+**If you're looking for released versions of the HiveMP SDK, we recommend viewing the [list of available SDKs on the HiveMP website](https://hivemp.com/documentation/).**
+
+![Build Status](https://jenkins.redpointgames.com.au/buildStatus/icon?job=HiveMP/GitHub/SDKs/master)
 
 ## Usage
 
