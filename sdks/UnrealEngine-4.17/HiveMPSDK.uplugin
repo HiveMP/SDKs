@@ -1,0 +1,17 @@
+{
+  "FileVersion": 3,
+  "FriendlyName": "HiveMP SDK",
+  "Version": 1,
+  "VersionName": "1.0",
+  "Description": "The official HiveMP SDK which provides access to multiplayer APIs in UE4.",
+  "Category": "Online Platform",
+  "CreatedBy": "Redpoint Games",
+  "CreatedByURL": "https://hivemp.com",
+  "Modules": [
+    {
+      "Name": "HiveMPSDK",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

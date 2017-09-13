@@ -6,7 +6,8 @@ def supportedUnityVersions = [
 ]
 def gitCommit = ""
 def supportedUnrealVersions = [
-    "4.16"
+    "4.16",
+    "4.17"
 ]
 if (env.CHANGE_TARGET != null) {
     input "Approve this PR build to run? Check the PR first!"
@@ -37,6 +38,9 @@ node('windows-hispeed') {
             },
             "UnrealEngine-4.16" : {
                 bat 'yarn run generator -- generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c UnrealEngine-4.16 dist/UnrealEngine-4.16'
+            },
+            "UnrealEngine-4.17" : {
+                bat 'yarn run generator -- generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c UnrealEngine-4.17 dist/UnrealEngine-4.17'
             }
         )
     }
@@ -56,6 +60,10 @@ node('windows-hispeed') {
             "UnrealEngine-4.16" : {
                 powershell ('. ./util/Make-Zip.ps1; if (Test-Path UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip) { rm UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip }; ZipFiles UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip dist/UnrealEngine-4.16')
                 stash includes: ('UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'ue416sdk'
+            },
+            "UnrealEngine-4.17" : {
+                powershell ('. ./util/Make-Zip.ps1; if (Test-Path UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip) { rm UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip }; ZipFiles UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip dist/UnrealEngine-4.17')
+                stash includes: ('UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'ue417sdk'
             }
         )
     }
@@ -186,6 +194,14 @@ node('windows-hispeed') {
                         unstash 'ue416sdk'
                         withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
                             sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unreal Engine 4.16"')
+                        }
+                    }
+                },
+                "UnrealEngine-4.17" : {
+                    node('linux') {
+                        unstash 'ue417sdk'
+                        withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
+                            sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unreal Engine 4.17"')
                         }
                     }
                 }
