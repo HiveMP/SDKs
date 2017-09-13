@@ -17,6 +17,7 @@ node('windows-hispeed') {
         bat 'yarn'
         bat 'yarn run getsdk'
         sdkVersion = readFile 'SdkVersion.txt'
+        sdkVersion = sdkVersion.trim()
     }
     stage("Generate") {
         parallel (
