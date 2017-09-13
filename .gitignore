@@ -17,16 +17,14 @@ bin/
 
 yarn-error.log
 Unity.log
-tests/UnrealTest416/Intermediate/
-
-tests/UnrealTest416/Saved/
-tests/UnrealTest416/Plugins/
-tests/UnrealTest416/Binaries/
-tests/UnrealTest416/UnrealTest416.sln
-tests/UnrealTest416/UnrealTest416.VC.db
-tests/UnrealTest416/UnrealTest416.VC.VC.opendb
-
+tests/UnrealTest*/Intermediate/
+tests/UnrealTest*/Saved/
+tests/UnrealTest*/Plugins/
+tests/UnrealTest*/Binaries/
+tests/UnrealTest*/UnrealTest*.sln
+tests/UnrealTest*/UnrealTest*.VC.db
+tests/UnrealTest*/UnrealTest*.VC.VC.opendb
+tests/UnrealTest*/Build/
+tests/UnrealBuilds-*/
 UnrealEngine-*.zip
-tests/UnrealTest416/Build/
-tests/UnrealBuilds-4.16/
 *.unitypackage
