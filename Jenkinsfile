@@ -79,7 +79,9 @@ node('windows-hispeed') {
             def version = v
             parallelMap["UnrealEngine-" + version] =
             {
-                powershell 'tests/Build-UE4Tests.ps1 -Version ' + version
+                lock(resource: "UnrealEngine-" + version + "_" + env.NODE_NAME, inversePrecedence: true) {
+                    powershell 'tests/Build-UE4Tests.ps1 -Version ' + version
+                }
                 stash includes: 'tests/UnrealBuilds-' + version + '/Win32/**', name: 'unreal-' + version + '-test-win32'
                 stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
                 stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
