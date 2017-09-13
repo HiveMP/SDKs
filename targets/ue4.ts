@@ -5,10 +5,8 @@ import * as path from 'path';
 import { TargetGenerator } from './TargetGenerator';
 import { TargetOptions } from "./TargetOptions";
 
-export class UnrealEngine416Generator implements TargetGenerator {
-  get name(): string {
-    return 'UnrealEngine-4.16';
-  }
+export abstract class UnrealEngineGenerator implements TargetGenerator {
+  abstract get name(): string;
 
   static stripDefinition(s: string): string {
     if (s.startsWith('#/definitions/')) {
@@ -67,7 +65,7 @@ export class UnrealEngine416Generator implements TargetGenerator {
             parameterType = 
               arrayConstName + 
               'TArray<' + 
-              UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter.items, false, useConstIn) +
+              UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter.items, false, useConstIn) +
               '>' +
               arrayConstSuffix;
             break;
@@ -77,16 +75,16 @@ export class UnrealEngine416Generator implements TargetGenerator {
           parameterType = 
             arrayConstName + 
             'TArray<' + 
-            UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter.schema.items, false, useConstIn) +
+            UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter.schema.items, false, useConstIn) +
             '>' +
             arrayConstSuffix;
         } else if (parameter.schema.$ref != null) {
-          parameterType = constName + 'FHive' + safeName + '_' + UnrealEngine416Generator.stripDefinition(parameter.schema.$ref);
+          parameterType = constName + 'FHive' + safeName + '_' + UnrealEngineGenerator.stripDefinition(parameter.schema.$ref);
         } else {
-          return UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter.schema, useConst, useConstIn);
+          return UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter.schema, useConst, useConstIn);
         }
       } else if (parameter.$ref != null) {
-        parameterType = constName + 'FHive' + safeName + '_' + UnrealEngine416Generator.stripDefinition(parameter.$ref);
+        parameterType = constName + 'FHive' + safeName + '_' + UnrealEngineGenerator.stripDefinition(parameter.$ref);
       }
     } catch (ex) {
       console.warn(ex);
@@ -99,19 +97,19 @@ export class UnrealEngine416Generator implements TargetGenerator {
     try {
       if (parameter.type != null) {
         if (parameter.type == 'array') {
-          return UnrealEngine416Generator.getReferencedDefinitionName(safeName, parameter.items);
+          return UnrealEngineGenerator.getReferencedDefinitionName(safeName, parameter.items);
         }
         return null;
       } else if (parameter.schema != null) {
         if (parameter.schema.type == 'array') {
-          return UnrealEngine416Generator.getReferencedDefinitionName(safeName, parameter.schema.items);
+          return UnrealEngineGenerator.getReferencedDefinitionName(safeName, parameter.schema.items);
         } else if (parameter.schema.$ref != null) {
-          return UnrealEngine416Generator.stripDefinition(parameter.schema.$ref);
+          return UnrealEngineGenerator.stripDefinition(parameter.schema.$ref);
         } else {
-          return UnrealEngine416Generator.getReferencedDefinitionName(safeName, parameter.schema);
+          return UnrealEngineGenerator.getReferencedDefinitionName(safeName, parameter.schema);
         }
       } else if (parameter.$ref != null) {
-        return UnrealEngine416Generator.stripDefinition(parameter.$ref);
+        return UnrealEngineGenerator.stripDefinition(parameter.$ref);
       }
     } catch (ex) {
       console.error(ex);
@@ -124,19 +122,19 @@ export class UnrealEngine416Generator implements TargetGenerator {
     try {
       if (parameter.type != null) {
         if (parameter.type == 'array') {
-          return 'array:' + UnrealEngine416Generator.getDeserializerName(safeName, parameter.items);
+          return 'array:' + UnrealEngineGenerator.getDeserializerName(safeName, parameter.items);
         }
         return null;
       } else if (parameter.schema != null) {
         if (parameter.schema.type == 'array') {
-          return 'array:' + UnrealEngine416Generator.getDeserializerName(safeName, parameter.schema.items);
+          return 'array:' + UnrealEngineGenerator.getDeserializerName(safeName, parameter.schema.items);
         } else if (parameter.schema.$ref != null) {
-          return 'DeserializeFHive' + safeName + '_' + UnrealEngine416Generator.stripDefinition(parameter.schema.$ref);
+          return 'DeserializeFHive' + safeName + '_' + UnrealEngineGenerator.stripDefinition(parameter.schema.$ref);
         } else {
-          return UnrealEngine416Generator.getDeserializerName(safeName, parameter.schema);
+          return UnrealEngineGenerator.getDeserializerName(safeName, parameter.schema);
         }
       } else if (parameter.$ref != null) {
-        return 'DeserializeFHive' + safeName + '_' + UnrealEngine416Generator.stripDefinition(parameter.$ref);
+        return 'DeserializeFHive' + safeName + '_' + UnrealEngineGenerator.stripDefinition(parameter.$ref);
       }
     } catch (ex) {
       console.warn(ex);
@@ -222,7 +220,7 @@ struct FHiveApiError
 
         for (let propName in defValue.properties) {
           let propValue = defValue.properties[propName];
-          let refDefName = UnrealEngine416Generator.getReferencedDefinitionName(safeName, propValue);
+          let refDefName = UnrealEngineGenerator.getReferencedDefinitionName(safeName, propValue);
           if (refDefName != null) {
             for (let defName2 in api.definitions) {
               if (defName2 == refDefName) {
@@ -243,7 +241,7 @@ struct FHive${safeName}_${defName}
 `;
         for (let propName in defValue.properties) {
           let propValue = defValue.properties[propName];
-          let propType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, propValue, false, false);
+          let propType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, propValue, false, false);
           if (propType != null) {
             header += `
   UPROPERTY(BlueprintReadOnly)
@@ -293,7 +291,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(TShare
 
             try {
               if (methodValue.responses != null && methodValue.responses["200"] != null) {
-                let parameterType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, methodValue.responses["200"], true, true);
+                let parameterType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, methodValue.responses["200"], true, true);
                 if (parameterType == null) {
                   header += `
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(F${implName}_Delegate, const FHiveApiError&, Error);
@@ -335,7 +333,7 @@ class U${implName} : public UOnlineBlueprintCallProxyBase
 `;
             if (methodValue.parameters != null) {
               for (let parameter of methodValue.parameters) {
-                let cppType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter, true, false);
+                let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true, false);
                 header += `
     , ${cppType} ${parameter.name}
 `;
@@ -357,7 +355,7 @@ private:
 `;
             if (methodValue.parameters != null) {
               for (let parameter of methodValue.parameters) {
-                let cppType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter, true, false);
+                let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true, false);
                 header += `
   ${cppType} Field_${parameter.name};
 `;
@@ -399,7 +397,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
 `;
         for (let propName in defValue.properties) {
           let propValue = defValue.properties[propName] as schema.Parameter;
-          let propType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, propValue, false);
+          let propType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, propValue, false);
           if (propType != null) {
             if (propType == 'TArray<uint8>') {
               code += `
@@ -428,7 +426,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
       }
 `;
               } else if (subsetPropType.startsWith('FHive')) {
-                let deserializerName = UnrealEngine416Generator.getDeserializerName(safeName, propValue).substr('array:'.length);
+                let deserializerName = UnrealEngineGenerator.getDeserializerName(safeName, propValue).substr('array:'.length);
                 if (deserializerName != null) {
                   code += `
       const TSharedPtr<FJsonObject>* A_${propName};
@@ -472,7 +470,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
   }
 `;
             } else if (propType.startsWith('FHive')) {
-              let deserializerName = UnrealEngine416Generator.getDeserializerName(safeName, propValue);
+              let deserializerName = UnrealEngineGenerator.getDeserializerName(safeName, propValue);
               if (deserializerName != null) {
                 code += `
   const TSharedPtr<FJsonObject>* F_${propName};
@@ -525,13 +523,13 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
             let deserializerName = "";
             try {
               if (methodValue.responses != null && methodValue.responses["200"] != null) {
-                let parameterType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, methodValue.responses["200"], false);
+                let parameterType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, methodValue.responses["200"], false);
                 if (parameterType == null) {
                   onlyError = true;
                 } else {
                   onlyError = false;
                   resultType = parameterType;
-                  deserializerName = UnrealEngine416Generator.getDeserializerName(safeName, methodValue.responses["200"]);
+                  deserializerName = UnrealEngineGenerator.getDeserializerName(safeName, methodValue.responses["200"]);
                 }
               } else {
                 onlyError = true;
@@ -560,7 +558,7 @@ U${implName}* U${implName}::PerformHiveCall(
 `;
             if (methodValue.parameters != null) {
               for (let parameter of methodValue.parameters) {
-                let cppType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
+                let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
                 code += `
   , ${cppType} ${parameter.name}
 `;
@@ -578,7 +576,7 @@ U${implName}* U${implName}::PerformHiveCall(
 
             if (methodValue.parameters != null) {
               for (let parameter of methodValue.parameters) {
-                let cppType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
+                let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
                 if (cppType.indexOf("TArray") != -1) {
                   code += `
   Proxy->Field_${parameter.name} = ${cppType}(${parameter.name});
@@ -605,7 +603,7 @@ void U${implName}::Activate()
               for (let parameter of methodValue.parameters) {
                 try {
                   if (parameter.in == 'query') {
-                    let cppType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
+                    let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
                     if (cppType != null) {
                       if (cppType.startsWith("FString")) {
                         queryStringPlacements.push(parameter.name + "=%s");
@@ -642,7 +640,7 @@ void U${implName}::Activate()
               for (let parameter of methodValue.parameters) {
                 try {
                   if (parameter.in == 'query') {
-                    let cppType = UnrealEngine416Generator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
+                    let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
                     if (cppType == null) {
                       code += `
     , TEXT("")
@@ -655,7 +653,7 @@ void U${implName}::Activate()
                       code += `
     , *FGenericPlatformHttp::UrlEncode(this->Field_${parameter.name} ? TEXT("true") : TEXT("false"))
 `;
-                    } else if (cppType == null) {
+                    } else {
                       code += `
     , this->Field_${parameter.name}
 `;
@@ -957,5 +955,17 @@ void U${implName}::Activate()
         });
       });
     });
+  }
+}
+
+export class UnrealEngine416Generator extends UnrealEngineGenerator {
+  get name(): string {
+    return "UnrealEngine-4.16";
+  }
+}
+
+export class UnrealEngine417Generator extends UnrealEngineGenerator {
+  get name(): string {
+    return "UnrealEngine-4.17";
   }
 }

@@ -10,7 +10,7 @@ def supportedUnrealVersions = [
 if (env.CHANGE_TARGET != null) {
     input "Approve this PR build to run? Check the PR first!"
 }
-node('windows') {
+node('windows-hispeed') {
     stage("Checkout + Get Deps") {
         checkout poll: false, changelog: false, scm: scm
         bat 'git clean -xdff'

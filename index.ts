@@ -15,6 +15,7 @@ import {
 } from './targets/csharp';
 import {
   UnrealEngine416Generator,
+  UnrealEngine417Generator,
 } from './targets/ue4';
 
 let targets = [
@@ -22,6 +23,7 @@ let targets = [
   new CSharp45Generator(),
   new UnityGenerator(),
   new UnrealEngine416Generator(),
+  new UnrealEngine417Generator(),
 ];
 
 let apis = [
