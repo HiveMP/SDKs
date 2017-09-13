@@ -13,8 +13,18 @@ function Wait-For-Unity-Exit($path, $processId) {
   $outcome = "nothing";
   $running = $true;
   $cleanupTime = $null
+  $startTime = (Get-Date)
   while ($running) {
     if (!(Test-Path $path)) {
+      if (((Get-Date)-$startTime).TotalSeconds -gt 30) {
+        Write-Host "Unity didn't start in time.. killing and retrying...";
+        try { Stop-Process -Force -Id $processId; } catch { }
+        while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+          Write-Host "Waiting for Unity to exit...";
+          sleep -Seconds 1;
+        }
+        return "retry";
+      }
       sleep 1;
       Write-Host "Waiting for Unity to start...";
       continue;
@@ -24,7 +34,7 @@ function Wait-For-Unity-Exit($path, $processId) {
       if ($cleanupTime -ne $null) {
         if (((Get-Date)-$cleanupTime).TotalSeconds -gt 20) {
           Write-Host "Mono cleanup took longer than 20 seconds - Unity is stalled!";
-          Stop-Process -Force -Id $processId;
+          try { Stop-Process -Force -Id $processId; } catch { }
           while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
             Write-Host "Waiting for Unity to exit...";
             sleep -Seconds 1;
@@ -40,7 +50,7 @@ function Wait-For-Unity-Exit($path, $processId) {
       if ($cleanupTime -ne $null) {
         if (((Get-Date)-$cleanupTime).TotalSeconds -gt 20) {
           Write-Host "Mono cleanup took longer than 20 seconds - Unity is stalled!";
-          Stop-Process -Force -Id $processId;
+          try { Stop-Process -Force -Id $processId; } catch { }
           while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
             Write-Host "Waiting for Unity to exit...";
             sleep -Seconds 1;
@@ -55,7 +65,7 @@ function Wait-For-Unity-Exit($path, $processId) {
     if ($cleanupTime -ne $null) {
       if (((Get-Date)-$cleanupTime).TotalSeconds -gt 20) {
         Write-Host "Mono cleanup took longer than 20 seconds - Unity is stalled!";
-        Stop-Process -Force -Id $processId;
+        try { Stop-Process -Force -Id $processId; } catch { }
         while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
           Write-Host "Waiting for Unity to exit...";
           sleep -Seconds 1;
@@ -69,7 +79,7 @@ function Wait-For-Unity-Exit($path, $processId) {
     }
     if ($l.Contains("Failed to start Unity Package Manager: operation timed out")) {
       Write-Host "Package manager timeout - Unity has stalled!";
-      Stop-Process -Force -Id $processId;
+      try { Stop-Process -Force -Id $processId; } catch { }
       while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
         Write-Host "Waiting for Unity to exit...";
         sleep -Seconds 1;

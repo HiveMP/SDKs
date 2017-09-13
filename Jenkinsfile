@@ -4,10 +4,13 @@ def supportedUnityVersions = [
     "2017.1.1f1",
     "2017.2.0b10"
 ]
+def supportedUnrealVersions = [
+    "4.16"
+]
 if (env.CHANGE_TARGET != null) {
     input "Approve this PR build to run? Check the PR first!"
 }
-node('windows') {
+node('windows-hispeed') {
     stage("Checkout + Get Deps") {
         checkout poll: false, changelog: false, scm: scm
         bat 'git clean -xdff'
@@ -28,6 +31,9 @@ node('windows') {
             },
             "Unity" : {
                 bat 'yarn run generator -- generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c Unity dist/Unity'
+            },
+            "UnrealEngine-4.16" : {
+                bat 'yarn run generator -- generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c UnrealEngine-4.16 dist/UnrealEngine-4.16'
             }
         )
     }
@@ -40,6 +46,10 @@ node('windows') {
             "Unity" : {
                 powershell ('. ./util/Make-Zip.ps1; if (Test-Path Unity-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip) { rm Unity-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip }; ZipFiles Unity-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip dist/Unity')
                 stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'unitysdk'
+            },
+            "UnrealEngine-4.16" : {
+                powershell ('. ./util/Make-Zip.ps1; if (Test-Path UnrealEngine-4.16-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip) { rm UnrealEngine-4.16-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip }; ZipFiles UnrealEngine-4.16-SDK.' + sdkVersion + '.\$env:BUILD_NUMBER.zip dist/UnrealEngine-4.16')
+                stash includes: ('UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'ue416sdk'
             }
         )
     }
@@ -57,6 +67,16 @@ node('windows') {
                 stash includes: 'tests/UnityBuilds-' + version + '/Win32/**', name: 'unity-' + version + '-test-win32'
                 stash includes: 'tests/UnityBuilds-' + version + '/Win64/**', name: 'unity-' + version + '-test-win64'
                 stash includes: 'tests/*.ps1', name: 'unity-' + version + '-test-script'
+            };
+        }
+        supportedUnrealVersions.each { v ->
+            def version = v
+            parallelMap["UnrealEngine-" + version] =
+            {
+                powershell 'tests/Build-UE4Tests.ps1 -Version ' + version
+                stash includes: 'tests/UnrealBuilds-' + version + '/Win32/**', name: 'unreal-' + version + '-test-win32'
+                stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
+                stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
             };
         }
         parallel (parallelMap)
@@ -101,6 +121,25 @@ node('windows') {
                     unstash 'unity-' + version + '-test-win64'
                     unstash 'unity-' + version + '-test-script'
                     powershell 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win64'
+                }
+            };
+        }
+        supportedUnrealVersions.each { v ->
+            def version = v
+            parallelMap["UnrealEngine-" + version + "-Win32"] =
+            {
+                node('windows') {
+                    unstash 'unreal-' + version + '-test-win32'
+                    unstash 'unreal-' + version + '-test-script'
+                    powershell 'tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win32'
+                }
+            };
+            parallelMap["UnrealEngine-" + version + "-Win64"] =
+            {
+                node('windows') {
+                    unstash 'unreal-' + version + '-test-win64'
+                    unstash 'unreal-' + version + '-test-script'
+                    powershell 'tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
                 }
             };
         }
