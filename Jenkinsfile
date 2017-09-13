@@ -163,7 +163,7 @@ node('windows-hispeed') {
             parallel (
                 "CSharp" : {
                     bat ('cd dist/CSharp-4.5 && nuget push -Source nuget.org -NonInteractive HiveMP.' + sdkVersion + '.%BUILD_NUMBER%.nupkg')
-                    stash includes: 'dist/CSharp-4.5/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER, name: 'csharpsdk'
+                    stash includes: 'dist/CSharp-4.5/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg', name: 'csharpsdk'
                     node('linux') {
                         unstash 'csharpsdk'
                         withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
