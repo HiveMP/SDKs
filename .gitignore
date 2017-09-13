@@ -29,3 +29,4 @@ tests/UnrealTest416/UnrealTest416.VC.VC.opendb
 UnrealEngine-*.zip
 tests/UnrealTest416/Build/
 tests/UnrealBuilds-4.16/
+*.unitypackage
