@@ -45,6 +45,7 @@ let apis = [
   'ugc-cache',
   'user-session',
   'search',
+  'scheduling',
 ];
 
 let command = null;
