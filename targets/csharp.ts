@@ -223,7 +223,10 @@ namespace ${namespace}
         }
       }
 
-      for (let definitionName in api.definitions) {
+      let orderedDefinitionNames = Object.keys(api.definitions);
+      orderedDefinitionNames.sort();
+
+      for (let definitionName of orderedDefinitionNames) {
         if (definitionName == 'HiveSystemError') {
           continue;
         }
@@ -608,6 +611,16 @@ namespace ${namespace}
                                 });
                         }
 
+                        if (result_ == null)
+                        {
+                            throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
+                                {
+                                    Code = 0,
+                                    Message = "Could not deserialize the response body.",
+                                    Fields = string.Empty,
+                                });
+                        }
+
                         throw new HiveMP.Api.HiveMPException(statusCode, result_);
                     }
                 }
@@ -621,6 +634,9 @@ namespace ${namespace}
             for (let parameter of methodValue.parameters) {
               let csharpType = CSharpGenerator.getCSharpTypeFromDefinition(namespace, parameter, false);
               let name = parameter.name[0].toUpperCase() + parameter.name.substr(1);
+              if (parameter.in == "body") {
+                continue;
+              }
               if (parameter.required) {
                 if (!csharpType.startsWith("int") && csharpType != "long" && csharpType != "float" && csharpType != "double") {
                   code += `
@@ -646,9 +662,25 @@ namespace ${namespace}
                     PrepareRequest(client_, urlBuilder_);
                     var url_ = urlBuilder_.ToString();
                     PrepareRequest(client_, url_);
-    
-                    // TODO: Support methods with body parameters.
-                    var content_ = new System.Net.Http.StringContent(string.Empty);
+                    
+                    System.Net.Http.StringContent content_ = null;`;
+          if (methodValue.parameters != null) {
+            for (let parameter of methodValue.parameters) {
+              let csharpType = CSharpGenerator.getCSharpTypeFromDefinition(namespace, parameter, false);
+              let name = parameter.name[0].toUpperCase() + parameter.name.substr(1);
+              if (parameter.in == "body") {
+                code += `
+                    content_ = new System.Net.Http.StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(arguments.${name}), System.Text.Encoding.UTF8, "application/json");
+`;
+                break;
+              }
+            }
+          }
+          code += `
+                    if (content_ == null)
+                    {
+                        content_ = new System.Net.Http.StringContent(string.Empty);
+                    }
                     
                     if ("${el.methodName.toUpperCase()}" != "GET" && "${el.methodName.toUpperCase()}" != "DELETE")
                     {
@@ -699,6 +731,16 @@ namespace ${namespace}
                                 result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(responseData_);
                             } 
                             catch (System.Exception exception_) 
+                            {
+                                throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                                    {
+                                        Code = 0,
+                                        Message = "Could not deserialize the response body.",
+                                        Fields = string.Empty,
+                                    });
+                            }
+
+                            if (result_ == null)
                             {
                                 throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
                                     {
@@ -795,6 +837,16 @@ namespace ${namespace}
                                 result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(responseData_);
                             } 
                             catch (System.Exception exception_) 
+                            {
+                                throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                                    {
+                                        Code = 0,
+                                        Message = "Could not deserialize the response body.",
+                                        Fields = string.Empty,
+                                    });
+                            }
+
+                            if (result_ == null)
                             {
                                 throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
                                     {
@@ -971,6 +1023,16 @@ namespace ${namespace}
                                 });
                         }
 
+                        if (result_ == null)
+                        {
+                            throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
+                                {
+                                    Code = 0,
+                                    Message = "Could not deserialize the response body.",
+                                    Fields = string.Empty,
+                                });
+                        }
+
                         throw new HiveMP.Api.HiveMPException(statusCode, result_);
                     }
                 }
@@ -1083,6 +1145,16 @@ namespace ${namespace}
                             });
                     }
 
+                    if (result_ == null)
+                    {
+                        throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                            {
+                                Code = 0,
+                                Message = "Could not deserialize the response body.",
+                                Fields = string.Empty,
+                            });
+                    }
+
                     throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_);
                 }
             }
@@ -1152,7 +1224,9 @@ using Newtonsoft.Json;
 using System;
 using System.IO;
 #if HAS_HTTPCLIENT
+using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 #else
 using System.Net;
 #endif
@@ -1164,14 +1238,51 @@ using System.Threading.Tasks;
 namespace HiveMP.Api
 {
 #if HAS_HTTPCLIENT
-    public class RetryableHttpClient : HttpClient
+    public class RetryableHttpClient : IDisposable
     {
+        private readonly HttpClient _httpClient;
+
         static RetryableHttpClient()
         {
             HiveMP.Api.HiveMPSDKSetup.EnsureInited();
         }
 
-        public new async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationToken cancellationToken)
+        public RetryableHttpClient()
+        {
+            _httpClient = new HttpClient();
+        }
+
+        public HttpRequestHeaders DefaultRequestHeaders
+        {
+            get => _httpClient.DefaultRequestHeaders;
+        }
+
+        public void Dispose()
+        {
+            _httpClient.Dispose();
+        }
+
+        public Task<HttpResponseMessage> GetAsync(string requestUri)
+        {
+            return SendAsync(new HttpRequestMessage(HttpMethod.Get, requestUri), HttpCompletionOption.ResponseContentRead, CancellationToken.None);
+        }
+
+        public Task<HttpResponseMessage> PostAsync(string requestUri, HttpContent content)
+        {
+            return SendAsync(new HttpRequestMessage(HttpMethod.Post, requestUri) { Content = content }, HttpCompletionOption.ResponseContentRead, CancellationToken.None);
+        }
+
+        public Task<HttpResponseMessage> PutAsync(string requestUri, HttpContent content)
+        {
+            return SendAsync(new HttpRequestMessage(HttpMethod.Put, requestUri) { Content = content }, HttpCompletionOption.ResponseContentRead, CancellationToken.None);
+        }
+
+        public Task<HttpResponseMessage> DeleteAsync(string requestUri)
+        {
+            return SendAsync(new HttpRequestMessage(HttpMethod.Delete, requestUri), HttpCompletionOption.ResponseContentRead, CancellationToken.None);
+        }
+
+        public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationToken cancellationToken)
         {
             using (var memory = new MemoryStream())
             {
@@ -1192,11 +1303,15 @@ namespace HiveMP.Api
                     var newContent = bytes != null ? new ByteArrayContent(bytes) : null;
                     if (newContent != null)
                     {
-                        foreach (var h in request.Content.Headers)
+                        if (request.Content.Headers != null)
                         {
-                            newContent.Headers.Add(h.Key, h.Value);
+                            foreach (var h in request.Content.Headers)
+                            {
+                                newContent.Headers.Add(h.Key, h.Value);
+                            }
                         }
                     }
+
                     var newRequest = new HttpRequestMessage
                     {
                         Content = newContent,
@@ -1213,8 +1328,30 @@ namespace HiveMP.Api
                         newRequest.Properties.Add(p);
                     }
                     
-                    var response = await base.SendAsync(newRequest, completionOption, cancellationToken);
-                    
+                    HttpResponseMessage response;
+                    try
+                    {
+                        response = await _httpClient.SendAsync(newRequest, completionOption, cancellationToken);
+                    }
+                    catch (AggregateException ex) when (ex.InnerExceptions.Any(x => x?.Message == "Server returned nothing (no headers, no data)"))
+                    {
+                        // This indicates we had a cURL exception inside the request, and that the server didn't
+                        // respond with anything (even though the TCP connection was successful). Treat this as a
+                        // "retry operation" scenario.
+                        await Task.Delay(delay);
+                        delay *= 2;
+                        delay = Math.Min(30000, delay);
+                        continue;
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        var t = Task.Delay(delay);
+                        await t;
+                        delay *= 2;
+                        delay = Math.Min(30000, delay);
+                        continue;
+                    }
+
                     if (!response.IsSuccessStatusCode)
                     {
                         var responseData = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -1229,9 +1366,17 @@ namespace HiveMP.Api
                             return response;
                         }
 
-                        if (result.Code >= 6000 && result.Code < 7000)
+                        if (result == null)
                         {
-                            await Task.Delay(delay);
+                            // Unable to parse response, let the handle
+                            // fail parsing this.
+                            return response;
+                        }
+
+                        if (result.Code == 6001)
+                        {
+                            var t = Task.Delay(delay);
+                            await t;
                             delay *= 2;
                             delay = Math.Min(30000, delay);
                             continue;
@@ -1307,7 +1452,7 @@ namespace HiveMP.Api
         }
 
         public HiveMPException(int httpStatusCode, HiveMPSystemError error)
-            : base("#" + error.Code + ": " + error.Message + " (" + (error.Fields ?? "") + ")")
+            : base("#" + (error?.Code ?? 0) + ": " + (error?.Message ?? "") + " (" + (error?.Fields ?? "") + ")")
         {
             HttpStatusCode = httpStatusCode;
             Error = error;
