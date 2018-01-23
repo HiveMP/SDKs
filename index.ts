@@ -28,7 +28,9 @@ let targets = [
 
 let apis = [
   'admin-session',
+  'api-key',
   'attribute',
+  'billing',
   //'audit',
   'client-connect',
   //'error',
@@ -40,6 +42,7 @@ let apis = [
   'revenue-share',
   //'matchmaking',
   'nat-punchthrough',
+  'netcode',
   'temp-session',
   'pos',
   'ugc-cache',

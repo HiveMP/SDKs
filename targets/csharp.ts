@@ -43,16 +43,16 @@ abstract class CSharpGenerator implements TargetGenerator {
   
   static stripDefinition(s: string): string {
     if (s.startsWith('#/definitions/')) {
-      return s.substr('#/definitions/'.length);
+      return s.substr('#/definitions/'.length).replace(/(\[|\])/g, '');
     }
-    return s;
+    return s.replace(/(\[|\])/g, '');
   }
 
-  static getCSharpTypeFromDefinition(namespace: string, definition: schema.Definition, useConst: boolean, useConstIn?: boolean): string {
+  static getCSharpTypeFromDefinition(namespace: string, definition: schema.Definition, useConst: boolean, useConstIn?: boolean, isResponse?: boolean): string {
     const constName = useConst ? 'const ' : '';
     const arrayConstName = useConstIn ? 'const ': '';
     const arrayConstSuffix = useConstIn ? '&' : '';
-    const nullableSuffix = definition.required ? '' : '?';
+    const nullableSuffix = (definition.required || isResponse) ? '' : '?';
     let type = null;
     try {
       if (definition.type != null) {
@@ -95,24 +95,24 @@ abstract class CSharpGenerator implements TargetGenerator {
               // This is a dictionary.
               type = 'System.Collections.Generic.Dictionary<object, ' + CSharpGenerator.getCSharpTypeFromDefinition(namespace, (definition as any).additionalProperties, false, useConstIn) + '>';
             } else {
-              type = 'string /* JSON STRING */';
+              type = 'Newtonsoft.Json.Linq.JObject';
             }
             break;
           case 'array':
             type = 
-              CSharpGenerator.getCSharpTypeFromDefinition(namespace, definition.items, false, useConstIn) +
+              CSharpGenerator.getCSharpTypeFromDefinition(namespace, definition.items, false, useConstIn, isResponse) +
               '[]';
             break;
         }
       } else if (definition.schema != null) {
         if (definition.schema.type == 'array') {
           type = 
-            CSharpGenerator.getCSharpTypeFromDefinition(namespace, definition.schema.items, false, useConstIn) +
+            CSharpGenerator.getCSharpTypeFromDefinition(namespace, definition.schema.items, false, useConstIn, isResponse) +
             '[]';
         } else if (definition.schema.$ref != null) {
           type = namespace + '.' + CSharpGenerator.stripDefinition(definition.schema.$ref);
         } else {
-          return CSharpGenerator.getCSharpTypeFromDefinition(namespace, definition.schema, useConst, useConstIn);
+          return CSharpGenerator.getCSharpTypeFromDefinition(namespace, definition.schema, useConst, useConstIn, isResponse);
         }
       } else if (definition.$ref != null) {
         type = namespace + '.' + CSharpGenerator.stripDefinition(definition.$ref);
@@ -227,11 +227,12 @@ namespace ${namespace}
         if (definitionName == 'HiveSystemError') {
           continue;
         }
+        const className = definitionName.replace(/(\[|\])/g, '');
         code += `
     [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
-    public class ${definitionName}
+    public class ${className}
     {
-        static ${definitionName}()
+        static ${className}()
         {
             HiveMP.Api.HiveMPSDKSetup.EnsureInited();
         }
@@ -293,7 +294,7 @@ namespace ${namespace}
           let returnValue = 'void';
           let asyncReturnValue = 'System.Threading.Tasks.Task';
           if (methodValue.responses != null && methodValue.responses["200"] != null) {
-            returnValue = CSharpGenerator.getCSharpTypeFromDefinition(namespace, methodValue.responses["200"], false);
+            returnValue = CSharpGenerator.getCSharpTypeFromDefinition(namespace, methodValue.responses["200"], false, false, true);
             if (returnValue == null) {
               returnValue = 'void';
             } else {
@@ -442,7 +443,7 @@ namespace ${namespace}
           let returnValue = 'void';
           let asyncReturnValue = 'System.Threading.Tasks.Task';
           if (methodValue.responses != null && methodValue.responses["200"] != null) {
-            returnValue = CSharpGenerator.getCSharpTypeFromDefinition(namespace, methodValue.responses["200"], false);
+            returnValue = CSharpGenerator.getCSharpTypeFromDefinition(namespace, methodValue.responses["200"], false, false, true);
             if (returnValue == null) {
               returnValue = 'void';
             } else {
@@ -568,7 +569,12 @@ namespace ${namespace}
                         } 
                         catch (System.Exception exception) 
                         {
-                            throw new HiveMP.Api.HiveMPException(statusCode, 0, "Could not deserialize the response body.", string.Empty);
+                            throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
+                                {
+                                    Code = 0,
+                                    Message = "Could not deserialize the response body.",
+                                    Fields = string.Empty,
+                                });
                         }
 `;
           } else {
@@ -594,10 +600,15 @@ namespace ${namespace}
                         } 
                         catch (System.Exception exception_) 
                         {
-                            throw new HiveMP.Api.HiveMPException(statusCode, 0, "Could not deserialize the response body.", string.Empty);
+                            throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
+                                {
+                                    Code = 0,
+                                    Message = "Could not deserialize the response body.",
+                                    Fields = string.Empty,
+                                });
                         }
 
-                        throw new HiveMP.Api.HiveMPException(statusCode, result_.Code, result_.Message, result_.Fields);
+                        throw new HiveMP.Api.HiveMPException(statusCode, result_);
                     }
                 }
                 while (true);
@@ -668,7 +679,12 @@ namespace ${namespace}
                             } 
                             catch (System.Exception exception) 
                             {
-                                throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, 0, "Could not deserialize the response body.", string.Empty);
+                                throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                                    {
+                                        Code = 0,
+                                        Message = "Could not deserialize the response body.",
+                                        Fields = string.Empty,
+                                    });
                             }
 `;
           }
@@ -684,10 +700,15 @@ namespace ${namespace}
                             } 
                             catch (System.Exception exception_) 
                             {
-                                throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, 0, "Could not deserialize the response body.", string.Empty);
+                                throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                                    {
+                                        Code = 0,
+                                        Message = "Could not deserialize the response body.",
+                                        Fields = string.Empty,
+                                    });
                             }
     
-                            throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_.Code, result_.Message, result_.Fields);
+                            throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_);
                         }
                     }
                     finally
@@ -750,7 +771,12 @@ namespace ${namespace}
                             } 
                             catch (System.Exception exception) 
                             {
-                                throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, 0, "Could not deserialize the response body.", string.Empty);
+                                throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                                    {
+                                        Code = 0,
+                                        Message = "Could not deserialize the response body.",
+                                        Fields = string.Empty,
+                                    });
                             }
 `;
           }
@@ -770,10 +796,15 @@ namespace ${namespace}
                             } 
                             catch (System.Exception exception_) 
                             {
-                                throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, 0, "Could not deserialize the response body.", string.Empty);
+                                throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                                    {
+                                        Code = 0,
+                                        Message = "Could not deserialize the response body.",
+                                        Fields = string.Empty,
+                                    });
                             }
 
-                            throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_.Code, result_.Message, result_.Fields);
+                            throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_);
                         }
                     });
                 }
@@ -901,7 +932,12 @@ namespace ${namespace}
                         } 
                         catch (System.Exception exception) 
                         {
-                            throw new HiveMP.Api.HiveMPException(statusCode, 0, "Could not deserialize the response body.", string.Empty);
+                            throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
+                                {
+                                    Code = 0,
+                                    Message = "Could not deserialize the response body.",
+                                    Fields = string.Empty,
+                                });
                         }
 `;
           } else {
@@ -927,10 +963,15 @@ namespace ${namespace}
                         } 
                         catch (System.Exception exception_) 
                         {
-                            throw new HiveMP.Api.HiveMPException(statusCode, 0, "Could not deserialize the response body.", string.Empty);
+                            throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
+                                {
+                                    Code = 0,
+                                    Message = "Could not deserialize the response body.",
+                                    Fields = string.Empty,
+                                });
                         }
 
-                        throw new HiveMP.Api.HiveMPException(statusCode, result_.Code, result_.Message, result_.Fields);
+                        throw new HiveMP.Api.HiveMPException(statusCode, result_);
                     }
                 }
                 while (true);
@@ -1009,7 +1050,12 @@ namespace ${namespace}
                     } 
                     catch (System.Exception exception) 
                     {
-                        throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, 0, "Could not deserialize the response body.", string.Empty);
+                        throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                            {
+                                Code = 0,
+                                Message = "Could not deserialize the response body.",
+                                Fields = string.Empty,
+                            });
                     }
 `;
           }
@@ -1029,10 +1075,15 @@ namespace ${namespace}
                     } 
                     catch (System.Exception exception_) 
                     {
-                        throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, 0, "Could not deserialize the response body.", string.Empty);
+                        throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                            {
+                                Code = 0,
+                                Message = "Could not deserialize the response body.",
+                                Fields = string.Empty,
+                            });
                     }
 
-                    throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_.Code, result_.Message, result_.Fields);
+                    throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_);
                 }
             }
             finally
@@ -1255,22 +1306,16 @@ namespace HiveMP.Api
             HiveMP.Api.HiveMPSDKSetup.EnsureInited();
         }
 
-        public HiveMPException(int httpStatusCode, int errorCode, string message, string fields)
-            : base("#" + errorCode + ": " + message + " (" + (fields ?? "") + ")")
+        public HiveMPException(int httpStatusCode, HiveMPSystemError error)
+            : base("#" + error.Code + ": " + error.Message + " (" + (error.Fields ?? "") + ")")
         {
             HttpStatusCode = httpStatusCode;
-            HiveErrorCode = errorCode;
-            HiveErrorMessage = message;
-            HiveErrorFields = fields;
+            Error = error;
         }
 
         public int HttpStatusCode { get; set; }
 
-        public int HiveErrorCode { get; set; }
-
-        public string HiveErrorMessage { get; set; }
-
-        public string HiveErrorFields { get; set; }
+        public HiveMPSystemError Error { get; set; }
     }
 }    
 `;
