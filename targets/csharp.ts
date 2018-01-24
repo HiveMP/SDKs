@@ -637,16 +637,26 @@ namespace ${namespace}
               if (parameter.in == "body") {
                 continue;
               }
+              let converter = '.ToString()';
+              if (parameter.type === 'string' && parameter.format === 'byte') {
+                converter = '';
+              }
+              let valueAccess = `arguments.${name}${converter}`;
+              if (parameter.type === 'string' && parameter.format === 'byte') {
+                valueAccess = `System.Uri.EscapeDataString(System.Convert.ToBase64String(${valueAccess}))`;
+              } else {
+                valueAccess = `System.Uri.EscapeDataString(${valueAccess})`;
+              }
               if (parameter.required) {
                 if (!csharpType.startsWith("int") && csharpType != "long" && csharpType != "float" && csharpType != "double") {
                   code += `
             if (arguments.${name} == null) throw new System.ArgumentNullException("arguments.${name}");`;
                 }
                 code += `
-            urlBuilder_.Append("${parameter.name}=").Append(System.Uri.EscapeDataString(arguments.${name} == null ? "" : arguments.${name}.ToString())).Append("&");`;
+            urlBuilder_.Append("${parameter.name}=").Append(${valueAccess}).Append("&");`;
               } else {
                 code += `
-            if (arguments.${name} != null) urlBuilder_.Append("${parameter.name}=").Append(System.Uri.EscapeDataString(arguments.${name}.ToString())).Append("&");`;
+            if (arguments.${name} != null) urlBuilder_.Append("${parameter.name}=").Append(${valueAccess}).Append("&");`;
               }
             }
           }
