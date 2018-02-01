@@ -37,7 +37,7 @@ node('windows-hispeed') {
         parallelMap["CSharp-3.5"] = {
             timeout(5) {
                 bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c CSharp-3.5 dist/CSharp-3.5'
-                powershell 'wget -OutFile dist\\CSharp-3.5\\nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
+                bat 'pwsh util/Fetch-NuGet.ps1'
                 bat 'cd dist/CSharp-3.5 && nuget restore && %windir%\\Microsoft.NET\\Framework64\\v4.0.30319\\msbuild /p:Configuration=Release /m HiveMP.sln'
             }
         };
@@ -61,16 +61,15 @@ node('windows-hispeed') {
         def parallelMap = [:]
         parallelMap["CSharp"] = {
             timeout(10) {
-                powershell 'wget -OutFile dist\\CSharp-4.5\\nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
+                bat 'pwsh util/Fetch-NuGet-4.5.ps1'
                 bat ('cd dist/CSharp-4.5 && nuget pack -Version ' + sdkVersion + '.%BUILD_NUMBER% -NonInteractive HiveMP.nuspec')
             }
         };
         parallelMap["Unity"] = {
             timeout(10) {
-                powershell ('. ./util/Make-Zip.ps1; if (Test-Path Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip) { rm Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip }; ZipFiles Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip dist/Unity')
+                bat ('pwsh util/Unity-PrePackage.ps1 -SdkVersion ' + sdkVersion)
                 stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'unitysdk'
-                powershell ('./tests/Build-UnityPackage.ps1 -Version 5.4.1f -PackageVersion "' + sdkVersion + '.' + env.BUILD_NUMBER + '"')
-                powershell ('Move-Item -Force tests/UnityTest-5.4.1f/HiveMPSDK-' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage ./Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage')
+                bat ('pwsh util/Unity-PostPackage.ps1 -SdkVersion ' + sdkVersion)
                 stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage'), name: 'unitypackage'
             }
         };
@@ -79,7 +78,7 @@ node('windows-hispeed') {
             parallelMap["UnrealEngine-" + version] =
             {
                 timeout(10) {
-                    powershell ('. ./util/Make-Zip.ps1; if (Test-Path UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip) { rm UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip }; ZipFiles UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip dist/UnrealEngine-' + version)
+                    bat ('pwsh util/UE4-Package.ps1 -UeVersion ' + version + ' -SdkVersion ' + sdkVersion)
                     stash includes: ('UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'ue' + version.replace(/\./, '') + 'sdk'
                 }
             };
@@ -93,7 +92,7 @@ node('windows-hispeed') {
             parallelMap["Unity-" + version] =
             {
                 timeout(30) {
-                    powershell 'tests/Build-UnityTests.ps1 -Version ' + version
+                    bat 'pwsh tests/Build-UnityTests.ps1 -Version ' + version
                     stash includes: 'tests/UnityBuilds-' + version + '/Linux32/**', name: 'unity-' + version + '-test-linux32'
                     stash includes: 'tests/UnityBuilds-' + version + '/Linux64/**', name: 'unity-' + version + '-test-linux64'
                     stash includes: 'tests/UnityBuilds-' + version + '/Mac32/**', name: 'unity-' + version + '-test-mac32'
@@ -110,7 +109,7 @@ node('windows-hispeed') {
             {
                 timeout(30) {
                     lock(resource: "UnrealEngine-" + version + "_" + env.NODE_NAME, inversePrecedence: true) {
-                        powershell 'tests/Build-UE4Tests.ps1 -Version ' + version
+                        bat 'pwsh tests/Build-UE4Tests.ps1 -Version ' + version
                     }
                     stash includes: 'tests/UnrealBuilds-' + version + '/Win32/**', name: 'unreal-' + version + '-test-win32'
                     stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
@@ -156,7 +155,7 @@ node('windows-hispeed') {
                     timeout(30) {
                         unstash 'unity-' + version + '-test-win32'
                         unstash 'unity-' + version + '-test-script'
-                        powershell 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win32'
+                        bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win32'
                     }
                 }
             };
@@ -166,7 +165,7 @@ node('windows-hispeed') {
                     timeout(30) {
                         unstash 'unity-' + version + '-test-win64'
                         unstash 'unity-' + version + '-test-script'
-                        powershell 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win64'
+                        bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win64'
                     }
                 }
             };
@@ -179,7 +178,7 @@ node('windows-hispeed') {
                     timeout(30) {
                         unstash 'unreal-' + version + '-test-win32'
                         unstash 'unreal-' + version + '-test-script'
-                        powershell 'tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win32'
+                        bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win32'
                     }
                 }
             };
@@ -189,7 +188,7 @@ node('windows-hispeed') {
                     timeout(30) {
                         unstash 'unreal-' + version + '-test-win64'
                         unstash 'unreal-' + version + '-test-script'
-                        powershell 'tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
+                        bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
                     }
                 }
             };
