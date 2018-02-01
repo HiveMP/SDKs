@@ -16,65 +16,75 @@ if (env.CHANGE_TARGET != null) {
 }
 node('windows-hispeed') {
     stage("Checkout + Get Deps") {
-        gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
-        bat ('echo ' + gitCommit)
-        bat 'git clean -xdff'
-        bat 'yarn'
-        bat 'yarn run getsdk'
-        sdkVersion = readFile 'SdkVersion.txt'
-        sdkVersion = sdkVersion.trim()
+        timeout(10) {
+            gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
+            bat ('echo ' + gitCommit)
+            bat 'git clean -xdff'
+            bat 'yarn'
+            bat 'yarn run getsdk'
+            sdkVersion = readFile 'SdkVersion.txt'
+            sdkVersion = sdkVersion.trim()
+        }
     }
     stage("Generate") {
-        parallel (
-            "CSharp-4.5" : {
+        def parallelMap = [:]
+        parallelMap["CSharp-4.5"] = {
+            timeout(5) {
                 bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c CSharp-4.5 dist/CSharp-4.5'
                 bat 'cd dist/CSharp-4.5 && dotnet restore HiveMP.sln && dotnet build -c Release HiveMP.sln'
-            },
-            "CSharp-3.5" : {
+            }
+        };
+        parallelMap["CSharp-3.5"] = {
+            timeout(5) {
                 bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c CSharp-3.5 dist/CSharp-3.5'
                 powershell 'wget -OutFile dist\\CSharp-3.5\\nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
                 bat 'cd dist/CSharp-3.5 && nuget restore && %windir%\\Microsoft.NET\\Framework64\\v4.0.30319\\msbuild /p:Configuration=Release /m HiveMP.sln'
-            },
-            "Unity" : {
-                bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c Unity dist/Unity'
-            },
-            "UnrealEngine-4.16" : {
-                bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c UnrealEngine-4.16 dist/UnrealEngine-4.16'
-            },
-            "UnrealEngine-4.17" : {
-                bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c UnrealEngine-4.17 dist/UnrealEngine-4.17'
-            },
-            "UnrealEngine-4.18" : {
-                bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c UnrealEngine-4.18 dist/UnrealEngine-4.18'
             }
-        )
+        };
+        parallelMap["Unity"] = {
+            timeout(5) {
+                bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c Unity dist/Unity'
+            }
+        };
+        supportedUnrealVersions.each { v ->
+            def version = v
+            parallelMap["UnrealEngine-" + version] =
+            {
+                timeout(5) {
+                    bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c UnrealEngine-' + version + ' dist/UnrealEngine-' + version
+                }
+            };
+        }
+        parallel (parallelMap)
     }
     stage("Package") {
-        parallel (
-            "CSharp" : {
+        def parallelMap = [:]
+        parallelMap["CSharp"] = {
+            timeout(10) {
                 powershell 'wget -OutFile dist\\CSharp-4.5\\nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
                 bat ('cd dist/CSharp-4.5 && nuget pack -Version ' + sdkVersion + '.%BUILD_NUMBER% -NonInteractive HiveMP.nuspec')
-            },
-            "Unity" : {
+            }
+        };
+        parallelMap["Unity"] = {
+            timeout(10) {
                 powershell ('. ./util/Make-Zip.ps1; if (Test-Path Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip) { rm Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip }; ZipFiles Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip dist/Unity')
                 stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'unitysdk'
                 powershell ('./tests/Build-UnityPackage.ps1 -Version 5.4.1f -PackageVersion "' + sdkVersion + '.' + env.BUILD_NUMBER + '"')
                 powershell ('Move-Item -Force tests/UnityTest-5.4.1f/HiveMPSDK-' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage ./Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage')
                 stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage'), name: 'unitypackage'
-            },
-            "UnrealEngine-4.16" : {
-                powershell ('. ./util/Make-Zip.ps1; if (Test-Path UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip) { rm UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip }; ZipFiles UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip dist/UnrealEngine-4.16')
-                stash includes: ('UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'ue416sdk'
-            },
-            "UnrealEngine-4.17" : {
-                powershell ('. ./util/Make-Zip.ps1; if (Test-Path UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip) { rm UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip }; ZipFiles UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip dist/UnrealEngine-4.17')
-                stash includes: ('UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'ue417sdk'
-            },
-            "UnrealEngine-4.18" : {
-                powershell ('. ./util/Make-Zip.ps1; if (Test-Path UnrealEngine-4.18-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip) { rm UnrealEngine-4.18-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip }; ZipFiles UnrealEngine-4.18-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip dist/UnrealEngine-4.18')
-                stash includes: ('UnrealEngine-4.18-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'ue418sdk'
             }
-        )
+        };
+        supportedUnrealVersions.each { v ->
+            def version = v
+            parallelMap["UnrealEngine-" + version] =
+            {
+                timeout(10) {
+                    powershell ('. ./util/Make-Zip.ps1; if (Test-Path UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip) { rm UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip }; ZipFiles UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip dist/UnrealEngine-' + version)
+                    stash includes: ('UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'ue' + version.replace(/\./, '') + 'sdk'
+                }
+            };
+        }
+        parallel (parallelMap)
     }
     stage("Build Tests") {
         def parallelMap = [:]
@@ -82,26 +92,30 @@ node('windows-hispeed') {
             def version = v
             parallelMap["Unity-" + version] =
             {
-                powershell 'tests/Build-UnityTests.ps1 -Version ' + version
-                stash includes: 'tests/UnityBuilds-' + version + '/Linux32/**', name: 'unity-' + version + '-test-linux32'
-                stash includes: 'tests/UnityBuilds-' + version + '/Linux64/**', name: 'unity-' + version + '-test-linux64'
-                stash includes: 'tests/UnityBuilds-' + version + '/Mac32/**', name: 'unity-' + version + '-test-mac32'
-                stash includes: 'tests/UnityBuilds-' + version + '/Mac64/**', name: 'unity-' + version + '-test-mac64'
-                stash includes: 'tests/UnityBuilds-' + version + '/Win32/**', name: 'unity-' + version + '-test-win32'
-                stash includes: 'tests/UnityBuilds-' + version + '/Win64/**', name: 'unity-' + version + '-test-win64'
-                stash includes: 'tests/*.ps1', name: 'unity-' + version + '-test-script'
+                timeout(30) {
+                    powershell 'tests/Build-UnityTests.ps1 -Version ' + version
+                    stash includes: 'tests/UnityBuilds-' + version + '/Linux32/**', name: 'unity-' + version + '-test-linux32'
+                    stash includes: 'tests/UnityBuilds-' + version + '/Linux64/**', name: 'unity-' + version + '-test-linux64'
+                    stash includes: 'tests/UnityBuilds-' + version + '/Mac32/**', name: 'unity-' + version + '-test-mac32'
+                    stash includes: 'tests/UnityBuilds-' + version + '/Mac64/**', name: 'unity-' + version + '-test-mac64'
+                    stash includes: 'tests/UnityBuilds-' + version + '/Win32/**', name: 'unity-' + version + '-test-win32'
+                    stash includes: 'tests/UnityBuilds-' + version + '/Win64/**', name: 'unity-' + version + '-test-win64'
+                    stash includes: 'tests/*.ps1', name: 'unity-' + version + '-test-script'
+                }
             };
         }
         supportedUnrealVersions.each { v ->
             def version = v
             parallelMap["UnrealEngine-" + version] =
             {
-                lock(resource: "UnrealEngine-" + version + "_" + env.NODE_NAME, inversePrecedence: true) {
-                    powershell 'tests/Build-UE4Tests.ps1 -Version ' + version
+                timeout(30) {
+                    lock(resource: "UnrealEngine-" + version + "_" + env.NODE_NAME, inversePrecedence: true) {
+                        powershell 'tests/Build-UE4Tests.ps1 -Version ' + version
+                    }
+                    stash includes: 'tests/UnrealBuilds-' + version + '/Win32/**', name: 'unreal-' + version + '-test-win32'
+                    stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
+                    stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
                 }
-                stash includes: 'tests/UnrealBuilds-' + version + '/Win32/**', name: 'unreal-' + version + '-test-win32'
-                stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
-                stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
             };
         }
         parallel (parallelMap)
@@ -113,39 +127,47 @@ node('windows-hispeed') {
             parallelMap["Unity-" + version + "-Mac32"] =
             {
                 node('mac') {
-                    unstash 'unity-' + version + '-test-mac32'
-                    unstash 'unity-' + version + '-test-script'
-                    sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
-                    sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                    sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac32'
+                    timeout(30) {
+                        unstash 'unity-' + version + '-test-mac32'
+                        unstash 'unity-' + version + '-test-script'
+                        sh 'chmod a+x tests/Run-UnityTest.ps1'
+                        sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
+                        sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
+                        sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac32'
+                    }
                 }
             };
             parallelMap["Unity-" + version + "-Mac64"] =
             {
                 node('mac') {
-                    unstash 'unity-' + version + '-test-mac64'
-                    unstash 'unity-' + version + '-test-script'
-                    sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
-                    sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                    sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac64'
+                    timeout(30) {
+                        unstash 'unity-' + version + '-test-mac64'
+                        unstash 'unity-' + version + '-test-script'
+                        sh 'chmod a+x tests/Run-UnityTest.ps1'
+                        sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
+                        sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
+                        sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac64'
+                    }
                 }
             };
             parallelMap["Unity-" + version + "-Win32"] =
             {
                 node('windows') {
-                    unstash 'unity-' + version + '-test-win32'
-                    unstash 'unity-' + version + '-test-script'
-                    powershell 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win32'
+                    timeout(30) {
+                        unstash 'unity-' + version + '-test-win32'
+                        unstash 'unity-' + version + '-test-script'
+                        powershell 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win32'
+                    }
                 }
             };
             parallelMap["Unity-" + version + "-Win64"] =
             {
                 node('windows') {
-                    unstash 'unity-' + version + '-test-win64'
-                    unstash 'unity-' + version + '-test-script'
-                    powershell 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win64'
+                    timeout(30) {
+                        unstash 'unity-' + version + '-test-win64'
+                        unstash 'unity-' + version + '-test-script'
+                        powershell 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win64'
+                    }
                 }
             };
         }
@@ -154,17 +176,21 @@ node('windows-hispeed') {
             parallelMap["UnrealEngine-" + version + "-Win32"] =
             {
                 node('windows') {
-                    unstash 'unreal-' + version + '-test-win32'
-                    unstash 'unreal-' + version + '-test-script'
-                    powershell 'tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win32'
+                    timeout(30) {
+                        unstash 'unreal-' + version + '-test-win32'
+                        unstash 'unreal-' + version + '-test-script'
+                        powershell 'tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win32'
+                    }
                 }
             };
             parallelMap["UnrealEngine-" + version + "-Win64"] =
             {
                 node('windows') {
-                    unstash 'unreal-' + version + '-test-win64'
-                    unstash 'unreal-' + version + '-test-script'
-                    powershell 'tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
+                    timeout(30) {
+                        unstash 'unreal-' + version + '-test-win64'
+                        unstash 'unreal-' + version + '-test-script'
+                        powershell 'tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
+                    }
                 }
             };
         }
@@ -174,11 +200,14 @@ node('windows-hispeed') {
         stage("Push") {
             node('linux') {
                 withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
-                    sh('\$GITHUB_RELEASE release --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -c ' + gitCommit + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This release is being created by the build server." -p')
+                    timeout(3) {
+                        sh('\$GITHUB_RELEASE release --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -c ' + gitCommit + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This release is being created by the build server." -p')
+                    }
                 }
             }
-            parallel (
-                "CSharp" : {
+            def parallelMap = [:]
+            parallelMap["CSharp"] = {
+                timeout(15) {
                     bat ('cd dist/CSharp-4.5 && nuget push -Source nuget.org -NonInteractive HiveMP.' + sdkVersion + '.%BUILD_NUMBER%.nupkg')
                     stash includes: 'dist/CSharp-4.5/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg', name: 'csharpsdk'
                     node('linux') {
@@ -187,9 +216,11 @@ node('windows-hispeed') {
                             sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n CSharp-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -f dist/CSharp-4.5/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -l "HiveMP SDK for C# / .NET 3.5 or 4.5 and above"')
                         }
                     }
-                },
-                "Unity" : {
-                    node('linux') {
+                }
+            };
+            parallelMap["Unity"] = {
+                node('linux') {
+                    timeout(15) {
                         unstash 'unitysdk'
                         unstash 'unitypackage'
                         withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
@@ -197,35 +228,28 @@ node('windows-hispeed') {
                             sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unity as a ZIP archive"')
                         }
                     }
-                },
-                "UnrealEngine-4.16" : {
-                    node('linux') {
-                        unstash 'ue416sdk'
-                        withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
-                            sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f UnrealEngine-4.16-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unreal Engine 4.16"')
-                        }
-                    }
-                },
-                "UnrealEngine-4.17" : {
-                    node('linux') {
-                        unstash 'ue417sdk'
-                        withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
-                            sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f UnrealEngine-4.17-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unreal Engine 4.17"')
-                        }
-                    }
-                },
-                "UnrealEngine-4.18" : {
-                    node('linux') {
-                        unstash 'ue418sdk'
-                        withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
-                            sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-4.18-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f UnrealEngine-4.18-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unreal Engine 4.18"')
-                        }
-                    }
                 }
-            )
+            };
+            supportedUnrealVersions.each { v ->
+                def version = v
+                parallelMap["UnrealEngine-" + version] =
+                {
+                    node('linux') {
+                        timeout(15) {
+                            unstash 'ue' + version.replace(/\./, '') + 'sdk'
+                            withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
+                                sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unreal Engine ' + version + '"')
+                            }
+                        }
+                    }
+                };
+            }
+            parallel (parallelMap)
             node('linux') {
                 withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
-                    sh('\$GITHUB_RELEASE edit --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This is an automated release of the HiveMP SDKs. Refer to the [HiveMP documentation](https://hivemp.com/documentation/) for information on how to use these SDKs."')
+                    timeout(10) {
+                        sh('\$GITHUB_RELEASE edit --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This is an automated release of the HiveMP SDKs. Refer to the [HiveMP documentation](https://hivemp.com/documentation/) for information on how to use these SDKs."')
+                    }
                 }
             }
         }
