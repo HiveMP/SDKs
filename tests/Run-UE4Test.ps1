@@ -1,4 +1,4 @@
-#!/usr/bin/env powershell
+#!/usr/bin/env pwsh
 param([string] $Version = "4.16", [string] $Platform)
 
 $global:ErrorActionPreference = "Stop"

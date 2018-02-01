@@ -1,3 +1,4 @@
+#!/usr/bin/env pwsh
 param([string] $Version = "4.16", [switch] $NoCleanAndSdkUnpack)
 
 $global:ErrorActionPreference = "Stop"

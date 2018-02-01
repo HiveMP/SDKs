@@ -1462,10 +1462,30 @@ namespace HiveMP.Api
         }
 
         public HiveMPException(int httpStatusCode, HiveMPSystemError error)
-            : base("#" + (error?.Code ?? 0) + ": " + (error?.Message ?? "") + " (" + (error?.Fields ?? "") + ")")
+            : base(GenerateMessageFromError(error))
         {
             HttpStatusCode = httpStatusCode;
             Error = error;
+        }
+
+        private static string GenerateMessageFromError(HiveMPSystemError error)
+        {
+            var errorCode = 0;
+            var errorMessage = "";
+            var errorFields = "";
+            if (error != null)
+            {
+                errorCode = error.Code;
+                if (error.Message != null)
+                {
+                    errorMessage = error.Message;
+                }
+                if (error.Fields != null)
+                {
+                    errorFields = error.Fields;
+                }
+            }
+            return "#" + errorCode + ": " + errorMessage + " (" + errorFields + ")";
         }
 
         public int HttpStatusCode { get; set; }
