@@ -16,7 +16,7 @@ if (env.CHANGE_TARGET != null) {
 }
 node('windows-hispeed') {
     stage("Checkout + Get Deps") {
-        timeout(10) {
+        timeout(20) {
             gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
             bat ('echo ' + gitCommit)
             bat 'git clean -xdff'
