@@ -969,3 +969,9 @@ export class UnrealEngine417Generator extends UnrealEngineGenerator {
     return "UnrealEngine-4.17";
   }
 }
+
+export class UnrealEngine418Generator extends UnrealEngineGenerator {
+  get name(): string {
+    return "UnrealEngine-4.18";
+  }
+}

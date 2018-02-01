@@ -16,6 +16,7 @@ import {
 import {
   UnrealEngine416Generator,
   UnrealEngine417Generator,
+  UnrealEngine418Generator,
 } from './targets/ue4';
 
 let targets = [
@@ -24,6 +25,7 @@ let targets = [
   new UnityGenerator(),
   new UnrealEngine416Generator(),
   new UnrealEngine417Generator(),
+  new UnrealEngine418Generator(),
 ];
 
 let apis = [
