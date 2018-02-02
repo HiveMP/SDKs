@@ -91,7 +91,7 @@ node('windows-hispeed') {
             def version = v
             parallelMap["Unity-" + version] =
             {
-                timeout(30) {
+                timeout(60) {
                     bat 'pwsh tests/Build-UnityTests.ps1 -Version ' + version
                     stash includes: 'tests/UnityBuilds-' + version + '/Linux32/**', name: 'unity-' + version + '-test-linux32'
                     stash includes: 'tests/UnityBuilds-' + version + '/Linux64/**', name: 'unity-' + version + '-test-linux64'
@@ -107,7 +107,7 @@ node('windows-hispeed') {
             def version = v
             parallelMap["UnrealEngine-" + version] =
             {
-                timeout(30) {
+                timeout(120) {
                     lock(resource: "UnrealEngine-" + version + "_" + env.NODE_NAME, inversePrecedence: true) {
                         bat 'pwsh tests/Build-UE4Tests.ps1 -Version ' + version
                     }
