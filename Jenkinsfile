@@ -111,10 +111,12 @@ node('windows-hispeed') {
             def version = v
             parallelMap["UnrealEngine-" + version] =
             {
-                timeout(120) {
-                    lock(resource: "SDK_" + env.NODE_NAME, inversePrecedence: true) {
+                lock(resource: "SDK_" + env.NODE_NAME, inversePrecedence: true) {
+                    timeout(120) {
                         bat 'pwsh tests/Build-UE4Tests.ps1 -Version ' + version
                     }
+                }
+                timeout(10) {
                     stash includes: 'tests/UnrealBuilds-' + version + '/Win32/**', name: 'unreal-' + version + '-test-win32'
                     stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
                     stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
