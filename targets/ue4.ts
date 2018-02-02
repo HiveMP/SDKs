@@ -10,7 +10,18 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
 
   static stripDefinition(s: string): string {
     if (s.startsWith('#/definitions/')) {
-      return s.substr('#/definitions/'.length);
+      return s.substr('#/definitions/'.length).replace(/(\[|\])/g, '');
+    }
+    return s.replace(/(\[|\])/g, '');
+  }
+
+  static normalizeTypeName(s: string): string {
+    return s.replace(/(\[|\])/g, '');
+  }
+
+  static avoidConflictingCPlusPlusNames(s: string): string {
+    if (s == 'template') {
+      return 'template_';
     }
     return s;
   }
@@ -234,7 +245,7 @@ struct FHiveApiError
 
         header += `
 USTRUCT(BlueprintType, meta=(DisplayName="HiveMP ${maps[key]} ${defName}"))
-struct FHive${safeName}_${defName}
+struct FHive${safeName}_${UnrealEngineGenerator.normalizeTypeName(defName)}
 {
 	GENERATED_BODY()
 
@@ -245,7 +256,7 @@ struct FHive${safeName}_${defName}
           if (propType != null) {
             header += `
   UPROPERTY(BlueprintReadOnly)
-  ${propType} ${propName};
+  ${propType} ${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)};
 `;
           }
         }
@@ -264,7 +275,7 @@ struct FHive${safeName}_${defName}
         emitDefinition(defName);
 
         header += `
-struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(TSharedPtr<FJsonObject> obj);
+struct FHive${safeName}_${UnrealEngineGenerator.normalizeTypeName(defName)} DeserializeFHive${safeName}_${UnrealEngineGenerator.normalizeTypeName(defName)}(TSharedPtr<FJsonObject> obj);
 `;
       }
 
@@ -277,7 +288,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(TShare
             let tag = methodValue.tags[0];
             let summary = methodValue.summary || "";
             let description = methodValue.description || "";
-            let displayName = summary.replace(/(?:\r\n|\r|\n)/g, " ").replace("\"", "\\\"");
+            let displayName = summary.replace(/(?:\r\n|\r|\n)/g, " ").replace(/\\/g, "\\\\").replace(/\"/g, "\\\"");
             if (displayName.indexOf(".") != -1) {
               displayName = displayName.substr(0, displayName.indexOf("."));
             }
@@ -285,7 +296,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(TShare
               displayName = displayName.substr(0, displayName.indexOf("  "));
             }
             let descriptionLimited = description.length > 1000 ? (description.substr(0, 1000) + "...") : description;
-            let toolTip = descriptionLimited.replace("\"", "\\\"").replace(/(?:\r\n|\r|\n)/g, '\\n');
+            let toolTip = descriptionLimited.replace(/\\/g, "\\\\").replace(/\"/g, "\\\"").replace(/(?:\r\n|\r|\n)/g, '\\n');
             
             let implName = safeName + "_" + tag + "_" + operationId;
 
@@ -335,7 +346,7 @@ class U${implName} : public UOnlineBlueprintCallProxyBase
               for (let parameter of methodValue.parameters) {
                 let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true, false);
                 header += `
-    , ${cppType} ${parameter.name}
+    , ${cppType} ${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(parameter.name)}
 `;
               }
             }
@@ -355,7 +366,7 @@ private:
 `;
             if (methodValue.parameters != null) {
               for (let parameter of methodValue.parameters) {
-                let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true, false);
+                let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, false, false);
                 header += `
   ${cppType} Field_${parameter.name};
 `;
@@ -390,9 +401,9 @@ private:
         }
 
         code += `
-struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const TSharedPtr<FJsonObject> obj)
+struct FHive${safeName}_${UnrealEngineGenerator.normalizeTypeName(defName)} DeserializeFHive${safeName}_${UnrealEngineGenerator.normalizeTypeName(defName)}(const TSharedPtr<FJsonObject> obj)
 {
-  struct FHive${safeName}_${defName} Target;
+  struct FHive${safeName}_${UnrealEngineGenerator.normalizeTypeName(defName)} Target;
 
 `;
         for (let propName in defValue.properties) {
@@ -404,7 +415,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
   FString F_${propName};
   if (obj->TryGetStringField(TEXT("${propName}"), F_${propName}))
   {
-    FBase64::Decode(F_${propName}, Target.${propName});
+    FBase64::Decode(F_${propName}, Target.${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)});
   }
 `;
             } else if (propType.startsWith('TArray<')) {
@@ -422,7 +433,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
       FString A_${propName};
       if ((*F_${propName})[i]->TryGetString(A_${propName}))
       {
-        Target.${propName}.Add(A_${propName});
+        Target.${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)}.Add(A_${propName});
       }
 `;
               } else if (subsetPropType.startsWith('FHive')) {
@@ -432,7 +443,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
       const TSharedPtr<FJsonObject>* A_${propName};
       if ((*F_${propName})[i]->TryGetObject(A_${propName}))
       {
-        Target.${propName}.Add(${deserializerName}(*A_${propName}));
+        Target.${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)}.Add(${deserializerName}(*A_${propName}));
       }
 `;
                 }
@@ -441,7 +452,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
       double A_${propName};
       if ((*F_${propName})[i]->TryGetNumber(A_${propName}))
       {
-        Target.${propName}.Add((${subsetPropType})A_${propName});
+        Target.${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)}.Add((${subsetPropType})A_${propName});
       }
 `;
               } else if (subsetPropType == 'bool') {
@@ -449,7 +460,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
       bool A_${propName};
       if ((*F_${propName})[i]->TryGetBool(A_${propName}))
       {
-        Target.${propName}.Add(A_${propName});
+        Target.${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)}.Add(A_${propName});
       }
 `;
               } else {
@@ -466,7 +477,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
   FString F_${propName};
   if (obj->TryGetStringField(TEXT("${propName}"), F_${propName}))
   {
-    Target.${propName} = F_${propName};
+    Target.${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)} = F_${propName};
   }
 `;
             } else if (propType.startsWith('FHive')) {
@@ -476,7 +487,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
   const TSharedPtr<FJsonObject>* F_${propName};
   if (obj->TryGetObjectField(TEXT("${propName}"), F_${propName}))
   {
-    Target.${propName} = ${deserializerName}(*F_${propName});
+    Target.${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)} = ${deserializerName}(*F_${propName});
   }
 `;
               }
@@ -485,7 +496,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
   double F_${propName};
   if (obj->TryGetNumberField(TEXT("${propName}"), F_${propName}))
   {
-    Target.${propName} = (${propType})F_${propName};
+    Target.${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)} = (${propType})F_${propName};
   }
 `;
             } else if (propType == 'bool') {
@@ -493,7 +504,7 @@ struct FHive${safeName}_${defName} DeserializeFHive${safeName}_${defName}(const 
   bool F_${propName};
   if (obj->TryGetBoolField(TEXT("${propName}"), F_${propName}))
   {
-    Target.${propName} = (${propType})F_${propName};
+    Target.${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)} = (${propType})F_${propName};
   }
 `;
             } else {
@@ -560,7 +571,7 @@ U${implName}* U${implName}::PerformHiveCall(
               for (let parameter of methodValue.parameters) {
                 let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
                 code += `
-  , ${cppType} ${parameter.name}
+  , ${cppType} ${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(parameter.name)}
 `;
               }
             }
@@ -579,11 +590,11 @@ U${implName}* U${implName}::PerformHiveCall(
                 let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
                 if (cppType.indexOf("TArray") != -1) {
                   code += `
-  Proxy->Field_${parameter.name} = ${cppType}(${parameter.name});
+  Proxy->Field_${parameter.name} = ${cppType}(${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(parameter.name)});
 `;
                 } else {
                   code += `
-  Proxy->Field_${parameter.name} = ${parameter.name};
+  Proxy->Field_${parameter.name} = ${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(parameter.name)};
 `;
                 }
               }
@@ -641,7 +652,12 @@ void U${implName}::Activate()
                 try {
                   if (parameter.in == 'query') {
                     let cppType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, parameter, true);
-                    if (cppType == null) {
+                    if (parameter.type === 'string' && parameter.format === 'byte') {
+                      // parameter needs base64 encoding
+                      code += `
+    , *FGenericPlatformHttp::UrlEncode(FBase64::Encode(this->Field_${parameter.name}))
+`;
+                    } else if (cppType == null) {
                       code += `
     , TEXT("")
 `;
