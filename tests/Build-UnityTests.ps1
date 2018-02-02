@@ -169,7 +169,7 @@ function Do-Unity-Build($uPlatform, $platform) {
       Sleep -Seconds 30
       continue;
     }
-    if ($outcome -eq "success") {
+    if ($outcome -eq "success" -and (Test-Path "$PSScriptRoot\..\tests\UnityBuilds-$Version\$platform\HiveMPTest$suffix")) {
       return;
     } else {
       Write-Error "Unity didn't build successfully!"
@@ -187,7 +187,9 @@ if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2
 Do-Unity-Build "-buildLinux64Player" "Linux64"
 if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2.0f3") {
   Do-Unity-Build "-buildOSXPlayer" "Mac32"
+  Do-Unity-Build "-buildOSX64Player" "Mac64"
+} else {
+  Do-Unity-Build "-buildOSXUniversalPlayer" "Mac64"
 }
-Do-Unity-Build "-buildOSX64Player" "Mac64"
 Do-Unity-Build "-buildWindowsPlayer" "Win32"
 Do-Unity-Build "-buildWindows64Player" "Win64"
