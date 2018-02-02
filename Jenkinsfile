@@ -97,9 +97,13 @@ node('windows-hispeed') {
                     }
                 }
                 timeout(10) {
-                    stash includes: 'tests/UnityBuilds-' + version + '/Linux32/**', name: 'unity-' + version + '-test-linux32'
+                    if (version == "5.4.1f" || version == "2017.1.1f1" || version == "2017.2.0f3") {
+                        stash includes: 'tests/UnityBuilds-' + version + '/Linux32/**', name: 'unity-' + version + '-test-linux32'
+                    }
                     stash includes: 'tests/UnityBuilds-' + version + '/Linux64/**', name: 'unity-' + version + '-test-linux64'
-                    stash includes: 'tests/UnityBuilds-' + version + '/Mac32/**', name: 'unity-' + version + '-test-mac32'
+                    if (version == "5.4.1f" || version == "2017.1.1f1" || version == "2017.2.0f3") {
+                        stash includes: 'tests/UnityBuilds-' + version + '/Mac32/**', name: 'unity-' + version + '-test-mac32'
+                    }
                     stash includes: 'tests/UnityBuilds-' + version + '/Mac64/**', name: 'unity-' + version + '-test-mac64'
                     stash includes: 'tests/UnityBuilds-' + version + '/Win32/**', name: 'unity-' + version + '-test-win32'
                     stash includes: 'tests/UnityBuilds-' + version + '/Win64/**', name: 'unity-' + version + '-test-win64'
@@ -129,19 +133,21 @@ node('windows-hispeed') {
         def parallelMap = [:]
         supportedUnityVersions.each { v ->
             def version = v
-            parallelMap["Unity-" + version + "-Mac32"] =
-            {
-                node('mac') {
-                    timeout(30) {
-                        unstash 'unity-' + version + '-test-mac32'
-                        unstash 'unity-' + version + '-test-script'
-                        sh 'chmod a+x tests/Run-UnityTest.ps1'
-                        sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
-                        sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                        sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac32'
+            if (version == "5.4.1f" || version == "2017.1.1f1" || version == "2017.2.0f3") {
+                parallelMap["Unity-" + version + "-Mac32"] =
+                {
+                    node('mac') {
+                        timeout(30) {
+                            unstash 'unity-' + version + '-test-mac32'
+                            unstash 'unity-' + version + '-test-script'
+                            sh 'chmod a+x tests/Run-UnityTest.ps1'
+                            sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
+                            sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
+                            sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac32'
+                        }
                     }
-                }
-            };
+                };
+            }
             parallelMap["Unity-" + version + "-Mac64"] =
             {
                 node('mac') {

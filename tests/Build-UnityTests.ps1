@@ -181,9 +181,13 @@ function Do-Unity-Build($uPlatform, $platform) {
 
 cd $PSScriptRoot\..
 
-Do-Unity-Build "-buildLinux32Player" "Linux32"
+if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2.0f3") {
+  Do-Unity-Build "-buildLinux32Player" "Linux32"
+}
 Do-Unity-Build "-buildLinux64Player" "Linux64"
-Do-Unity-Build "-buildOSXPlayer" "Mac32"
+if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2.0f3") {
+  Do-Unity-Build "-buildOSXPlayer" "Mac32"
+}
 Do-Unity-Build "-buildOSX64Player" "Mac64"
 Do-Unity-Build "-buildWindowsPlayer" "Win32"
 Do-Unity-Build "-buildWindows64Player" "Win64"
