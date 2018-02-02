@@ -169,7 +169,7 @@ function Do-Unity-Build($uPlatform, $platform) {
       Sleep -Seconds 30
       continue;
     }
-    if ($outcome -eq "success" -and (Test-Path "$PSScriptRoot\..\tests\UnityBuilds-$Version\$platform\HiveMPTest$suffix")) {
+    if ($outcome -eq "success") {
       return;
     } else {
       Write-Error "Unity didn't build successfully!"
