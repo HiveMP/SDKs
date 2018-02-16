@@ -1715,90 +1715,101 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
 
         private static void FinalizeClientConnectSetup()
         {
-            var filesClient = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
-            var doInit = false;
-            var cacheFolder = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "HiveMP");
-            cacheFolder = System.IO.Path.Combine(cacheFolder, "ClientConnectAssets");
             try
             {
-                System.IO.Directory.CreateDirectory(cacheFolder);
-            }
-            catch
-            {
-                // Cache may not be available, continue anyway.
-            }
-            var f = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
-            f.BaseUrl = _clientConnectEndpoint;
-            var files = f.FilesGET(new HiveMP.ClientConnect.Api.FilesGETRequest());
-            foreach (var file in files)
-            {
-                var filename = file.Key as string;
-                if (filename == null)
+                var filesClient = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
+                var doInit = false;
+                var cacheFolder = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "HiveMP");
+                cacheFolder = System.IO.Path.Combine(cacheFolder, "ClientConnectAssets");
+                try
                 {
-                    continue;
+                    System.IO.Directory.CreateDirectory(cacheFolder);
                 }
-
-                if (filename == "init.lua")
+                catch
                 {
-                    doInit = true;
+                    // Cache may not be available, continue anyway.
                 }
-                
-                var fileCache = System.IO.Path.Combine(cacheFolder, file.Value.Sha1.ToLower());
-                if (System.IO.File.Exists(fileCache))
+                var f = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
+                f.BaseUrl = _clientConnectEndpoint;
+                var files = f.FilesGET(new HiveMP.ClientConnect.Api.FilesGETRequest());
+                foreach (var file in files)
                 {
-                    try
+                    var filename = file.Key as string;
+                    if (filename == null)
                     {
-                        using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
-                        {
-                            var data = new byte[stream.Length];
-                            stream.Read(data, 0, data.Length);
-                            _clientConnect.MapChunk(filename, data);
-                            continue;
-                        }
+                        continue;
                     }
-                    catch
+
+                    if (filename == "init.lua")
                     {
-                        // Fallback to download.
+                        doInit = true;
                     }
-                }
-
-                using (var client = new System.Net.WebClient())
-                {
-                    client.Headers.Add("X-API-Key", string.Empty);
-                    var data = client.DownloadData(file.Value.Url);
-                    _clientConnect.MapChunk(filename, data);
-
-                    try
+                    
+                    var fileCache = System.IO.Path.Combine(cacheFolder, file.Value.Sha1.ToLower());
+                    if (System.IO.File.Exists(fileCache))
                     {
-                        if (!System.IO.File.Exists(fileCache))
+                        try
                         {
-                            using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None))
+                            using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
                             {
-                                stream.Write(data, 0, data.Length);
+                                var data = new byte[stream.Length];
+                                stream.Read(data, 0, data.Length);
+                                _clientConnect.MapChunk(filename, data);
                                 continue;
                             }
                         }
+                        catch
+                        {
+                            // Fallback to download.
+                        }
                     }
-                    catch
+
+                    using (var client = new System.Net.WebClient())
                     {
-                        // Failed to optionally cache, ignore.
+                        client.Headers.Add("X-API-Key", string.Empty);
+                        var data = client.DownloadData(file.Value.Url);
+                        _clientConnect.MapChunk(filename, data);
+
+                        try
+                        {
+                            if (!System.IO.File.Exists(fileCache))
+                            {
+                                using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None))
+                                {
+                                    stream.Write(data, 0, data.Length);
+                                    continue;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Failed to optionally cache, ignore.
+                        }
                     }
                 }
-            }
-            if (_clientConnectCustomInit != null)
-            {
+                if (_clientConnectCustomInit != null)
+                {
+                    if (doInit)
+                    {
+                        // Free existing chunk.
+                        _clientConnect.FreeChunk("init.lua");
+                    }
+
+                    _clientConnect.MapChunk("init.lua", _clientConnectCustomInit);
+                    doInit = true;
+                }
                 if (doInit)
                 {
-                    // Free existing chunk.
-                    _clientConnect.FreeChunk("init.lua");
+                    _clientConnect.SetStartup("init.lua");
                 }
-
-                _clientConnect.MapChunk("init.lua", _clientConnectCustomInit);
-                doInit = true;
             }
-            if (doInit)
+            catch (System.Exception ex)
             {
-                _clientConnect.SetStartup("init.lua");
+#if IS_UNITY
+                UnityEngine.Debug.LogError(ex);
+#else
+                // Client Connect failed to initialise.
+#endif
             }
 
             _clientConnectEvent.Set();
