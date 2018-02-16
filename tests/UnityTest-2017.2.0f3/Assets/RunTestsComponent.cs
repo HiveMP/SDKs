@@ -13,7 +13,7 @@ public class RunTestsComponent : MonoBehaviour
     {
         Debug.Log("Creating client...");
         // Create new temporary session.
-        var temporaryClient = new TemporarySessionClient("test");
+        var temporaryClient = new TemporarySessionClient("b2124be3f61adf918b6bc7e1e1abdbf8");
 
         Debug.Log("Running async task...");
         Task.Run(async () =>

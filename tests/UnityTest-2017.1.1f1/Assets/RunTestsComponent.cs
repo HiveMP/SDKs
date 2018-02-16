@@ -1,6 +1,9 @@
 ﻿using HiveMP.Api;
 using HiveMP.Lobby.Api;
 using HiveMP.TemporarySession.Api;
+using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using UnityEngine;
 
 public class RunTestsComponent : MonoBehaviour
@@ -8,7 +11,7 @@ public class RunTestsComponent : MonoBehaviour
     public void Start()
     {
         // Create new temporary session.
-        var temporaryClient = new TemporarySessionClient("test");
+        var temporaryClient = new TemporarySessionClient("b2124be3f61adf918b6bc7e1e1abdbf8");
         temporaryClient.SessionPUTPromise(new HiveMP.TemporarySession.Api.SessionPUTRequest(), session =>
         {
             // Create a game lobby.
