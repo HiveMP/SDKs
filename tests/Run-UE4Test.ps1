@@ -36,7 +36,12 @@ function Wait-For-Unreal-Exit($path, $processId) {
       $outcome = "failure";
       $running = $false;
       break;
-    } elseif ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -eq 0) {
+    } elseif ($l -ne $null -and $l.Contains("Critical error")) {
+      # Game crashed, retry.
+      $outcome = "retry";
+      $running = false;
+      break;
+    } elseif ((Get-Process | where -FilterScript {$_.Id -eq $processId -and $_.ProcessName.Contains("UnrealTest")}).Count -eq 0) {
       # Game exited but we didn't see "TEST PASS"
       $outcome = "failure";
       $running = $false;
@@ -47,7 +52,7 @@ function Wait-For-Unreal-Exit($path, $processId) {
     }
     sleep -Milliseconds 100;
   }
-  while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+  while ((Get-Process | where -FilterScript {$_.Id -eq $processId -and $_.ProcessName.Contains("UnrealTest")}).Count -gt 0) {
     Write-Host "Waiting for test game to exit...";
     sleep -Seconds 1;
   }
@@ -73,6 +78,7 @@ while ($true) {
       Write-Error "Test game didn't start correctly!"
       exit 1;
     }
+    Write-Output "Unreal process ID is $($process.Id)"
     $outcome = (Wait-For-Unreal-Exit $LogPath $process.Id);
   } elseif ($Platform.Contains("Mac")) {
     # MAC TODO
