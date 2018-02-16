@@ -67,7 +67,7 @@ while ($true) {
     cd "$PSScriptRoot\UnrealBuilds-$Version\$Platform\WindowsNoEditor"
     $process = Start-Process `
       -FilePath $game `
-      -ArgumentList @("-UNATTENDED") `
+      -ArgumentList @("-UNATTENDED", "-DX12") `
       -PassThru
     if ($process -eq $null) {
       Write-Error "Test game didn't start correctly!"

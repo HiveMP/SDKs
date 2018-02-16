@@ -22,8 +22,12 @@ function Do-Unreal-Build($Platform) {
   $OutputDir = "$PSScriptRoot\..\tests\UnrealBuilds-$Version\$Platform";
 
   echo "Building project for $Platform...";
+  $BuildMode = "-build";
+  if ($Platform -eq "Win64") {
+    $BuildMode = "-NoCompile";
+  }
   cd $TestPath;
-  & $RunUAT BuildCookRun -project="$TestPath\$ProjectName" -noP4 -platform="$Platform" -editorconfig=Development -clientconfig=Development -serverconfig=Development -cook -maps=AllMaps -build -stage -pak -archive -archivedirectory="$OutputDir" -unattended
+  & $RunUAT BuildCookRun -project="$TestPath\$ProjectName" -noP4 -platform="$Platform" -editorconfig=Development -clientconfig=Development -serverconfig=Development -cook -maps=AllMaps $BuildMode -stage -pak -archive -archivedirectory="$OutputDir" -unattended
   if ($LASTEXITCODE -eq 0) {
     return;
   } else {
