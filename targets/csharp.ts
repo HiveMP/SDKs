@@ -1462,10 +1462,30 @@ namespace HiveMP.Api
         }
 
         public HiveMPException(int httpStatusCode, HiveMPSystemError error)
-            : base("#" + (error?.Code ?? 0) + ": " + (error?.Message ?? "") + " (" + (error?.Fields ?? "") + ")")
+            : base(GenerateMessageFromError(error))
         {
             HttpStatusCode = httpStatusCode;
             Error = error;
+        }
+
+        private static string GenerateMessageFromError(HiveMPSystemError error)
+        {
+            var errorCode = 0;
+            var errorMessage = "";
+            var errorFields = "";
+            if (error != null)
+            {
+                errorCode = error.Code;
+                if (error.Message != null)
+                {
+                    errorMessage = error.Message;
+                }
+                if (error.Fields != null)
+                {
+                    errorFields = error.Fields;
+                }
+            }
+            return "#" + errorCode + ": " + errorMessage + " (" + errorFields + ")";
         }
 
         public int HttpStatusCode { get; set; }
@@ -1695,90 +1715,101 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
 
         private static void FinalizeClientConnectSetup()
         {
-            var filesClient = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
-            var doInit = false;
-            var cacheFolder = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "HiveMP");
-            cacheFolder = System.IO.Path.Combine(cacheFolder, "ClientConnectAssets");
             try
             {
-                System.IO.Directory.CreateDirectory(cacheFolder);
-            }
-            catch
-            {
-                // Cache may not be available, continue anyway.
-            }
-            var f = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
-            f.BaseUrl = _clientConnectEndpoint;
-            var files = f.FilesGET(new HiveMP.ClientConnect.Api.FilesGETRequest());
-            foreach (var file in files)
-            {
-                var filename = file.Key as string;
-                if (filename == null)
+                var filesClient = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
+                var doInit = false;
+                var cacheFolder = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "HiveMP");
+                cacheFolder = System.IO.Path.Combine(cacheFolder, "ClientConnectAssets");
+                try
                 {
-                    continue;
+                    System.IO.Directory.CreateDirectory(cacheFolder);
                 }
-
-                if (filename == "init.lua")
+                catch
                 {
-                    doInit = true;
+                    // Cache may not be available, continue anyway.
                 }
-                
-                var fileCache = System.IO.Path.Combine(cacheFolder, file.Value.Sha1.ToLower());
-                if (System.IO.File.Exists(fileCache))
+                var f = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
+                f.BaseUrl = _clientConnectEndpoint;
+                var files = f.FilesGET(new HiveMP.ClientConnect.Api.FilesGETRequest());
+                foreach (var file in files)
                 {
-                    try
+                    var filename = file.Key as string;
+                    if (filename == null)
                     {
-                        using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
-                        {
-                            var data = new byte[stream.Length];
-                            stream.Read(data, 0, data.Length);
-                            _clientConnect.MapChunk(filename, data);
-                            continue;
-                        }
+                        continue;
                     }
-                    catch
+
+                    if (filename == "init.lua")
                     {
-                        // Fallback to download.
+                        doInit = true;
                     }
-                }
-
-                using (var client = new System.Net.WebClient())
-                {
-                    client.Headers.Add("X-API-Key", string.Empty);
-                    var data = client.DownloadData(file.Value.Url);
-                    _clientConnect.MapChunk(filename, data);
-
-                    try
+                    
+                    var fileCache = System.IO.Path.Combine(cacheFolder, file.Value.Sha1.ToLower());
+                    if (System.IO.File.Exists(fileCache))
                     {
-                        if (!System.IO.File.Exists(fileCache))
+                        try
                         {
-                            using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None))
+                            using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
                             {
-                                stream.Write(data, 0, data.Length);
+                                var data = new byte[stream.Length];
+                                stream.Read(data, 0, data.Length);
+                                _clientConnect.MapChunk(filename, data);
                                 continue;
                             }
                         }
+                        catch
+                        {
+                            // Fallback to download.
+                        }
                     }
-                    catch
+
+                    using (var client = new System.Net.WebClient())
                     {
-                        // Failed to optionally cache, ignore.
+                        client.Headers.Add("X-API-Key", string.Empty);
+                        var data = client.DownloadData(file.Value.Url);
+                        _clientConnect.MapChunk(filename, data);
+
+                        try
+                        {
+                            if (!System.IO.File.Exists(fileCache))
+                            {
+                                using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None))
+                                {
+                                    stream.Write(data, 0, data.Length);
+                                    continue;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Failed to optionally cache, ignore.
+                        }
                     }
                 }
-            }
-            if (_clientConnectCustomInit != null)
-            {
+                if (_clientConnectCustomInit != null)
+                {
+                    if (doInit)
+                    {
+                        // Free existing chunk.
+                        _clientConnect.FreeChunk("init.lua");
+                    }
+
+                    _clientConnect.MapChunk("init.lua", _clientConnectCustomInit);
+                    doInit = true;
+                }
                 if (doInit)
                 {
-                    // Free existing chunk.
-                    _clientConnect.FreeChunk("init.lua");
+                    _clientConnect.SetStartup("init.lua");
                 }
-
-                _clientConnect.MapChunk("init.lua", _clientConnectCustomInit);
-                doInit = true;
             }
-            if (doInit)
+            catch (System.Exception ex)
             {
-                _clientConnect.SetStartup("init.lua");
+#if IS_UNITY
+                UnityEngine.Debug.LogError(ex);
+#else
+                // Client Connect failed to initialise.
+#endif
             }
 
             _clientConnectEvent.Set();
@@ -1813,12 +1844,66 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
 #endif
 
 #if IS_UNITY
-        public static bool HiveMPCertificateValidationCheck(System.Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        private static bool HiveMPCertificateValidation(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors, X509Certificate2 nonSniRootCa)
         {
-            // TODO: Before we ship a public SDK, we must change this to validate
-            // that the root of the certificate chain is Let's Encrypt, and that the
-            // certificate chain is valid.
-            return true;
+            // If there are no SSL errors, validation succeeds.
+            if (sslPolicyErrors == SslPolicyErrors.None)
+            {
+                return true;
+            }
+
+            // If the sender is not a HTTPS Web Request, we can't validate whether the No SNI
+            // certificate is for a HiveMP request.
+            var httpWebRequest = sender as HttpWebRequest;
+            if (httpWebRequest == null)
+            {
+                return false;
+            }
+
+            // If it's not a HiveMP request, we don't validate for it.
+            if (!httpWebRequest.Address.Host.EndsWith(".hivemp.com"))
+            {
+                return false;
+            }
+
+            // First up, check if the chain has any statuses that are not related to CRL revocation.
+            // We don't provide CRL lists for our No SNI certificate, because we're only using this
+            // infrastructure to workaround Unity's poor SSL client support.
+            if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
+            {
+                var hasUnexpectedChainElementsValidationError = false;
+                for (var i = 0; i < chain.ChainElements.Count; i++)
+                {
+                    var element = chain.ChainElements[i];
+                    for (var s = 0; s < element.ChainElementStatus.Length; s++)
+                    {
+                        var chainStatus = element.ChainElementStatus[s];
+                        if (chainStatus.Status != X509ChainStatusFlags.OfflineRevocation &&
+                            chainStatus.Status != X509ChainStatusFlags.RevocationStatusUnknown)
+                        {
+                            hasUnexpectedChainElementsValidationError = true;
+                        }
+                    }
+                }
+                if (!hasUnexpectedChainElementsValidationError)
+                {
+                    sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+                }
+            }
+
+            // If the remote name has a mismatch, check if the root CA for the provided
+            // certificate is the Redpoint No SNI Root CA. We already know the request
+            // is for *.hivemp.com due to previous checks.
+            if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateNameMismatch) != 0)
+            {
+                var lastChainElement = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
+                if (nonSniRootCa.Thumbprint == lastChainElement.Thumbprint)
+                {
+                    sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+                }
+            }
+
+            return sslPolicyErrors == SslPolicyErrors.None;
         }
 #endif
 
@@ -1868,7 +1953,58 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
                 lock (_initLock)
                 {
 #if IS_UNITY
-                    ServicePointManager.ServerCertificateValidationCallback = HiveMPCertificateValidationCheck;
+                    var nonSniRootCa = new X509Certificate2(System.Convert.FromBase64String(@"
+MIIGNjCCBB6gAwIBAgIJAIFAzu/SSMPWMA0GCSqGSIb3DQEBCwUAMIGnMQswCQYD
+VQQGEwJBVTERMA8GA1UECAwIVmljdG9yaWExHzAdBgNVBAoMFlJlZHBvaW50IEdh
+bWVzIFB0eSBMdGQxPDA6BgNVBAsMM1JlZHBvaW50IEdhbWVzIFB0eSBMdGQgTm8t
+U05JIENlcnRpZmljYXRlIEF1dGhvcml0eTEmMCQGA1UEAwwdUmVkcG9pbnQgR2Ft
+ZXMgTm8tU05JIFJvb3QgQ0EwHhcNMTgwMjE2MDQwNTE0WhcNMzgwMjExMDQwNTE0
+WjCBpzELMAkGA1UEBhMCQVUxETAPBgNVBAgMCFZpY3RvcmlhMR8wHQYDVQQKDBZS
+ZWRwb2ludCBHYW1lcyBQdHkgTHRkMTwwOgYDVQQLDDNSZWRwb2ludCBHYW1lcyBQ
+dHkgTHRkIE5vLVNOSSBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkxJjAkBgNVBAMMHVJl
+ZHBvaW50IEdhbWVzIE5vLVNOSSBSb290IENBMIICIjANBgkqhkiG9w0BAQEFAAOC
+Ag8AMIICCgKCAgEA0rFk0tWyHoustnvIjaD4DK9eiSelMzei03vyJHwzGvr3Gb8q
+xP0rotPFDPtP3OQD9mHkvfN44pxKJhulT7bGYqvHp1uB6/gDfjdK7etKI6pY3NeE
+Vv+sflsc+bHJ0JAHuMJUA439qeekhHg+85W7IIOGhul0V2Onm9sg0hfmai7+xy28
+bgxiw3aWuywl+3+fqFSJGWmtkkTHqN9FCiil6KSwcfa6GIiHk140PRsV4O4XtuFs
+B0XUbhwG//6w7VfCPHDhtzmrDMTbPrQq8M6CUdp5cH8CrN48nSpw0mrt+ILF0qR9
+t6CQXx2e9CebWFYEEiqDLJtFnO/gDiaQPhZTs1M0PQ4Q5L2VUQajLjxbEcWGo0FH
+etoatE+p7So4lZGHD1pSlau91kgkkkP38TynyozGvLyND3eWmfNa0Qfb7YQma0Nl
+O6ezYZs4RNPE+P1lZsY/9+3KpnlWRHVfEp8VjEGBdJnpwUcs+Ys9qpS5Fs0yvCqY
+HEUuzgrfaOyl0F9A9WXD3rFZI1KWh7olbF5oV+c7o996r0VSMJ3XPKC72iWGONux
+ddtFcGBRtIASZSkPuFNfOl2ARjqOAcy3//6XLX2nHW9YwDo+FEJhnR26tk5VpfmW
+t/qMQ+BUmBPer+HYCtv2lSss/hxAxaiToo1IiVhQ4/XEQZgasa7I9neSR3kCAwEA
+AaNjMGEwHQYDVR0OBBYEFPZeVoLdOgtxffUhY3fEcO6oKD8nMB8GA1UdIwQYMBaA
+FPZeVoLdOgtxffUhY3fEcO6oKD8nMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/
+BAQDAgGGMA0GCSqGSIb3DQEBCwUAA4ICAQBr+gv2FNFFDsM1TsdrP0Featjc41pI
+iN/zRA5+UMSx8svIoQ68GDbcAC1jm96yxkjcn5TkUQknpwP7vo2GzO6+bPz4zbKZ
+TYOn8oxuxAAvXm/+1YfSGNnuC5U+yPyg5cl8PhOuZgBlGXXhHi7e7bvyPzlHq9Ni
+5BcsHiGYho8eTNbRRWVdmE+NA9ievyLP/sFiYbvJiEfprSMI5z2SwQF6PE2q9/DD
+2BH9SLn+xf2NdVoGah76/ucbEou0XNzE66I8cQa/VNjm4Ks+iRBO4e2TVW+eMpQd
+/JAvsv7eEgaOaadJL82dHIzG1lLh6KS+jIQF2lRfRtA7DSG4R6LBIMKltLdF7gyr
+m8dChiCLeovbiLGch4qGohVTRfxCL4u8xmQKaftuuDJXZsEXEm8ihkvy6AoyAR7W
+W0953oCT0ydWCF8C6FhBUSdkDBzctk/rdUdbpNmK4OzUsx9pnAfya1FRpjylh4KS
+ZDottbiPxLyy7YOa7AWtAqEE6MmDAKLFw9tlecODSugWvu3ZZAZXARpS5z5IxSVU
+wgXFr7o7U/FQ1xmjmlDPVkCMBnN2wVctJIJMHHm4RejLPf5aaLUXVgB48Ce0Jd+1
+aLQ9T0/BMgxvrq09V8sSV+j7tnJDI3NXvujdGx6WQ/yDU/A62D9D3wgznN2aHJOg
+Rx77b+JypsJMRA==".Replace("\\r\\n", "").Replace("\\n", "")));
+                    var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+                    try
+                    {
+                        store.Open(OpenFlags.ReadWrite);
+                        store.Add(nonSniRootCa);
+                    }
+                    finally
+                    {
+                        store.Close();
+                    }
+
+                    // Validate requests using our No-SNI certificate, because Unity doesn't support any kind
+                    // of modern SSL.
+                    ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) =>
+                    {
+                        return HiveMPCertificateValidation(sender, certificate, chain, sslPolicyErrors, nonSniRootCa);
+                    };
 #if (UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX) && NET_4_6 && UNITY_2017_2_OR_NEWER
                     System.Environment.SetEnvironmentVariable("MONO_TLS_PROVIDER", "legacy");
 #endif

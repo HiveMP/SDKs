@@ -1,3 +1,4 @@
+#!/usr/bin/env pwsh
 param([string] $Version = "4.16", [switch] $NoCleanAndSdkUnpack)
 
 $global:ErrorActionPreference = "Stop"
@@ -21,8 +22,9 @@ function Do-Unreal-Build($Platform) {
   $OutputDir = "$PSScriptRoot\..\tests\UnrealBuilds-$Version\$Platform";
 
   echo "Building project for $Platform...";
+  $BuildMode = "-build";
   cd $TestPath;
-  & $RunUAT BuildCookRun -project="$TestPath\$ProjectName" -noP4 -platform="$Platform" -editorconfig=Development -clientconfig=Development -serverconfig=Development -cook -maps=AllMaps -build -stage -pak -archive -archivedirectory="$OutputDir" -unattended
+  & $RunUAT BuildCookRun -project="$TestPath\$ProjectName" -noP4 -platform="$Platform" -editorconfig=Development -clientconfig=Development -serverconfig=Development -cook -maps=AllMaps $BuildMode -stage -pak -archive -archivedirectory="$OutputDir" -unattended
   if ($LASTEXITCODE -eq 0) {
     return;
   } else {
