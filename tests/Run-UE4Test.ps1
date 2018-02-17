@@ -39,7 +39,7 @@ function Wait-For-Unreal-Exit($path, $processId) {
     } elseif ($l -ne $null -and $l.Contains("Critical error")) {
       # Game crashed, retry.
       $outcome = "retry";
-      $running = false;
+      $running = $false;
       break;
     } elseif ((Get-Process | where -FilterScript {$_.Id -eq $processId -and $_.ProcessName.Contains("UnrealTest")}).Count -eq 0) {
       # Game exited but we didn't see "TEST PASS"
