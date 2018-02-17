@@ -113,7 +113,7 @@ node('windows-hispeed') {
             def version = v
             parallelMap["UnrealEngine-" + version] =
             {
-                lock(resource: "UnrealEngine-" + version + env.NODE_NAME, inversePrecedence: true) {
+                lock(resource: "SDK_" + env.NODE_NAME, inversePrecedence: true) {
                     timeout(120) {
                         bat 'pwsh tests/Build-UE4Tests.ps1 -Version ' + version
                     }
