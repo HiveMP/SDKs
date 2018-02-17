@@ -219,7 +219,9 @@ node('windows-hispeed') {
             def parallelMap = [:]
             parallelMap["CSharp"] = {
                 timeout(15) {
-                    bat ('cd dist/CSharp-4.5 && nuget push -Source nuget.org -NonInteractive HiveMP.' + sdkVersion + '.%BUILD_NUMBER%.nupkg')
+                    withCredentials([string(credentialsId: 'nuget-api-key', variable: 'NUGET_API_KEY')]) {
+                        bat ('cd dist/CSharp-4.5 && nuget push -ApiKey %NUGET_API_KEY% -Source nuget.org -NonInteractive HiveMP.' + sdkVersion + '.%BUILD_NUMBER%.nupkg')
+                    }
                     stash includes: 'dist/CSharp-4.5/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg', name: 'csharpsdk'
                     node('linux') {
                         unstash 'csharpsdk'
