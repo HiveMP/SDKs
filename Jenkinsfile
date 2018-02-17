@@ -91,10 +91,8 @@ node('windows-hispeed') {
             def version = v
             parallelMap["Unity-" + version] =
             {
-                lock(resource: "SDK_" + env.NODE_NAME, inversePrecedence: true) {
-                    timeout(60) {
-                        bat 'pwsh tests/Build-UnityTests.ps1 -Version ' + version
-                    }
+                timeout(60) {
+                    bat 'pwsh tests/Build-UnityTests.ps1 -Version ' + version
                 }
                 timeout(10) {
                     if (version == "5.4.1f" || version == "2017.1.1f1" || version == "2017.2.0f3") {
@@ -115,7 +113,7 @@ node('windows-hispeed') {
             def version = v
             parallelMap["UnrealEngine-" + version] =
             {
-                lock(resource: "SDK_" + env.NODE_NAME, inversePrecedence: true) {
+                lock(resource: "UnrealEngine-" + version + env.NODE_NAME, inversePrecedence: true) {
                     timeout(120) {
                         bat 'pwsh tests/Build-UE4Tests.ps1 -Version ' + version
                     }
