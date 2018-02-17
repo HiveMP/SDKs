@@ -192,16 +192,18 @@ node('windows-hispeed') {
                     }
                 }
             };
-            parallelMap["UnrealEngine-" + version + "-Win64"] =
-            {
-                node('windows') {
-                    timeout(30) {
-                        unstash 'unreal-' + version + '-test-win64'
-                        unstash 'unreal-' + version + '-test-script'
-                        bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
+            if (version == "4.18") {
+                parallelMap["UnrealEngine-" + version + "-Win64"] =
+                {
+                    node('windows') {
+                        timeout(30) {
+                            unstash 'unreal-' + version + '-test-win64'
+                            unstash 'unreal-' + version + '-test-script'
+                            bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
+                        }
                     }
-                }
-            };
+                };
+            }
         }
         parallel (parallelMap)
     }
