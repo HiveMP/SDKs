@@ -948,6 +948,15 @@ void U${implName}::Activate()
     }
     
     await new Promise<void>((resolve, reject) => {
+      fs.copy("sdks/UnrealEngine-Common/", opts.outputDir, { overwrite: true }, (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve, reject) => {
       fs.copy("sdks/" + this.name + "/", opts.outputDir, { overwrite: true }, (err) => {
         if (err) {
           reject(err);

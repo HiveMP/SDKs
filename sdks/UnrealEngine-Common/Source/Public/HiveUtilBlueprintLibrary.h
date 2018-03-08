@@ -1,3 +1,4 @@
+// Copyright Redpoint Games 2017 MIT Licensed
 
 #pragma once
 
