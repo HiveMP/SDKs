@@ -983,12 +983,6 @@ void U${implName}::Activate()
   }
 }
 
-export class UnrealEngine416Generator extends UnrealEngineGenerator {
-  get name(): string {
-    return "UnrealEngine-4.16";
-  }
-}
-
 export class UnrealEngine417Generator extends UnrealEngineGenerator {
   get name(): string {
     return "UnrealEngine-4.17";
@@ -998,5 +992,11 @@ export class UnrealEngine417Generator extends UnrealEngineGenerator {
 export class UnrealEngine418Generator extends UnrealEngineGenerator {
   get name(): string {
     return "UnrealEngine-4.18";
+  }
+}
+
+export class UnrealEngine419Generator extends UnrealEngineGenerator {
+  get name(): string {
+    return "UnrealEngine-4.19";
   }
 }

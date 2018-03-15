@@ -14,18 +14,18 @@ import {
   UnityGenerator,
 } from './targets/csharp';
 import {
-  UnrealEngine416Generator,
   UnrealEngine417Generator,
   UnrealEngine418Generator,
+  UnrealEngine419Generator,
 } from './targets/ue4';
 
 let targets = [
   new CSharp35Generator(),
   new CSharp45Generator(),
   new UnityGenerator(),
-  new UnrealEngine416Generator(),
   new UnrealEngine417Generator(),
   new UnrealEngine418Generator(),
+  new UnrealEngine419Generator(),
 ];
 
 let apis = [

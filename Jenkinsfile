@@ -7,9 +7,9 @@ def supportedUnityVersions = [
 ]
 def gitCommit = ""
 def supportedUnrealVersions = [
-    "4.16",
     "4.17",
-    "4.18"
+    "4.18",
+    "4.19"
 ]
 if (env.CHANGE_TARGET != null) {
     input "Approve this PR build to run? Check the PR first!"
