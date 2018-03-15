@@ -12,7 +12,9 @@ def supportedUnrealVersions = [
     "4.19"
 ]
 if (env.CHANGE_TARGET != null) {
-    input "Approve this PR build to run? Check the PR first!"
+    stage("Confirm") {
+        input "Approve this PR build to run? Check the PR first!"
+    }
 }
 node('windows-hispeed') {
     stage("Checkout + Get Deps") {
