@@ -31,13 +31,13 @@ node('windows-hispeed') {
     stage("Generate") {
         def parallelMap = [:]
         parallelMap["CSharp-4.5"] = {
-            timeout(5) {
+            timeout(15) {
                 bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c CSharp-4.5 dist/CSharp-4.5'
                 bat 'cd dist/CSharp-4.5 && dotnet restore HiveMP.sln && dotnet build -c Release HiveMP.sln'
             }
         };
         parallelMap["CSharp-3.5"] = {
-            timeout(5) {
+            timeout(15) {
                 bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c CSharp-3.5 dist/CSharp-3.5'
                 bat 'pwsh util/Fetch-NuGet.ps1'
                 bat 'cd dist/CSharp-3.5 && nuget restore && %windir%\\Microsoft.NET\\Framework64\\v4.0.30319\\msbuild /p:Configuration=Release /m HiveMP.sln'
