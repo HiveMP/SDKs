@@ -26,6 +26,7 @@
     "@types/node-fetch": "^1.6.7"
   },
   "scripts": {
+    "cc_gen": "node ./node_modules/ts-node/dist/bin.js client_connect/cc_gen/index.ts",
     "generator": "node ./node_modules/ts-node/dist/bin.js index.ts",
     "getsdk": "node ./node_modules/ts-node/dist/bin.js getsdk.ts"
   }

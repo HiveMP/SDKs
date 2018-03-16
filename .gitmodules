@@ -1,0 +1,3 @@
+[submodule "client_connect/mujs"]
+	path = client_connect/mujs
+	url = https://github.com/ArtifexSoftware/mujs
