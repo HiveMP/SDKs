@@ -27,4 +27,5 @@ if(APPLE)
 endif()
 
 add_subdirectory(curl)
-add_subdirectory(cc_host)
+add_subdirectory(cchost)
+add_subdirectory(cctest)
