@@ -80,7 +80,7 @@ const char* _embedded_sdk = "/******/ (function(modules) { // webpackBootstrap\n
   "/***/ (function(module, exports, __webpack_require__) {\n"
   "\n"
   "\"use strict\";\n"
-  "eval(\"\\r\\nconsole.log(\\\"hello\\\");\\r\\n\\n\\n//# sourceURL=webpack:///./src/index.ts?\");\n"
+  "eval(\"\\r\\nfunction testHook(request) {\\r\\n    return {\\r\\n        code: 0,\\r\\n        response: {}\\r\\n    };\\r\\n}\\r\\nregister_hotpatch(\\\"temp-session:sessionPUT\\\", testHook);\\r\\n\\n\\n//# sourceURL=webpack:///./src/index.ts?\");\n"
   "\n"
   "/***/ })\n"
   "\n"

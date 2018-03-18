@@ -1,4 +1,4 @@
-file(GLOB mujs_files ${CMAKE_CURRENT_SOURCE_DIR}/../mujs/*.c)
+file(GLOB mujs_files ${CMAKE_CURRENT_SOURCE_DIR}/../mujs/one.c)
 file(GLOB polyfill_files ${CMAKE_CURRENT_SOURCE_DIR}/../polyfill/*.c)
 file(GLOB ccsrc_files ${CMAKE_CURRENT_SOURCE_DIR}/../ccsrc/src/**)
 

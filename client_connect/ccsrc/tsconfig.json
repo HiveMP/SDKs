@@ -4,7 +4,10 @@
     "lib": [
       "es5"
     ],
-    "strict": true
+    "strict": true,
+    "typeRoots": [
+      "./src/@types"
+    ]
   },
   "include": [
     "src/**/*.ts"

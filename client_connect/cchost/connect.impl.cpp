@@ -8,36 +8,28 @@ extern "C" {
 #include <string>
 #include <map>
 
-#define DEFINE_JS_FUNC(name) \
-    js_pushcfunction(_js, _ccl_ ## name); \
-    js_setglobal(_js, #name);
-#define DEFINE_JS_LIB(name) \
-	js_getglobal(_js, "package"); \
-	js_pushstring(_js, "preload"); \
-	js_gettable(_js, -2); \
-	js_pushcclosure(_js, luaopen_ ## name, 0); \
-	js_setfield(_js, -2, #name); \
-	js_settop(_js, 0);
-
 std::map<std::string, std::string>* _hotpatches = nullptr;
 js_State* _js = nullptr;
 
-int _ccl_register_hotpatch(js_State *J)
+void _ccl_register_hotpatch(js_State *J)
 {
     auto id = js_tostring(J, 1);
-    auto handler = js_tostring(J, 2);
+	if (js_iscallable(J, 2)) {
+		auto handler = js_ref(J);
 
-    if (id != nullptr && handler != nullptr && _hotpatches != nullptr)
-    {
-        (*_hotpatches)[id] = handler;
-        js_pushboolean(J, true);
-    }
-    else
-    {
+		if (id != nullptr && handler != nullptr && _hotpatches != nullptr)
+		{
+			(*_hotpatches)[id] = handler;
+			js_pushboolean(J, true);
+		}
+		else
+		{
+			js_pushboolean(J, false);
+		}
+	}
+	else {
 		js_pushboolean(J, false);
-    }
-
-    return 1;
+	}
 }
 
 void cci_init()
@@ -50,7 +42,11 @@ void cci_init()
     if (_js == nullptr)
     {
 		_js = js_newstate(NULL, NULL, JS_STRICT);
-		js_dostring(_js, _embedded_sdk);
+		js_newcfunction(_js, _ccl_register_hotpatch, "register_hotpatch", 2);
+		js_setglobal(_js, "register_hotpatch");
+		if (js_dostring(_js, _embedded_sdk) == 1) {
+			// error
+		}
     }
 }
 
@@ -106,7 +102,7 @@ char* cci_call_hotpatch(
     cci_init();
 
 	const char* result_to_copy = nullptr;
-	bool pop_lua_after_copy = false;
+	bool pop_js_after_copy = false;
 
     if (!cci_is_hotpatched(api_raw, operation_raw))
     {
@@ -120,37 +116,69 @@ char* cci_call_hotpatch(
 
 		auto id = api + ":" + operation;
 
-		auto lua_func_name = (*_hotpatches)[id];
+		auto js_ref_name = (*_hotpatches)[id];
 
-		js_getglobal(_js, lua_func_name.c_str());
-		lua_pushstring(_lua, id.c_str());
-		lua_pushstring(_lua, endpoint_raw);
-		lua_pushstring(_lua, apiKey_raw);
-		lua_pushstring(_lua, parametersAsJson_raw);
+		js_getregistry(_js, js_ref_name.c_str());
+		js_newobject(_js);
+		
+		js_pushstring(_js, id.c_str());
+		js_setproperty(_js, -2, "id");
 
-		if (lua_pcall(_lua, 4, 2, 0) != 0)
+		js_pushstring(_js, endpoint_raw);
+		js_setproperty(_js, -2, "endpoint");
+
+		js_pushstring(_js, apiKey_raw);
+		js_setproperty(_js, -2, "apiKey");
+
+		// Use JSON.parse to decode the parametersAsJson field.
+		js_pushstring(_js, parametersAsJson_raw);
+		js_getglobal(_js, "JSON");
+		js_getproperty(_js, -1, "parse");
+		js_pcall(_js, -1);
+		js_setproperty(_js, -2, "parameters");
+
+		if (js_pcall(_js, 1) != 0)
 		{
 			*statusCode_raw = 500;
-			printf("error: %s\n", lua_tostring(_lua, -1));
-			lua_pop(_lua, 1);
+			printf("error: %s\n", js_tostring(_js, -1));
+			js_pop(_js, 1);
 			result_to_copy = "{\"code\": 7002, \"message\": \"An internal error occurred while running hotpatch\", \"fields\": null}";
 		}
 		else
 		{
-			int isnum;
-			lua_Integer d = lua_tointegerx(_lua, 1, &isnum);
-			const char* s = lua_tostring(_lua, 2);
-			if (!isnum || s == nullptr)
-			{
-				*statusCode_raw = 500;
-				lua_pop(_lua, 2);
-				result_to_copy = "{\"code\": 7002, \"message\": \"The hotpatch return value was not in an expected format\", \"fields\": null}";
-			}
-			else
-			{
-				*statusCode_raw = (int)d;
-				result_to_copy = s;
-				pop_lua_after_copy = true;
+
+#define BAIL \
+	*statusCode_raw = 500; \
+	js_pop(_js, 1); \
+	result_to_copy = "{\"code\": 7002, \"message\": \"The hotpatch return value was not in an expected format\", \"fields\": null}"
+
+			if (!js_isobject(_js, -1) || !js_hasproperty(_js, -1, "code") || !js_hasproperty(_js, -1, "response")) {
+				BAIL;
+			} else {
+				js_getproperty(_js, -1, "code");
+				js_getproperty(_js, -2, "response");
+				js_getglobal(_js, "JSON");
+				js_getproperty(_js, -1, "stringify");
+				js_pcall(_js, -1);
+				bool isnum = js_isnumber(_js, -2);
+				int code = 500;
+				if (isnum) {
+					code = js_tonumber(_js, -2);
+				}
+				const char* s = js_tostring(_js, -1);
+				js_pop(_js, 2);
+
+				if (!isnum || s == nullptr)
+				{
+					BAIL;
+				}
+				else
+				{
+					double code = js_tonumber(_js, 1);
+					*statusCode_raw = (int)code;
+					result_to_copy = s;
+					pop_js_after_copy = true;
+				}
 			}
 		}
 	}
@@ -160,9 +188,9 @@ char* cci_call_hotpatch(
 	memcpy(result, result_to_copy, len);
 	result[len - 1] = 0;
 
-	if (pop_lua_after_copy)
+	if (pop_js_after_copy)
 	{
-		lua_pop(_lua, 2);
+		js_pop(_js, 1);
 	}
 
 	// Caller must free after usage.
