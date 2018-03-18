@@ -1,7 +1,13 @@
 function testHook(request: IHotpatchRequest): IHotpatchResponse {
   return {
-    code: 0,
-    response: { } 
+    code: 201,
+    response: { 
+      test: "hello",
+      what: [
+        "even",
+        { is: "this" }
+      ]
+    } 
   }
 }
 

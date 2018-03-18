@@ -1,3 +1,14 @@
+cd $PSScriptRoot\..\ccsrc
+
+yarn
+if ($LASTEXITCODE -ne 0) {
+  exit $LASTEXITCODE
+}
+.\node_modules\.bin\webpack
+if ($LASTEXITCODE -ne 0) {
+  exit $LASTEXITCODE
+}
+
 cd $PSScriptRoot
 
 $Bundle = Get-Content -Raw -Path $PSScriptRoot\..\ccsrc\dist\bundle.js
