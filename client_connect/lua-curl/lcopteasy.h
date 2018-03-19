@@ -70,7 +70,7 @@ OPT_ENTRY( address_scope,          ADDRESS_SCOPE,            LNG, 0,            
 #if LCURL_CURL_VER_GE(7,25,0)
 OPT_ENTRY( tcp_keepalive,          TCP_KEEPALIVE,            LNG, 0,                  LCURL_DEFAULT_VALUE )
 OPT_ENTRY( tcp_keepidle,           TCP_KEEPIDLE,             LNG, 0,                  LCURL_DEFAULT_VALUE ) /*! @check doc says nothing */
-OPT_ENTRY( tcp_keepintvl,          TCP_KEEPINTVL,            LNG, 0,                  LCURL_DEFAULT_VALUE ) /*! @check doc says nothing */
+//OPT_ENTRY( tcp_keepintvl,          TCP_KEEPINTVL,            LNG, 0,                  LCURL_DEFAULT_VALUE ) /*! @check doc says nothing */
 #endif
 
 OPT_ENTRY( netrc,                  NETRC,                    LNG, 0,                  CURL_NETRC_IGNORED )

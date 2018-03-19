@@ -68,6 +68,28 @@ void _ccl_register_hotpatch(js_State *J)
 	}
 }
 
+void _ccl_require(js_State *J)
+{
+	auto mod = js_tostring(J, 1);
+	js_getregistry(J, mod);
+	if (!js_isundefined(J, -1))
+	{
+		// We have pushed the cached load onto the stack.
+		return;
+	}
+
+	std::string mod_str(mod);
+
+	if (mod_str == "curl-native")
+	{
+		// load curl native components
+		luaopen_lcurl(J);
+		return;
+	}
+
+	js_error(J, "native module '%s' not found", mod);
+}
+
 void cci_init()
 {
 	if (_hotpatches == nullptr)
@@ -80,6 +102,8 @@ void cci_init()
 		_js = js_newstate(NULL, NULL, JS_STRICT);
 		js_newcfunction(_js, _ccl_register_hotpatch, "register_hotpatch", 2);
 		js_setglobal(_js, "register_hotpatch");
+		js_newcfunction(_js, _ccl_require, "require", 1);
+		js_setglobal(_js, "require");
 		if (js_dostring(_js, _embedded_sdk) == 1) {
 			// error
 		}
