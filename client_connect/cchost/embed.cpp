@@ -80,7 +80,7 @@ const char* _embedded_sdk = "/******/ (function(modules) { // webpackBootstrap\n
   "/***/ (function(module, exports, __webpack_require__) {\n"
   "\n"
   "\"use strict\";\n"
-  "eval(\"\\r\\nfunction testHook(request) {\\r\\n    return {\\r\\n        code: 201,\\r\\n        response: {\\r\\n            test: \\\"hello\\\",\\r\\n            what: [\\r\\n                \\\"even\\\",\\r\\n                { is: \\\"this\\\" }\\r\\n            ]\\r\\n        }\\r\\n    };\\r\\n}\\r\\nregister_hotpatch(\\\"temp-session:sessionPUT\\\", testHook);\\r\\n\\n\\n//# sourceURL=webpack:///./src/index.ts?\");\n"
+  "eval(\"\\r\\nObject.defineProperty(exports, \\\"__esModule\\\", { value: true });\\r\\nfunction testHook(request) {\\r\\n    return {\\r\\n        code: 201,\\r\\n        response: {\\r\\n            test: \\\"hello\\\",\\r\\n            what: [\\r\\n                \\\"even\\\",\\r\\n                { is: \\\"this\\\" }\\r\\n            ]\\r\\n        }\\r\\n    };\\r\\n}\\r\\nregister_hotpatch(\\\"temp-session:sessionPUT\\\", testHook);\\r\\n\\n\\n//# sourceURL=webpack:///./src/index.ts?\");\n"
   "\n"
   "/***/ })\n"
   "\n"

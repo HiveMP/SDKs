@@ -11,3 +11,7 @@ declare interface IHotpatchResponse {
 }
 
 declare function register_hotpatch(id: string, handler: (request: IHotpatchRequest) => IHotpatchResponse): void;
+
+type ClientConnectRequireFunction = (id: string) => any;
+
+declare var require: ClientConnectRequireFunction;

@@ -6,7 +6,13 @@
     ],
     "strict": true,
     "typeRoots": [
-      "./src/@types"
+      "./src/@types",
+      "./node_modules/@types"
+    ],
+    "types": [
+      "client-connect",
+      "curl-native",
+      "webpack-env"
     ]
   },
   "include": [

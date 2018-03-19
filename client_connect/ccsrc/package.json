@@ -6,6 +6,7 @@
   "dependencies": {},
   "devDependencies": {
     "@types/webpack": "^4.1.1",
+    "@types/webpack-env": "^1.13.5",
     "ts-loader": "^4.0.1",
     "typescript": "^2.7.2",
     "webpack": "^4.1.1",

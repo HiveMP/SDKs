@@ -2,6 +2,7 @@
 extern "C" {
 #include "mujs.h"
 }
+#include "lcurl.h"
 #include "embed.h"
 #include <stdlib.h>
 #include <string.h>
