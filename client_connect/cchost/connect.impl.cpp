@@ -1,8 +1,12 @@
 #include "connect.impl.h"
+#ifdef __cplusplus
 extern "C" {
+#endif
 #include "mujs.h"
-}
 #include "lcurl.h"
+#ifdef __cplusplus
+}
+#endif
 #include "embed.h"
 #include <stdlib.h>
 #include <string.h>

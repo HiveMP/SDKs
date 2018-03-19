@@ -11,6 +11,10 @@
 #include <limits.h>
 #include <stddef.h>
 
+#define LUA_COMPAT_5_2 1
+#define LUA_COMPAT_5_1 1
+#define LUA_VERSION_NUM 53
+
 
 /*
 ** ===================================================================
