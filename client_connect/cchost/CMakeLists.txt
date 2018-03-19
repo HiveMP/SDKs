@@ -1,13 +1,9 @@
 file(GLOB mujs_files ${CMAKE_CURRENT_SOURCE_DIR}/../mujs/one.c)
 file(GLOB polyfill_files ${CMAKE_CURRENT_SOURCE_DIR}/../polyfill/*.c)
-file(GLOB luacurl_files ${CMAKE_CURRENT_SOURCE_DIR}/../lua-curl/*.c)
-file(GLOB luashim_files ${CMAKE_CURRENT_SOURCE_DIR}/../lua-shim/*.c)
 file(GLOB_RECURSE ccsrc_files ${CMAKE_CURRENT_SOURCE_DIR}/../ccsrc/src/*.ts)
 
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/../mujs)
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/../polyfill)
-include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/../lua-curl)
-include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/../lua-shim)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../curl/include)
 
 add_custom_command(
@@ -34,8 +30,6 @@ add_library(
 	cchost SHARED
 	${mujs_files}
 	${polyfill_files}
-	${luacurl_files}
-	${luashim_files}
 	connect.cpp
 	connect.impl.cpp
 	embed.cpp)
