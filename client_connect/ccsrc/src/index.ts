@@ -1,9 +1,25 @@
+import 'es6-promise/auto';
+
 import * as timers from 'timers';
 import * as console from 'console';
 
-timers.setTimeout(function () {
-    console.log("hello");
-}, 2000);
+async function delay(ms: number) {
+  return new Promise<void>((resolve, reject) => {
+    timers.setTimeout(() => {
+      resolve();
+    }, ms);
+  })
+}
+
+async function test() {
+  console.log("start");
+  await delay(2000);
+  console.log("hello 1");
+  await delay(2000);
+  console.log("hello 2");
+}
+
+test();
 
 /*
 

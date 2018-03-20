@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "es6-promise": "^4.2.4"
+  },
   "devDependencies": {
     "@types/webpack": "^4.1.1",
     "@types/webpack-env": "^1.13.5",

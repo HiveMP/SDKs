@@ -5,7 +5,7 @@ void js_console_log(js_State* J)
 {
 	auto str = js_tostring(J, 1);
 
-	printf("%s", str);
+	printf("%s\n", str);
 }
 
 void js_load_console(js_State* J)

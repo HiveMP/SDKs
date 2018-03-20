@@ -11,10 +11,11 @@ struct timer_t {
 };
 
 std::vector<struct timer_t*>* timers = nullptr;
+std::vector<struct timer_t*>* pending_timers = nullptr;
 
 void js_set_immediate(js_State* J)
 {
-	if (timers == nullptr)
+	if (pending_timers == nullptr)
 	{
 		js_pushundefined(J);
 		return;
@@ -30,14 +31,14 @@ void js_set_immediate(js_State* J)
 	timer->next = std::chrono::system_clock::now();
 	timer->registry_name = registry_name;
 
-	timers->push_back(timer);
+	pending_timers->push_back(timer);
 
 	js_newuserdata(J, "Timer", timer, nullptr);
 }
 
 void js_set_timeout(js_State* J)
 {
-	if (timers == nullptr)
+	if (pending_timers == nullptr)
 	{
 		js_pushundefined(J);
 		return;
@@ -54,14 +55,14 @@ void js_set_timeout(js_State* J)
 	timer->next = std::chrono::system_clock::now() + std::chrono::milliseconds(ms);
 	timer->registry_name = registry_name;
 
-	timers->push_back(timer);
+	pending_timers->push_back(timer);
 
 	js_newuserdata(J, "Timer", timer, nullptr);
 }
 
 void js_set_interval(js_State* J)
 {
-	if (timers == nullptr)
+	if (pending_timers == nullptr)
 	{
 		js_pushundefined(J);
 		return;
@@ -78,7 +79,7 @@ void js_set_interval(js_State* J)
 	timer->next = std::chrono::system_clock::now() + timer->interval;
 	timer->registry_name = registry_name;
 
-	timers->push_back(timer);
+	pending_timers->push_back(timer);
 
 	js_newuserdata(J, "Timer", timer, nullptr);
 }
@@ -92,13 +93,29 @@ void js_clear_timer(js_State* J)
 		return;
 	}
 
+	for (auto it = pending_timers->begin(); it != pending_timers->end(); it++)
+	{
+		if ((*it) == timer)
+		{
+			// This is the timer to clear.
+			delete *it;
+			it = timers->erase(it);
+			if (it == timers->end())
+			{
+				// Can't allow loop to hit it++ because incrementing
+				// end() is not permitted.
+				break;
+			}
+		}
+	}
+
 	for (auto it = timers->begin(); it != timers->end(); it++)
 	{
 		if ((*it) == timer)
 		{
 			// This is the timer to clear.
 			delete *it;
-			timers->erase(it);
+			it = timers->erase(it);
 			if (it == timers->end())
 			{
 				// Can't allow loop to hit it++ because incrementing
@@ -111,7 +128,11 @@ void js_clear_timer(js_State* J)
 
 void js_load_timers(js_State* J)
 {
-	timers = new std::vector<struct timer_t*>();
+	if (timers == nullptr)
+	{
+		timers = new std::vector<struct timer_t*>();
+		pending_timers = new std::vector<struct timer_t*>();
+	}
 
 	js_newobject(J);
 	js_newcfunction(J, js_set_immediate, "setImmediate", 1);
@@ -130,13 +151,37 @@ void js_load_timers(js_State* J)
 	// new module object is now on stack.
 }
 
+void js_load_timers_globals(js_State* J)
+{
+	if (timers == nullptr)
+	{
+		timers = new std::vector<struct timer_t*>();
+		pending_timers = new std::vector<struct timer_t*>();
+	}
+
+	js_pushglobal(J);
+	js_newcfunction(J, js_set_immediate, "setImmediate", 1);
+	js_setproperty(J, -2, "setImmediate");
+	js_newcfunction(J, js_set_timeout, "setTimeout", 2);
+	js_setproperty(J, -2, "setTimeout");
+	js_newcfunction(J, js_set_interval, "setInterval", 2);
+	js_setproperty(J, -2, "setInterval");
+	js_newcfunction(J, js_clear_timer, "clearImmediate", 1);
+	js_setproperty(J, -2, "clearImmediate");
+	js_newcfunction(J, js_clear_timer, "clearTimeout", 1);
+	js_setproperty(J, -2, "clearTimeout");
+	js_newcfunction(J, js_clear_timer, "clearInterval", 1);
+	js_setproperty(J, -2, "clearInterval");
+	js_pop(J, 1);
+}
+
 bool js_tick_timers(js_State* J)
 {
 	auto now = std::chrono::system_clock::now();
 
 	if (timers != nullptr)
 	{
-		for (auto it = timers->begin(); it != timers->end(); it++)
+		for (auto it = timers->begin(); it != timers->end(); )
 		{
 			if ((*it)->immediate || now > (*it)->next)
 			{
@@ -158,20 +203,23 @@ bool js_tick_timers(js_State* J)
 				if (!(*it)->isInterval)
 				{
 					delete *it;
-					timers->erase(it);
-					if (it == timers->end())
-					{
-						// Can't allow loop to hit it++ because incrementing
-						// end() is not permitted.
-						break;
-					}
+					it = timers->erase(it);
+					continue;
 				}
 				else
 				{
 					(*it)->next = now + (*it)->interval;
 				}
 			}
+
+			++it;
 		}
+
+		for (auto it = pending_timers->begin(); it != pending_timers->end(); it++)
+		{
+			timers->push_back(*it);
+		}
+		pending_timers->clear();
 
 		return timers->size() > 0;
 	}

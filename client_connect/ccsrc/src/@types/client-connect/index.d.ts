@@ -15,3 +15,5 @@ declare function register_hotpatch(id: string, handler: (request: IHotpatchReque
 type ClientConnectRequireFunction = (id: string) => any;
 
 declare var require: ClientConnectRequireFunction;
+
+declare var global: any;

@@ -52,6 +52,27 @@ static void stackDump(js_State *L) {
 	printf("\n");  /* end the listing */
 }
 
+static void errorDump(js_State* J) 
+{
+	if (js_isobject(J, -1))
+	{
+		js_getproperty(J, -1, "message");
+		auto message = js_tostring(J, -1);
+		js_pop(J, 1);
+		js_getproperty(J, -1, "stackTrace");
+		auto stackTrace = js_tostring(J, -1);
+		js_pop(J, 1);
+
+		fprintf(stderr, "error: %s%s", message, stackTrace);
+		js_pop(J, 1);
+	}
+	else
+	{
+		fprintf(stderr, "error: %s", js_tostring(J, -1));
+		js_pop(J, 1);
+	}
+}
+
 void _ccl_register_hotpatch(js_State *J)
 {
 	auto id = js_tostring(J, 1);
@@ -116,13 +137,38 @@ void cci_init()
 	if (_js == nullptr)
 	{
 		_js = js_newstate(NULL, NULL, JS_STRICT);
+
+		// Load register_hotpatch function
+		// TODO: Move this to it's own "hotpatch" module.
 		js_newcfunction(_js, _ccl_register_hotpatch, "register_hotpatch", 2);
 		js_setglobal(_js, "register_hotpatch");
+
+		// Load the require() function
 		js_newcfunction(_js, _ccl_require, "require", 1);
 		js_setglobal(_js, "require");
-		if (js_dostring(_js, _embedded_sdk) != 0) {
-			printf("%s", _embedded_sdk);
-			stackDump(_js);
+
+		// Assign "global" to globals
+		js_pushglobal(_js);
+		js_pushglobal(_js);
+		js_setproperty(_js, -2, "global");
+		js_pop(_js, 1);
+
+		// Load the global timer functions
+		js_load_timers_globals(_js);
+
+		if (js_ploadstring(_js, "bundle.js", _embedded_sdk) != 0)
+		{
+			errorDump(_js);
+			return;
+		}
+		else
+		{
+			js_pushglobal(_js);
+			if (js_pcall(_js, 0) != 0) 
+			{
+				errorDump(_js);
+				return;
+			}
 		}
 	}
 }
