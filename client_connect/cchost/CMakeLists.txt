@@ -2,8 +2,8 @@ file(GLOB mujs_files ${CMAKE_CURRENT_SOURCE_DIR}/../mujs/one.c)
 file(GLOB polyfill_files ${CMAKE_CURRENT_SOURCE_DIR}/../polyfill/*.c)
 file(GLOB_RECURSE ccsrc_files ${CMAKE_CURRENT_SOURCE_DIR}/../ccsrc/src/*.ts)
 
-include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/../mujs)
-include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/../polyfill)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../mujs)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../polyfill)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../curl/include)
 
 add_custom_command(
@@ -34,7 +34,8 @@ add_library(
 	connect.impl.cpp
 	embed.cpp
 	module/timers/module.cpp
-	module/console/module.cpp)
+	module/console/module.cpp
+	module/curl-native/module.cpp)
 
 target_include_directories(cchost PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(cchost libcurl)

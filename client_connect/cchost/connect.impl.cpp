@@ -109,8 +109,7 @@ void _ccl_require(js_State *J)
 
 	if (mod_str == "curl-native")
 	{
-		// load curl native components
-		//luaopen_lcurl(J);
+		js_load_curl_native(J);
 		return;
 	}
 	else if (mod_str == "timers")
