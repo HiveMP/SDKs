@@ -18,6 +18,11 @@ extern "C"
 		cci_init();
 	}
 
+	DLLEXPORT bool cc_tick()
+	{
+		return cci_tick();
+	}
+
     DLLEXPORT bool cc_is_hotpatched(const char* api, const char* operation)
     {
         return cci_is_hotpatched(api, operation);

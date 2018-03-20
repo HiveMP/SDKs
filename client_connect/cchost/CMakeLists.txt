@@ -32,7 +32,9 @@ add_library(
 	${polyfill_files}
 	connect.cpp
 	connect.impl.cpp
-	embed.cpp)
+	embed.cpp
+	module/timers/module.cpp
+	module/console/module.cpp)
 
 target_include_directories(cchost PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(cchost libcurl)

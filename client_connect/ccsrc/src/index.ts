@@ -1,4 +1,11 @@
-import * as curl from './curl';
+import * as timers from 'timers';
+import * as console from 'console';
+
+timers.setTimeout(function () {
+    console.log("hello");
+}, 2000);
+
+/*
 
 function testHook(request: IHotpatchRequest): IHotpatchResponse {
   return {
@@ -13,6 +20,6 @@ function testHook(request: IHotpatchRequest): IHotpatchResponse {
   }
 }
 
-curl.makeApiRequest();
-
 register_hotpatch("temp-session:sessionPUT", testHook);
+
+*/

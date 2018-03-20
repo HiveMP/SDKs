@@ -16,6 +16,7 @@ extern "C"
 #endif
 
 	DLLIMPORT void cc_init();
+	DLLIMPORT bool cc_tick();
 	DLLIMPORT bool cc_is_hotpatched(const char* api, const char* operation);
 	DLLIMPORT char* cc_call_hotpatch(const char* api, const char* operation, const char* endpoint, const char* apiKey, const char* parametersAsJson, int32_t* statusCode);
 	DLLIMPORT void cc_free_string(char* ptr);

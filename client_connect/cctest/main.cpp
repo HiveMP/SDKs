@@ -2,10 +2,18 @@
 #include <stdio.h>
 #include <fstream>
 #include <sstream>
+#include <chrono>
+#include <thread>
 
 int main()
 {
 	cc_init();
+
+	while (cc_tick())
+	{
+		// tick
+		std::this_thread::sleep_for(std::chrono::milliseconds(16));
+	}
 
     printf("checking if hotpatched\n");
     if (cc_is_hotpatched("temp-session", "sessionPUT"))

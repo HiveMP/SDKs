@@ -3,7 +3,6 @@
 extern "C" {
 #endif
 #include "mujs.h"
-#include "lcurl.h"
 #ifdef __cplusplus
 }
 #endif
@@ -12,6 +11,9 @@ extern "C" {
 #include <string.h>
 #include <string>
 #include <map>
+
+#include "module/timers/module.h"
+#include "module/console/module.h"
 
 std::map<std::string, std::string>* _hotpatches = nullptr;
 js_State* _js = nullptr;
@@ -87,7 +89,17 @@ void _ccl_require(js_State *J)
 	if (mod_str == "curl-native")
 	{
 		// load curl native components
-		luaopen_lcurl(J);
+		//luaopen_lcurl(J);
+		return;
+	}
+	else if (mod_str == "timers")
+	{
+		js_load_timers(J);
+		return;
+	}
+	else if (mod_str == "console")
+	{
+		js_load_console(J);
 		return;
 	}
 
@@ -112,6 +124,21 @@ void cci_init()
 			// error
 		}
 	}
+}
+
+bool cci_tick()
+{
+	auto any_alive = false;
+
+	if (_js != nullptr)
+	{
+		if (js_tick_timers(_js))
+		{
+			any_alive = true;
+		}
+	}
+
+	return any_alive;
 }
 
 bool cci_is_hotpatched(const char* api_raw, const char* operation_raw)

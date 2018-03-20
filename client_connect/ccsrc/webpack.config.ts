@@ -7,7 +7,9 @@ const config: webpack.Configuration = {
   mode: 'development',
   target: (compiler: any) => {
     new ExternalsPlugin("commonjs", [
-      "curl-native"
+      "curl-native",
+      "timers",
+      "console"
     ]).apply(compiler);
   },
   module: {
