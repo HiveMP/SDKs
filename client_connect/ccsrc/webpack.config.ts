@@ -5,7 +5,11 @@ const ExternalsPlugin = require('webpack/lib/ExternalsPlugin');
 const config: webpack.Configuration = {
   entry: './src/index.ts',
   mode: 'development',
+  devtool: false,
   target: (compiler: any) => {
+
+    // TODO: Copy other configuration values from 'node'...
+
     new ExternalsPlugin("commonjs", [
       "curl-native",
       "timers",

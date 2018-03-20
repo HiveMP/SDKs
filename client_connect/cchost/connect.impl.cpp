@@ -120,8 +120,9 @@ void cci_init()
 		js_setglobal(_js, "register_hotpatch");
 		js_newcfunction(_js, _ccl_require, "require", 1);
 		js_setglobal(_js, "require");
-		if (js_dostring(_js, _embedded_sdk) == 1) {
-			// error
+		if (js_dostring(_js, _embedded_sdk) != 0) {
+			printf("%s", _embedded_sdk);
+			stackDump(_js);
 		}
 	}
 }
