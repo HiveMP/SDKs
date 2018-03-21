@@ -7,7 +7,7 @@
 /**
  * 
  */
-class UNREALTEST418_API MyClass
+class UNREALTEST419_API MyClass
 {
 public:
 	MyClass();
