@@ -33,9 +33,11 @@ add_library(
 	connect.cpp
 	connect.impl.cpp
 	embed.cpp
+	jsutil.cpp
 	module/timers/module.cpp
 	module/console/module.cpp
-	module/curl-native/module.cpp)
+	module/curl-native/module.cpp
+	module/hotpatching/module.cpp)
 
 target_include_directories(cchost PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(cchost libcurl)

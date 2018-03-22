@@ -13,7 +13,10 @@
     "types": [
       "client-connect",
       "curl-native",
-      "webpack-env"
+      "webpack-env",
+      "hotpatching",
+      "timers",
+      "console"
     ]
   },
   "include": [

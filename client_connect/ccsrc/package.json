@@ -4,9 +4,11 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "es6-promise": "^4.2.4"
+    "es6-promise": "^4.2.4",
+    "query-string": "5"
   },
   "devDependencies": {
+    "@types/query-string": "5",
     "@types/webpack": "^4.1.1",
     "@types/webpack-env": "^1.13.5",
     "ts-loader": "^4.0.1",

@@ -2,6 +2,7 @@
 #include "curl/curl.h"
 #include <thread>
 #include <vector>
+#include "../../jsutil.h"
 
 enum curl_handle_state {
 	CHS_PENDING,
@@ -15,9 +16,11 @@ struct curl_handle_t {
 	CURL* handle;
 	struct curl_slist* reqHeaders;
 	std::thread* thread;
+	const char* requestData;
 	std::string responseData;
 	const char* resolve;
 	const char* reject;
+	long responseStatusCode;
 };
 
 std::vector<struct curl_handle_t*>* handles = nullptr;
@@ -72,22 +75,17 @@ void js_curl_fetch(js_State* J)
 	READ_CURL_REQUEST_STRING("url", CURLOPT_URL, nullptr);
 	READ_CURL_REQUEST_STRING("userAgent", CURLOPT_USERAGENT, "HiveMP-ClientConnect/1.0");
 
-	// set custom headers
 	struct curl_slist* headers = nullptr;
-	js_getproperty(J, 1, "headers");
-	if (js_isarray(J, -1))
+
+	// set body if provided
+	const char* requestBody = nullptr;
+	js_getproperty(J, 1, "body");
+	if (js_isstring(J, -1))
 	{
-		for (auto i = 0; i < js_getlength(J, -1); i++)
-		{
-			js_getindex(J, -1, i);
-			headers = curl_slist_append(headers, js_tostring(J, -1));
-			js_pop(J, 1);
-		}
-
-		curl_easy_setopt(handle, CURLOPT_HTTPHEADER, headers);
+		requestBody = alloc_copy(js_tostring(J, -1));
+		js_pop(J, 1);
 	}
-	js_pop(J, 1);
-
+	
 	// set based on method
 	js_getproperty(J, 1, "method");
 	if (js_isstring(J, -1))
@@ -104,15 +102,31 @@ void js_curl_fetch(js_State* J)
 		}
 		else if (meth_str == "PUT")
 		{
-			curl_easy_setopt(handle, CURLOPT_UPLOAD, 1);
+			curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, "PUT");
 
-			// TODO Setup read callback
+			if (requestBody == nullptr)
+			{
+				headers = curl_slist_append(headers, "Content-Length: 0");
+			}
+			else
+			{
+				curl_easy_setopt(handle, CURLOPT_POSTFIELDS, strlen(requestBody));
+				curl_easy_setopt(handle, CURLOPT_POSTFIELDS, requestBody);
+			}
 		}
 		else if (meth_str == "POST")
 		{
-			curl_easy_setopt(handle, CURLOPT_POST, 1);
+			curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, "POST");
 
-			// TODO Setup read callback
+			if (requestBody == nullptr)
+			{
+				headers = curl_slist_append(headers, "Content-Length: 0");
+			}
+			else
+			{
+				curl_easy_setopt(handle, CURLOPT_POSTFIELDS, strlen(requestBody));
+				curl_easy_setopt(handle, CURLOPT_POSTFIELDS, requestBody);
+			}
 		}
 		else if (meth_str == "DELETE")
 		{
@@ -122,6 +136,22 @@ void js_curl_fetch(js_State* J)
 		{
 			curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, meth_str.c_str());
 		}
+
+		js_pop(J, 1);
+	}
+
+	// set custom headers
+	js_getproperty(J, 1, "headers");
+	if (js_isarray(J, -1))
+	{
+		for (auto i = 0; i < js_getlength(J, -1); i++)
+		{
+			js_getindex(J, -1, i);
+			headers = curl_slist_append(headers, js_tostring(J, -1));
+			js_pop(J, 1);
+		}
+
+		curl_easy_setopt(handle, CURLOPT_HTTPHEADER, headers);
 	}
 	js_pop(J, 1);
 
@@ -130,6 +160,7 @@ void js_curl_fetch(js_State* J)
 	handle_ref->state = CHS_PENDING;
 	handle_ref->reqHeaders = headers;
 	handle_ref->handle = handle;
+	handle_ref->requestData = nullptr;
 	handle_ref->responseData = std::string("");
 	handle_ref->resolve = resolve;
 	handle_ref->reject = reject;
@@ -146,6 +177,7 @@ void js_curl_fetch(js_State* J)
 		if (result == CURLE_OK)
 		{
 			handle_ref->state = CHS_SUCCESS;
+			curl_easy_getinfo(handle_ref->handle, CURLINFO_RESPONSE_CODE, &handle_ref->responseStatusCode);
 		}
 		else
 		{
@@ -153,6 +185,11 @@ void js_curl_fetch(js_State* J)
 		}
 
 		curl_slist_free_all(handle_ref->reqHeaders);
+
+		if (handle_ref->requestData != nullptr)
+		{
+			free((void*)handle_ref->requestData);
+		}
 	});
 
 	// add handle ref to pending handles
@@ -190,12 +227,12 @@ void js_tick_curl_native(js_State* J)
 					js_newobject(J);
 					js_pushstring(J, (*it)->responseData.c_str());
 					js_setproperty(J, -2, "responseText");
+					js_pushnumber(J, (*it)->responseStatusCode);
+					js_setproperty(J, -2, "statusCode");
 
 					if (js_pcall(J, 1) != 0)
 					{
-						// TODO: push error onto an "unhandled" errors system, or 
-						// maybe try to call the reject handler??
-						js_pop(J, 1);
+						js_debug_error_dump(J);
 					}
 				}
 
@@ -221,7 +258,7 @@ void js_tick_curl_native(js_State* J)
 
 					if (js_pcall(J, 1) != 0)
 					{
-						printf("error while calling handle resolve\n");
+						js_debug_error_dump(J);
 					}
 				}
 

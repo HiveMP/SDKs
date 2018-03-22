@@ -2,6 +2,8 @@
 #include <chrono>
 #include <vector>
 
+#include "../../jsutil.h"
+
 struct timer_t {
 	bool immediate;
 	bool isInterval;
@@ -196,7 +198,7 @@ void js_tick_timers(js_State* J)
 					js_pushglobal(J);
 					if (js_pcall(J, 0) != 0)
 					{
-						printf("error while calling timer callback\n");
+						js_debug_error_dump(J);
 					}
 				}
 

@@ -27,7 +27,8 @@ const config: webpack.Configuration = {
     new ExternalsPlugin("commonjs", [
       "curl-native",
       "timers",
-      "console"
+      "console",
+      "hotpatching"
     ]).apply(compiler);
   },
   module: {

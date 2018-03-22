@@ -3,11 +3,12 @@ declare module "curl-native" {
     url?: string;
     userAgent?: string;
     method?: string;
-    headers?: string;
+    headers?: string[];
   }
 
   interface Response {
     responseText: string;
+    statusCode: number;
   }
 
   function fetch(req: Request, resolve: (res: Response) => void, reject: (err: Error) => void): void;
