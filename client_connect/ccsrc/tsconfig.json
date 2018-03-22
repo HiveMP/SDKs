@@ -6,10 +6,6 @@
       "es2015.promise"
     ],
     "strict": true,
-    "typeRoots": [
-      "./src/@types",
-      "./node_modules/@types"
-    ],
     "types": [
       "client-connect",
       "curl-native",

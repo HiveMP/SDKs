@@ -1,4 +1,4 @@
-node_modules/
+/client_connect/ccsrc/node_modules/
 dist/
 
 /deps/HiveMP.ClientConnect/
