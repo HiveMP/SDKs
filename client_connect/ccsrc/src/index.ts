@@ -2,6 +2,7 @@ import 'es6-promise/auto';
 
 import * as timers from 'timers';
 import * as console from 'console';
+import * as curl from './curl';
 
 async function delay(ms: number) {
   return new Promise<void>((resolve, reject) => {
@@ -14,9 +15,13 @@ async function delay(ms: number) {
 async function test() {
   console.log("start");
   await delay(2000);
-  console.log("hello 1");
+
+  let response = await curl.fetch({
+    url: "https://hivemp.com/"
+  });
+  console.log(response.responseText);
+
   await delay(2000);
-  console.log("hello 2");
 }
 
 test();

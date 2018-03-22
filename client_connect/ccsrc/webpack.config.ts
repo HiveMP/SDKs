@@ -35,7 +35,7 @@ const config: webpack.Configuration = {
       {
         test: /\.tsx?$/,
         use: 'ts-loader',
-        exclude: /node_modules/,
+        exclude: /^node_modules/,
       }
     ]
   },

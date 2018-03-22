@@ -7,7 +7,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Output "Compiling SDK TypeScript code with Webpack..."
-.\node_modules\.bin\webpack
+.\node_modules\.bin\ts-node .\node_modules\webpack-cli
 if ($LASTEXITCODE -ne 0) {
   exit $LASTEXITCODE
 }

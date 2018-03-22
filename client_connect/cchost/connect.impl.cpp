@@ -14,6 +14,7 @@ extern "C" {
 
 #include "module/timers/module.h"
 #include "module/console/module.h"
+#include "module/curl-native/module.h"
 
 std::map<std::string, std::string>* _hotpatches = nullptr;
 js_State* _js = nullptr;
@@ -178,7 +179,15 @@ bool cci_tick()
 
 	if (_js != nullptr)
 	{
-		if (js_tick_timers(_js))
+		js_tick_timers(_js);
+		js_tick_curl_native(_js);
+
+		if (js_post_tick_timers(_js))
+		{
+			any_alive = true;
+		}
+
+		if (js_post_tick_curl_native(_js))
 		{
 			any_alive = true;
 		}

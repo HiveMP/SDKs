@@ -175,7 +175,7 @@ void js_load_timers_globals(js_State* J)
 	js_pop(J, 1);
 }
 
-bool js_tick_timers(js_State* J)
+void js_tick_timers(js_State* J)
 {
 	auto now = std::chrono::system_clock::now();
 
@@ -214,7 +214,13 @@ bool js_tick_timers(js_State* J)
 
 			++it;
 		}
+	}
+}
 
+bool js_post_tick_timers(js_State* J)
+{
+	if (timers != nullptr)
+	{
 		for (auto it = pending_timers->begin(); it != pending_timers->end(); it++)
 		{
 			timers->push_back(*it);
