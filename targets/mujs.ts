@@ -151,6 +151,72 @@ import * as moment from 'moment';
 import * as qs from 'query-string';
 
 export namespace HiveMP {
+  export class HiveMPError extends Error {
+    public constructor(response: curl.Response) {
+      let error: HiveMPSystemError | null = null;
+      let message = 'An unknown error occurred while retrieving data from the HiveMP API';
+      let responseTextIsValid = false
+      try {
+        error = JSON.parse(response.responseText) as HiveMPSystemError;
+        message = error.message;
+        responseTextIsValid = true;
+      } catch (e) {
+        message = response.responseText;
+      }
+
+      super(message);
+
+      this.httpStatusCode = response.statusCode;
+      this.error = error;
+      this.originalResponse = response;
+      this.responseTextIsValid = responseTextIsValid;
+    }
+
+    public httpStatusCode: number;
+    public error: HiveMPSystemError | null;
+    public originalResponse: curl.Response;
+    public responseTextIsValid: boolean;
+  }
+
+  export interface HiveMPSystemError {
+    code: number;
+    message: string;
+    fields: string | null;
+    data: HiveMPSystemErrorData;
+  }
+
+  export interface HiveMPSystemErrorData {
+    internalExceptionMessage?: string;
+    internalExceptionStackTrace?: string;
+    unauthorizedAdditionalInfo?: string;
+    queryFailureMessage?: string;
+    objectType?: string;
+    objectContext?: string;
+    invalidIdentifier?: string;
+    parameterName?: string;
+    parameterInvalidReason?: string;
+    objectNotEditableReason?: string;
+    invalidConfigurationReason?: string;
+    amount?: number;
+    amountFractionalDivisor?: number;
+    queryFailureCode?: number;
+    invalidSessionId?: string;
+    expectedSessionType?: string;
+    parameterIsMissing?: boolean;
+    invalidIdentifierReason?: string;
+    invalidIdentifierExpectedType?: string;
+    internalSentryErrorId?: string;
+    queryFailureErrors?: HiveMPSystemQueryError[];
+  }
+
+  export interface HiveMPSystemQueryError {
+    domain: string;
+    location: string;
+    locationType: string;
+    message: string;
+    reason: string;
+  }
+
   export interface RequestOptions {
     apiKey: string;
     baseUrl: string;
@@ -260,9 +326,9 @@ export namespace HiveMP {
 
       export async function ${methodName}(options: RequestOptions, request: ${requestInterfaceName}Request): ${returnValue} {
         let apiKey = options.apiKey || '';
-        let baseUrl = options.baseUrl || '....';
+        let baseUrl = options.baseUrl || 'https://${api.host}${api.basePath}';
 
-        let queryParameters = {};
+        let queryParameters: { [name: string]: string } = {};
 `;
           if (methodValue.parameters != null) {
             for (let parameter of methodValue.parameters) {
@@ -289,7 +355,7 @@ export namespace HiveMP {
 
           code += `
         let response = await curl.fetch({
-          url: baseUrl + "${el.pathName}?" + qs.stringify(queryParameters),
+          url: baseUrl + '${el.pathName}?' + qs.stringify(queryParameters),
           method: "${el.methodName.toUpperCase()}",
           headers: {
             'X-API-Key': apiKey
@@ -299,9 +365,7 @@ export namespace HiveMP {
         if (response.statusCode == 200) {
           return JSON.parse(response.responseText);
         } else {
-          // TODO: Throw structured error so that callers can propagate
-          // errors up to the real client.
-          throw new Error(JSON.parse(response.responseText).message);
+          throw new HiveMPError(response);
         }
       }
 `;

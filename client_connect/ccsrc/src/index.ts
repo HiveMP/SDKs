@@ -31,17 +31,37 @@ async function beginDelayTest() {
 }
 
 async function sessionPut(request: hotpatching.IApiHotpatchRequest): Promise<hotpatching.IApiHotpatchResponse> {
-  let response = await curl.fetch({
-    url: "https://temp-session-api.hivemp.com/v1/session",
-    method: "PUT",
-    headers: {
-      'X-API-Key': request.apiKey
+  try {
+    return {
+      code: 200,
+      response: await HiveMP.TemporarySession.TemporarySessionClient.sessionPUT({
+        apiKey: request.apiKey,
+        baseUrl: request.endpoint
+      }, {
+        // No parameters...
+      })
     }
-  });
-  return {
-    code: response.statusCode,
-    response: JSON.parse(response.responseText),
-  };
+  } catch (e) {
+    if (e.responseTextIsValid) {
+      return {
+        code: e.httpStatusCode,
+        response: e.error,
+      };
+    } else {
+      return {
+        code: e.httpStatusCode || 500,
+        response: {
+          code: 7001,
+          message: e.message,
+          fields: null,
+          data: {
+            internalExceptionMessage: e.message,
+            internalExceptionStackTrace: e.stackTrace
+          }
+        } as HiveMP.HiveMPSystemError,
+      };
+    }
+  }
 }
 
 hotpatching.registerApiHotpatch('temp-session:sessionPUT', sessionPut);

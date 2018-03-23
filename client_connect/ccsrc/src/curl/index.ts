@@ -1,13 +1,13 @@
 import * as curlNative from 'curl-native';
 
-interface Request {
+export interface Request {
   url?: string;
   userAgent?: string;
   method?: string;
   headers?: { [name: string]: string };
 }
 
-interface Response {
+export interface Response {
   responseText: string;
   statusCode: number;
 }

@@ -13,6 +13,7 @@ add_custom_command(
 			${CMAKE_CURRENT_SOURCE_DIR}/embed.ps1 
 			${CMAKE_CURRENT_SOURCE_DIR}/../ccsrc/webpack.config.ts 
 			${CMAKE_CURRENT_SOURCE_DIR}/../ccsrc/package.json
+			${CMAKE_CURRENT_SOURCE_DIR}/../../targets/mujs.ts
 	COMMAND pwsh ARGS ${CMAKE_CURRENT_SOURCE_DIR}/embed.ps1
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )

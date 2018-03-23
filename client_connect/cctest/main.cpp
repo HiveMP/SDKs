@@ -15,7 +15,7 @@ int main()
 		call_handle = cc_call_api_hotpatch(
 			"temp-session",
 			"sessionPUT",
-			"https://temp-session-api.hivemp.com",
+			"https://temp-session-api.hivemp.com/v1",
 			"ada0dc2f0a448e1058d4720763d1b5a1",
 			"{}"
 		);
