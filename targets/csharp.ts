@@ -227,7 +227,7 @@ namespace ${namespace}
       orderedDefinitionNames.sort();
 
       for (let definitionName of orderedDefinitionNames) {
-        if (definitionName == 'HiveSystemError') {
+        if (GeneratorUtility.isCommonDefinitionName(definitionName)) {
           continue;
         }
         const className = definitionName.replace(/(\[|\])/g, '');

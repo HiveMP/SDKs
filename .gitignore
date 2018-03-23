@@ -1,5 +1,6 @@
 /client_connect/ccsrc/node_modules/
-dist/
+/dist/
+/client_connect/ccsrc/dist/
 
 /deps/HiveMP.ClientConnect/
 
@@ -17,16 +18,20 @@ bin/
 
 yarn-error.log
 Unity.log
-tests/UnrealTest*/Intermediate/
-tests/UnrealTest*/Saved/
-tests/UnrealTest*/Plugins/
-tests/UnrealTest*/Binaries/
-tests/UnrealTest*/UnrealTest*.sln
-tests/UnrealTest*/UnrealTest*.VC.db
-tests/UnrealTest*/UnrealTest*.VC.VC.opendb
-tests/UnrealTest*/Build/
-tests/UnrealBuilds-*/
+/tests/UnrealTest*/Intermediate/
+/tests/UnrealTest*/Saved/
+/tests/UnrealTest*/Plugins/
+/tests/UnrealTest*/Binaries/
+/tests/UnrealTest*/UnrealTest*.sln
+/tests/UnrealTest*/UnrealTest*.VC.db
+/tests/UnrealTest*/UnrealTest*.VC.VC.opendb
+/tests/UnrealTest*/Build/
+/tests/UnrealBuilds-*/
 UnrealEngine-*.zip
 *.unitypackage
 
 /client_connect/build/
+
+/node_modules/
+/client_connect/ccsrc/src/hivemp/index.ts
+/client_connect/cchost/embed.cpp

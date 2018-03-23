@@ -5,6 +5,9 @@ import * as console from 'console';
 import * as curl from './curl';
 import * as hotpatching from 'hotpatching';
 import * as qs from 'query-string';
+import { HiveMP } from './hivemp';
+
+var t: HiveMP.Attribute.AttributeData;
 
 async function delay(ms: number) {
   return new Promise<void>((resolve, reject) => {

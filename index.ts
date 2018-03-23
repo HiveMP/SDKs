@@ -18,6 +18,9 @@ import {
   UnrealEngine418Generator,
   UnrealEngine419Generator,
 } from './targets/ue4';
+import {
+  MuJsTypeScriptGenerator
+} from './targets/mujs';
 
 let targets = [
   new CSharp35Generator(),
@@ -26,6 +29,7 @@ let targets = [
   new UnrealEngine417Generator(),
   new UnrealEngine418Generator(),
   new UnrealEngine419Generator(),
+  new MuJsTypeScriptGenerator(),
 ];
 
 let apis = [

@@ -5,6 +5,7 @@
   "license": "MIT",
   "dependencies": {
     "es6-promise": "^4.2.4",
+    "moment": "^2.21.0",
     "query-string": "5"
   },
   "devDependencies": {

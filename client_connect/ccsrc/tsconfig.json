@@ -16,7 +16,8 @@
       "webpack-env",
       "hotpatching",
       "timers",
-      "console"
+      "console",
+      "moment"
     ]
   },
   "include": [
