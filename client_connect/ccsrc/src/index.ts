@@ -1,4 +1,5 @@
 import 'es6-promise/auto';
+import './typedarray-load';
 
 import * as timers from 'timers';
 import * as console from 'console';

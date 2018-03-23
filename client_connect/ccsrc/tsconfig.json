@@ -17,7 +17,9 @@
       "hotpatching",
       "timers",
       "console",
-      "moment"
+      "moment",
+      "base64-js",
+      "typedarray"
     ]
   },
   "include": [

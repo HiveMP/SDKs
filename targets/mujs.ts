@@ -145,10 +145,17 @@ export class MuJsTypeScriptGenerator implements TargetGenerator {
  * Generated with the HiveMP SDK Generator
  */
 
+import * as curl from '../curl';
 import { Buffer } from '../buffer';
 import * as moment from 'moment';
+import * as qs from 'query-string';
 
 export namespace HiveMP {
+  export interface RequestOptions {
+    apiKey: string;
+    baseUrl: string;
+  }
+
 `;
 
     for (let apiId in documents) {
@@ -203,180 +210,109 @@ export namespace HiveMP {
 `;
       }
 
-      /*
-
       for (let tag in tags) {
-        code += `
-    [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
-    public interface I${tag}Client
-    {
-        /// <summary>
-        /// The API key sent in requests to Hive.  When calling methods that require no API key, this should
-        /// be null, otherwise set it to the API key.
-        /// </summary>
-        string ApiKey { get; set; }
-        
-        /// <summary>
-        /// The base URL for the API. This is set to production for you by default, but if want to use development or
-        /// enterprise endpoints, you'll need to set this.
-        /// </summary>
-        string BaseUrl { get; set; }
-    
-        /// <summary>
-        /// Called when preparing an API request; you can use this event to modify where the
-        /// request is sent.
-        /// </summary>
-        System.Func<HiveMP.Api.RetryableHttpClient, string, string> InterceptRequest { get; set; }
+        if (isFirstEntryInNamespace) {
+          isFirstEntryInNamespace = false;
+        } else {
+          code += `
 `;
+        }
+
+        code += `    export namespace ${tag}Client {
+`;
+
+        let isFirstEntryInClient = true;
 
         for (let el of tags[tag]) {
           let methodValue = api.paths[el.pathName][el.methodName];
           if (GeneratorUtility.isClusterOnlyMethod(methodValue) && !opts.includeClusterOnly) {
             continue;
           }
-          let methodName = 
-            methodValue.operationId[0].toUpperCase() +
-            methodValue.operationId.substr(1);
-          let returnValue = 'void';
-          let asyncReturnValue = 'System.Threading.Tasks.Task';
+          let methodName = methodValue.operationId;
+          let requestInterfaceName = methodValue.operationId[0].toUpperCase() + methodValue.operationId.substr(1);
+          let returnValue = 'Promise<void>';
           if (methodValue.responses != null && methodValue.responses["200"] != null) {
-            returnValue = CSharpGenerator.getTypeScriptTypeFromDefinition(namespace, methodValue.responses["200"], false, false, true);
+            returnValue = MuJsTypeScriptGenerator.getTypeScriptTypeFromDefinition(namespace, '', methodValue.responses["200"], false, false, true);
             if (returnValue == null) {
-              returnValue = 'void';
+              returnValue = 'Promise<void>';
             } else {
-              asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
+              returnValue = 'Promise<' + returnValue + '>';
             }
           }
-          let promiseResolve = 'System.Action<' + returnValue + '>';
-          if (returnValue == 'void') {
-            promiseResolve = 'System.Action';
+
+          if (isFirstEntryInClient) {
+            isFirstEntryInClient = false;
+          } else {
+            code += `
+`;
           }
+
+          code += `      export interface ${requestInterfaceName}Request {
+`;        
+          if (methodValue.parameters != null) {
+            for (let parameter of methodValue.parameters) {
+              let parameterType = MuJsTypeScriptGenerator.getTypeScriptTypeFromDefinition(namespace, parameter.name, parameter, false);
+              code += `        ${parameter.name}: ${parameterType};
+`;
+            }
+          }
+          code += `      }
+
+      export async function ${methodName}(options: RequestOptions, request: ${requestInterfaceName}Request): ${returnValue} {
+        let apiKey = options.apiKey || '';
+        let baseUrl = options.baseUrl || '....';
+
+        let queryParameters = {};
+`;
+          if (methodValue.parameters != null) {
+            for (let parameter of methodValue.parameters) {
+              let parameterType = MuJsTypeScriptGenerator.getTypeScriptTypeFromDefinition(namespace, parameter.name, parameter, false);
+              if (parameter.in == "body") {
+                continue;
+              }
+              let valueAccess = `request.${parameter.name}.toString()`;
+              if (parameter.type === 'string' && parameter.format === 'byte') {
+                valueAccess = `request.${parameter.name}.toBase64String()`;
+              }
+              valueAccess = `encodeURIComponent(${valueAccess})`;
+              if (parameter.required) {
+                code += `        queryParameters['${parameter.name}'] = ${valueAccess};
+`;
+              } else {
+                code += `        if (request.${parameter.name} !== null && request.${parameter.name} !== undefined) {
+          queryParameters['${parameter.name}'] = ${valueAccess};
+        }
+`;              
+              }
+            }
+          }
+
           code += `
-#if HAS_TASKS
-        /// <summary>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
-        /// </summary>
-        /// <remarks>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
-        /// </remarks>
-        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
-        ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments);
+        let response = await curl.fetch({
+          url: baseUrl + "${el.pathName}?" + qs.stringify(queryParameters),
+          method: "${el.methodName.toUpperCase()}",
+          headers: {
+            'X-API-Key': apiKey
+          }
+        });
 
-        /// <summary>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
-        /// </summary>
-        /// <remarks>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
-        /// </remarks>
-        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
-        /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
-        ${asyncReturnValue} ${methodName}Async(${methodName}Request arguments, System.Threading.CancellationToken cancellationToken);
-#endif
-        /// <summary>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
-        /// </summary>
-        /// <remarks>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
-        /// </remarks>
-        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
-        ${returnValue} ${methodName}(${methodName}Request arguments);
-#if IS_UNITY && !NET_4_6 && !HAS_TASKS
-        /// <summary>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
-        /// </summary>
-        /// <remarks>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
-        /// </remarks>
-        /// <param name="arguments">The ${xmlescape(methodName)} arguments.</param>
-        /// <param name="resolve">The callback to run when the API call returns. This is always executed on the main thread.</param>
-        /// <param name="reject">The callback to run when the API call failed. This is always executed on the main thread.</param>
-        void ${methodName}Promise(${methodName}Request arguments, ${promiseResolve} resolve, System.Action<HiveMP.Api.HiveMPException> reject);
-#endif
+        if (response.statusCode == 200) {
+          return JSON.parse(response.responseText);
+        } else {
+          // TODO: Throw structured error so that callers can propagate
+          // errors up to the real client.
+          throw new Error(JSON.parse(response.responseText).message);
+        }
+      }
 `;
         }
 
-        let startupCode = '';
-        let clientConnectWaitAsync = '';
-        let clientConnectWait = '';
-        if (!(tag == 'Files' && apiId == 'client-connect')) {
-          startupCode = `
-        static ${tag}Client()
-        {
-            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
-        }`;
-          clientConnectWait = `
-#if ENABLE_CLIENT_CONNECT_SDK
-            HiveMP.Api.HiveMPSDKSetup.WaitForClientConnect();
-#endif
+        code += `    }
 `;
-          clientConnectWaitAsync = `
-#if ENABLE_CLIENT_CONNECT_SDK
-            await HiveMP.Api.HiveMPSDKSetup.WaitForClientConnectAsync();
-#endif
-`;
-        }
+      }
 
-        code += `
-    }
+      /*
 
-    [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
-    public class ${tag}Client : I${tag}Client
-    {
-        ${startupCode}
-
-        /// <summary>
-        /// The API key sent in requests to Hive.  When calling methods that require no API key, this should
-        /// be null, otherwise set it to the API key.
-        /// </summary>
-        public string ApiKey { get; set; }
-    
-        /// <summary>
-        /// The base URL for the API. This is set to production for you by default, but if want to use development or
-        /// enterprise endpoints, you'll need to set this.
-        /// </summary>
-        public string BaseUrl { get; set; }
-    
-        /// <summary>
-        /// Called when preparing an API request; you can use this event to modify where the
-        /// request is sent.
-        /// </summary>
-        public System.Func<HiveMP.Api.RetryableHttpClient, string, string> InterceptRequest { get; set; }
-        
-        private void PrepareRequest(HiveMP.Api.RetryableHttpClient request, string url)
-        {
-            request.DefaultRequestHeaders.Add("X-API-Key", ApiKey ?? string.Empty);
-        }
-
-        private void PrepareRequest(HiveMP.Api.RetryableHttpClient request, System.Text.StringBuilder urlBuilder)
-        {
-            if (InterceptRequest != null)
-            {
-                var url = urlBuilder.ToString();
-                var newUrl = InterceptRequest(request, url);
-                urlBuilder.Remove(0, urlBuilder.Length);
-                urlBuilder.Append(newUrl);
-            }
-        }
-
-        /// <summary>
-        /// Constructs a new ${tag}Client for calling the ${api.host} API.
-        /// </summary>
-        /// <param name="apiKey">The HiveMP API key to use.</param>
-        public ${tag}Client(string apiKey)
-        {
-            ApiKey = apiKey;
-            BaseUrl = "https://${api.host}${api.basePath}";
-        }
-
-        /// <summary>
-        /// Constructs a new ${tag}Client for calling the ${api.host} API, with a default empty API key.
-        /// </summary>
-        public ${tag}Client()
-        {
-            ApiKey = string.Empty;
-            BaseUrl = "https://${api.host}${api.basePath}";
-        }
-`;
 
         for (let el of tags[tag]) {
           let methodValue = api.paths[el.pathName][el.methodName];
@@ -417,51 +353,7 @@ export namespace HiveMP {
             }`;
           code += `
 #if HAS_TASKS
-        /// <summary>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
-        /// </summary>
-        /// <remarks>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
-        /// </remarks>`;
-          if (methodValue.parameters != null) {
-            for (let parameter of methodValue.parameters) {
-              let name = parameter.name[0].toUpperCase() + parameter.name.substr(1);
-              code += `
-        /// <param name="${xmlescape(name)}">${CSharpGenerator.applyCommentLines(parameter.description, "        /// ")}</param>`;
-            }
-          }
-          code += `
-        [System.Obsolete(
-            "API calls with fixed position parameters are subject to change when new optional parameters " +
-            "are added to the API; use the ${methodName}Async(${methodName}Request) version of this method " +
-            "instead to ensure forward compatibility")]
-        public ${asyncReturnValue} ${methodName}Async(${parameters})
-        {
-            return ${methodName}Async(${createRequest}, System.Threading.CancellationToken.None);
-        }
-
-        /// <summary>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
-        /// </summary>
-        /// <remarks>
-        /// ${CSharpGenerator.applyCommentLines(methodValue.description, "        /// ")}
-        /// </remarks>`;
-          if (methodValue.parameters != null) {
-            for (let parameter of methodValue.parameters) {
-              code += `
-        /// <param name="${xmlescape(parameter.name)}">${CSharpGenerator.applyCommentLines(parameter.description, "        /// ")}</param>`;
-            }
-          }
-          code += `
-        /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
-        [System.Obsolete(
-            "API calls with fixed position parameters are subject to change when new optional parameters " +
-            "are added to the API; use the ${methodName}Async(${methodName}Request,CancellationToken) version of this method " +
-            "instead to ensure forward compatibility")]
-        public ${asyncReturnValue} ${methodName}Async(${parameters}${argumentsSuffix}System.Threading.CancellationToken cancellationToken)
-        {
-            return ${methodName}Async(${createRequest}, cancellationToken);
-        }
+        
         
         /// <summary>
         /// ${CSharpGenerator.applyCommentLines(methodValue.summary, "        /// ")}
