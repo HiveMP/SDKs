@@ -6,10 +6,10 @@
 #include "SocketSubsystem.h"
 #include "Sockets.h"
 #include "Runtime/Engine/Classes/Engine/GameInstance.h"
-#include "HiveBaseGameInstance.generated.h"
+#include "HiveMPBaseGameInstance.generated.h"
 
 UCLASS()
-class UHiveBaseGameInstance : public UGameInstance
+class UHiveMPBaseGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
 

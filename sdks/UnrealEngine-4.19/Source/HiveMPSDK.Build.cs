@@ -7,6 +7,7 @@ namespace UnrealBuildTool.Rules
 		public HiveMPSDK(ReadOnlyTargetRules Target) : base(Target)
         {
             PublicDefinitions.Add("HIVEMPSDK_PACKAGE=1");
+            PublicDefinitions.Add("CLIENT_CONNECT_TARGETING_UNREAL=1");
             PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
             PublicDependencyModuleNames.AddRange(

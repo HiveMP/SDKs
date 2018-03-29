@@ -1,3 +1,7 @@
+#include "connect.h"
+
+#if CLIENT_CONNECT_TARGETING_UNREAL
+#else
 extern "C" {
 #include "mujs.h"
 }
@@ -67,3 +71,4 @@ extern "C"
 		return js_release_api_hotpatch_result(id);
 	}
 }
+#endif

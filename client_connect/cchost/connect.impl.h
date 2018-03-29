@@ -1,7 +1,4 @@
-#ifndef _CONNECT_IMPL_H
-#define _CONNECT_IMPL_H 1
+#pragma once
 
 void cci_init();
 bool cci_tick();
-
-#endif

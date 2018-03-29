@@ -1,14 +1,14 @@
 // Copyright Redpoint Games 2017 MIT Licensed
 
-#include "HiveIpConnection.h"
+#include "HiveMPIpConnection.h"
 #include "PacketHandler.h"
 
-UHiveIpConnection::UHiveIpConnection(const FObjectInitializer& ObjectInitializer) :
+UHiveMPIpConnection::UHiveMPIpConnection(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
 }
 
-void UHiveIpConnection::ReceivedRawPacket(void* InData, int32 InCount)
+void UHiveMPIpConnection::ReceivedRawPacket(void* InData, int32 InCount)
 {
 	uint8* Data = (uint8*)InData;
 
@@ -22,7 +22,7 @@ void UHiveIpConnection::ReceivedRawPacket(void* InData, int32 InCount)
 
 			if (Count == 1)
 			{
-				UE_LOG(LogNet, Display, TEXT("UHiveIpConnection::ReceivedRawPacket: Intercepted NAT punchthrough packet"));
+				UE_LOG(LogNet, Display, TEXT("UHiveMPIpConnection::ReceivedRawPacket: Intercepted NAT punchthrough packet"));
 
 				uint8* CastedData = (uint8*)Data;
 				if (CastedData[0] == 0x0)
@@ -35,7 +35,7 @@ void UHiveIpConnection::ReceivedRawPacket(void* InData, int32 InCount)
 		}
 		else
 		{
-			UE_LOG(LogNet, Display, TEXT("UHiveIpConnection::ReceivedRawPacket: Intercepted NAT punchthrough packet"));
+			UE_LOG(LogNet, Display, TEXT("UHiveMPIpConnection::ReceivedRawPacket: Intercepted NAT punchthrough packet"));
 			return;
 		}
 	}
@@ -43,7 +43,7 @@ void UHiveIpConnection::ReceivedRawPacket(void* InData, int32 InCount)
 	// Sometimes we can also hit this scenario - not sure why though?
 	if (InCount > 0 && Data[InCount - 1] == 0x0)
 	{
-		UE_LOG(LogNet, Display, TEXT("UHiveIpConnection::ReceivedRawPacket: Intercepted NAT punchthrough packet"));
+		UE_LOG(LogNet, Display, TEXT("UHiveMPIpConnection::ReceivedRawPacket: Intercepted NAT punchthrough packet"));
 		return;
 	}
 

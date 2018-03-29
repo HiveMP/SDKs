@@ -1,6 +1,10 @@
 #include "connect.impl.h"
 extern "C" {
+#if CLIENT_CONNECT_TARGETING_UNREAL
+#include "../mujs/mujs.h"
+#else 
 #include "mujs.h"
+#endif
 }
 #include "jsutil.h"
 #include "embed.h"

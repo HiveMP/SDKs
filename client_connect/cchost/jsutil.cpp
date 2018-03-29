@@ -11,8 +11,14 @@ void js_debug_object_dump(js_State* J, std::string indent, bool simple)
 {
 	const char* key;
 	js_pushiterator(J, -1, 1);
-	while (key = js_nextiterator(J, -1))
+	while (true)
 	{
+		key = js_nextiterator(J, -1);
+		if (key == nullptr)
+		{
+			break;
+		}
+		
 		printf("%s'%s': ", indent.c_str(), key);
 
 		if (std::string(key) == "global")

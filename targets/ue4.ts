@@ -187,7 +187,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
 #include "HttpModule.h"
 #include "GenericPlatformHttp.h"
 #include "Base64.h"
-#include "HiveBlueprintLibrary.generated.h"
+#include "HiveMPBlueprintLibrary.generated.h"
 
 #define UE_LOG_HIVE(Verbosity, Format, ...) \\
 { \\
@@ -387,7 +387,9 @@ private:
     let code = `
 #pragma once
 
-#include "HiveBlueprintLibrary.h"
+#include "HiveMPBlueprintLibrary.h"
+#include "cchost/connect.impl.h"
+#include "cchost/module/hotpatching/module.h"
 
 `;
     for (let key in documents) {
@@ -965,13 +967,58 @@ void U${implName}::Activate()
       });
     });
 
+    await new Promise<void>((resolve, reject) => {
+      fs.copy("client_connect/cchost/", opts.outputDir + "/Source/Private/cchost", { overwrite: true }, (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      fs.copy("client_connect/mujs/", opts.outputDir + "/Source/Private/mujs", { overwrite: true }, (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      fs.unlink(opts.outputDir + "/Source/Private/mujs/one.c", (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      fs.unlink(opts.outputDir + "/Source/Private/mujs/main.c", (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      fs.copy("client_connect/polyfill/", opts.outputDir + "/Source/Private/polyfill", { overwrite: true }, (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
+    });
+
     await new Promise((resolve, reject) => {
-      fs.writeFile(path.join(opts.outputDir, 'Source/Public/HiveBlueprintLibrary.cpp'), code, (err) => {
+      fs.writeFile(path.join(opts.outputDir, 'Source/Private/HiveMPBlueprintLibrary.cpp'), code, (err) => {
         if (err) {
           reject(err);
           return;
         }
-        fs.writeFile(path.join(opts.outputDir, 'Source/Public/HiveBlueprintLibrary.h'), header, (err) => {
+        fs.writeFile(path.join(opts.outputDir, 'Source/Public/HiveMPBlueprintLibrary.h'), header, (err) => {
           if (err) {
             reject(err);
             return;

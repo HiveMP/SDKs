@@ -1,10 +1,12 @@
 // Copyright Redpoint Games 2017 MIT Licensed
 
-#include "HiveBaseGameInstance.h"
+#include "HiveMPBaseGameInstance.h"
 #include "OnlineSubsystem.h"
 #include "Engine.h"
+#include "cchost/connect.impl.h"
+#include "cchost/module/hotpatching/module.h"
 
-FSocket* UHiveBaseGameInstance::GetSharedSocketForNetworking()
+FSocket* UHiveMPBaseGameInstance::GetSharedSocketForNetworking()
 {
 	if (this->SocketForNetworking != nullptr)
 	{
@@ -15,7 +17,7 @@ FSocket* UHiveBaseGameInstance::GetSharedSocketForNetworking()
 
 	if (SocketSubsystem == NULL)
 	{
-		UE_LOG(LogOnline, Warning, TEXT("UHiveBaseGameInstance::GetSocketForNetworking: Unable to find socket subsystem"));
+		UE_LOG(LogOnline, Warning, TEXT("UHiveMPBaseGameInstance::GetSocketForNetworking: Unable to find socket subsystem"));
 		return nullptr;
 	}
 
@@ -27,12 +29,12 @@ FSocket* UHiveBaseGameInstance::GetSharedSocketForNetworking()
 	return this->SocketForNetworking;
 }
 
-bool UHiveBaseGameInstance::CanTakeSocketForNetworking()
+bool UHiveMPBaseGameInstance::CanTakeSocketForNetworking()
 {
 	return !this->SocketForNetworkingHasExclusiveNetDriverOwner;
 }
 
-FSocket* UHiveBaseGameInstance::TakeSocketForNetworking()
+FSocket* UHiveMPBaseGameInstance::TakeSocketForNetworking()
 {
 	if (this->SocketForNetworkingHasExclusiveNetDriverOwner)
 	{
@@ -48,7 +50,7 @@ FSocket* UHiveBaseGameInstance::TakeSocketForNetworking()
 	return Socket;
 }
 
-void UHiveBaseGameInstance::ReleaseSocketForNetworking()
+void UHiveMPBaseGameInstance::ReleaseSocketForNetworking()
 {
 	if (!this->SocketForNetworkingHasExclusiveNetDriverOwner)
 	{
@@ -59,7 +61,7 @@ void UHiveBaseGameInstance::ReleaseSocketForNetworking()
 
 	if (SocketSubsystem == NULL)
 	{
-		UE_LOG(LogOnline, Warning, TEXT("UHiveBaseGameInstance::CleanupSocketForNetworking: Unable to find socket subsystem"));
+		UE_LOG(LogOnline, Warning, TEXT("UHiveMPBaseGameInstance::CleanupSocketForNetworking: Unable to find socket subsystem"));
 		return;
 	}
 

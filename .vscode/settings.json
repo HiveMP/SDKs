@@ -1,3 +1,9 @@
 {
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "files.associations": {
+        "system_error": "cpp",
+        "xlocale": "cpp",
+        "*.rh": "cpp",
+        "iosfwd": "cpp"
+    }
 }

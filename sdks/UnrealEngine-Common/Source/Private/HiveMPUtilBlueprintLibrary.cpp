@@ -1,12 +1,12 @@
 // Copyright Redpoint Games 2017 MIT Licensed
 
-#include "HiveUtilBlueprintLibrary.h"
+#include "HiveMPUtilBlueprintLibrary.h"
 #include "Engine/NetDriver.h"
 #include "Engine.h"
 #include "SocketSubsystem.h"
 #include "Sockets.h"
 #include "Runtime/Sockets/Public/IPAddress.h"
-#include "HiveBaseGameInstance.h"
+#include "HiveMPBaseGameInstance.h"
 
 static inline UNetDriver* GetActiveNetDriver(UWorld* InWorld)
 {
@@ -25,12 +25,12 @@ static inline UNetDriver* GetActiveNetDriver(UWorld* InWorld)
 	return ReturnVal;
 }
 
-FString UHiveUtilBlueprintLibrary::GetCurrentWorldUrl(UObject* WorldContextObject)
+FString UHiveMPUtilBlueprintLibrary::GetCurrentWorldUrl(UObject* WorldContextObject)
 {
 	return WorldContextObject->GetWorld()->GetAddressURL();
 }
 
-void UHiveUtilBlueprintLibrary::SendNatPunchthroughRequest(UObject* WorldContextObject, const struct FHivenat_punchthrough_NATNegotation& Negotiation)
+void UHiveMPUtilBlueprintLibrary::SendNatPunchthroughRequest(UObject* WorldContextObject, const struct FHivenat_punchthrough_NATNegotation& Negotiation)
 {
 	auto NetDriver = GetActiveNetDriver(WorldContextObject->GetWorld());
 	if (NetDriver != NULL || WorldContextObject != NULL)
@@ -62,7 +62,7 @@ void UHiveUtilBlueprintLibrary::SendNatPunchthroughRequest(UObject* WorldContext
 		}
 		else if (WorldContextObject != NULL)
 		{
-			UHiveBaseGameInstance* Instance = WorldContextObject->GetWorld()->GetGameInstance<UHiveBaseGameInstance>();
+			UHiveMPBaseGameInstance* Instance = WorldContextObject->GetWorld()->GetGameInstance<UHiveMPBaseGameInstance>();
 			if (Instance != nullptr)
 			{
 				FSocket* Socket = Instance->GetSharedSocketForNetworking();
@@ -100,7 +100,7 @@ void UHiveUtilBlueprintLibrary::SendNatPunchthroughRequest(UObject* WorldContext
 	}
 }
 
-void UHiveUtilBlueprintLibrary::SendNatPunchthroughRequestToClient(UObject* WorldContextObject, const struct FHivenat_punchthrough_NATEndpoint& Endpoint)
+void UHiveMPUtilBlueprintLibrary::SendNatPunchthroughRequestToClient(UObject* WorldContextObject, const struct FHivenat_punchthrough_NATEndpoint& Endpoint)
 {
 	UNetDriver* NetDriver = GetActiveNetDriver(WorldContextObject->GetWorld());
 	if (NetDriver != NULL || WorldContextObject != NULL)
@@ -109,7 +109,7 @@ void UHiveUtilBlueprintLibrary::SendNatPunchthroughRequestToClient(UObject* Worl
 		// This will be intercepted by UHiveIpConnection, which must be configured in DefaultEngine.ini with:
 		//
 		// [/Script/OnlineSubsystemUtils.IpNetDriver]
-		// NetConnectionClassName="/Script/HiveMPSDK.HiveIpConnection"
+		// NetConnectionClassName="/Script/HiveMPSDK.HiveMPIpConnection"
 		//
 		// If you don't configure this, clients will be disconnected when they receive this packet.
 		Packet[0] = 0;
@@ -121,7 +121,7 @@ void UHiveUtilBlueprintLibrary::SendNatPunchthroughRequestToClient(UObject* Worl
 		}
 		else if (WorldContextObject != NULL)
 		{
-			UHiveBaseGameInstance* Instance = WorldContextObject->GetWorld()->GetGameInstance<UHiveBaseGameInstance>();
+			UHiveMPBaseGameInstance* Instance = WorldContextObject->GetWorld()->GetGameInstance<UHiveMPBaseGameInstance>();
 			if (Instance != nullptr)
 			{
 				FSocket* Socket = Instance->GetSharedSocketForNetworking();

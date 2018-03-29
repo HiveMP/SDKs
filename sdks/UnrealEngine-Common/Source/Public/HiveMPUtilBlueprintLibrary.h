@@ -8,11 +8,11 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "DelegateCombinations.h"
 #include "OnlineSubsystem.h"
-#include "HiveBlueprintLibrary.h"
-#include "HiveUtilBlueprintLibrary.generated.h"
+#include "HiveMPBlueprintLibrary.h"
+#include "HiveMPUtilBlueprintLibrary.generated.h"
 
 UCLASS()
-class UHiveUtilBlueprintLibrary : public UBlueprintFunctionLibrary
+class UHiveMPUtilBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 

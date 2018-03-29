@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "IpNetDriver.h"
-#include "HiveBaseGameInstance.h"
-#include "HiveIpNetDriver.generated.h"
+#include "HiveMPBaseGameInstance.h"
+#include "HiveMPIpNetDriver.generated.h"
 
 UCLASS(transient, config = Engine)
-class UHiveIpNetDriver : public UIpNetDriver
+class UHiveMPIpNetDriver : public UIpNetDriver
 {
 	GENERATED_BODY()
 
@@ -21,7 +21,7 @@ class UHiveIpNetDriver : public UIpNetDriver
 	virtual void LowLevelDestroy() override;
 
 	UPROPERTY()
-	UHiveBaseGameInstance* CachedGameInstance;
+	UHiveMPBaseGameInstance* CachedGameInstance;
 
 	UPROPERTY()
 	bool DidTakeOwnershipOfSocketForNetworking;

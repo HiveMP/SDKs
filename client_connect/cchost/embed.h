@@ -1,6 +1,3 @@
-#ifndef _EMBED_H
-#define _EMBED_H 1
+#pragma once
 
 extern const char _embedded_sdk[];
-
-#endif

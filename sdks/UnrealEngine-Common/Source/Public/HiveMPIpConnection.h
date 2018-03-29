@@ -5,10 +5,10 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "IpConnection.h"
-#include "HiveIpConnection.generated.h"
+#include "HiveMPIpConnection.generated.h"
 
 UCLASS(transient, config = Engine)
-class UHiveIpConnection : public UIpConnection
+class UHiveMPIpConnection : public UIpConnection
 {
 	GENERATED_UCLASS_BODY()
 

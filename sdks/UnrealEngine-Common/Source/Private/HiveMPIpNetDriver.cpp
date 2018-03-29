@@ -1,8 +1,8 @@
 // Copyright Redpoint Games 2017 MIT Licensed
 
-#include "HiveIpNetDriver.h"
+#include "HiveMPIpNetDriver.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
-#include "HiveBaseGameInstance.h"
+#include "HiveMPBaseGameInstance.h"
 
 #include "IpNetDriver.h"
 #include "Misc/CommandLine.h"
@@ -21,7 +21,7 @@
 #include "IPAddress.h"
 #include "Sockets.h"
 
-FSocket* UHiveIpNetDriver::CreateSocket()
+FSocket* UHiveMPIpNetDriver::CreateSocket()
 {
 	if (this->World == nullptr)
 	{
@@ -30,7 +30,7 @@ FSocket* UHiveIpNetDriver::CreateSocket()
 		return Super::CreateSocket();
 	}
 
-	UHiveBaseGameInstance* Instance = this->World->GetGameInstance<UHiveBaseGameInstance>();
+	UHiveMPBaseGameInstance* Instance = this->World->GetGameInstance<UHiveMPBaseGameInstance>();
 	if (Instance == nullptr)
 	{
 		this->DidTakeOwnershipOfSocketForNetworking = false;
@@ -57,7 +57,7 @@ FSocket* UHiveIpNetDriver::CreateSocket()
 	}
 }
 
-bool UHiveIpNetDriver::InitBase(bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error)
+bool UHiveMPIpNetDriver::InitBase(bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error)
 {
 	if (!UNetDriver::InitBase(bInitAsClient, InNotify, URL, bReuseAddressAndPort, Error))
 	{
@@ -138,7 +138,7 @@ bool UHiveIpNetDriver::InitBase(bool bInitAsClient, FNetworkNotify* InNotify, co
 	return true;
 }
 
-void UHiveIpNetDriver::LowLevelDestroy()
+void UHiveMPIpNetDriver::LowLevelDestroy()
 {
 	if (!this->DidTakeOwnershipOfSocketForNetworking)
 	{
@@ -149,7 +149,7 @@ void UHiveIpNetDriver::LowLevelDestroy()
 	{
 		if (this->World != nullptr)
 		{
-			auto NewGameInstance = this->World->GetGameInstance<UHiveBaseGameInstance>();
+			auto NewGameInstance = this->World->GetGameInstance<UHiveMPBaseGameInstance>();
 			if (NewGameInstance != nullptr)
 			{
 				this->CachedGameInstance = NewGameInstance;

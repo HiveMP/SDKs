@@ -1,5 +1,7 @@
-#ifndef _CONNECT_H
-#define CONNECT_H 1
+#pragma once
+
+#if CLIENT_CONNECT_TARGETING_UNREAL
+#else
 
 #ifdef __cplusplus
 extern "C"
