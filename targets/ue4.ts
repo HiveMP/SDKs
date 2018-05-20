@@ -557,6 +557,8 @@ struct FHive${safeName}_${UnrealEngineGenerator.normalizeTypeName(defName)} Dese
               defaultInitializer = 'TEXT("")';
             } else if (resultType.indexOf("FHive") != -1) {
               defaultInitializer = resultType + "()";
+            } else if (resultType.indexOf("TArray") != -1) {
+              defaultInitializer = resultType + "()";
             } else {
               defaultInitializer = "0";
             }
