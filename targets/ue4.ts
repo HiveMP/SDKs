@@ -207,16 +207,16 @@ struct FHiveApiError
 {
   GENERATED_BODY()
 
-  UPROPERTY(BlueprintReadOnly)
+  UPROPERTY(BlueprintReadWrite)
   int32 HttpStatusCode;
 
-  UPROPERTY(BlueprintReadOnly)
+  UPROPERTY(BlueprintReadWrite)
   int32 ErrorCode;
 
-  UPROPERTY(BlueprintReadOnly)
+  UPROPERTY(BlueprintReadWrite)
   FString Message;
 
-  UPROPERTY(BlueprintReadOnly)
+  UPROPERTY(BlueprintReadWrite)
   FString Parameter;
 };
 
@@ -263,7 +263,7 @@ struct FHive${safeName}_${UnrealEngineGenerator.normalizeTypeName(defName)}
           let propType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, propValue, false, false);
           if (propType != null) {
             header += `
-  UPROPERTY(BlueprintReadOnly)
+  UPROPERTY(BlueprintReadWrite)
   ${propType} ${UnrealEngineGenerator.avoidConflictingCPlusPlusNames(propName)};
 `;
           }
