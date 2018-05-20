@@ -133,12 +133,20 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
     try {
       if (parameter.type != null) {
         if (parameter.type == 'array') {
-          return 'array:' + UnrealEngineGenerator.getDeserializerName(safeName, parameter.items);
+          const desName = UnrealEngineGenerator.getDeserializerName(safeName, parameter.items);
+          if (desName === null) {
+            return null;
+          }
+          return 'array:' + desName;
         }
         return null;
       } else if (parameter.schema != null) {
         if (parameter.schema.type == 'array') {
-          return 'array:' + UnrealEngineGenerator.getDeserializerName(safeName, parameter.schema.items);
+          const desName = UnrealEngineGenerator.getDeserializerName(safeName, parameter.schema.items);
+          if (desName === null) {
+            return null;
+          }
+          return 'array:' + desName;
         } else if (parameter.schema.$ref != null) {
           return 'DeserializeFHive' + safeName + '_' + UnrealEngineGenerator.stripDefinition(parameter.schema.$ref);
         } else {
@@ -820,8 +828,7 @@ void U${implName}::Activate()
 `;
               } else if (deserializerName != null && deserializerName != '' && deserializerName.startsWith('array:')) {
                 let tDeserializerName = deserializerName.substr("array:".length);
-                if (tDeserializerName != null) {
-                  code += `
+                code += `
 			const TArray<TSharedPtr<FJsonValue>>* JsonArray;
 			if (JsonValue->TryGetArray(JsonArray))
 			{
@@ -849,17 +856,66 @@ void U${implName}::Activate()
 				return;
       }
 `;
+              } else if (resultType.startsWith('TArray<') && deserializerName === null) {
+                let elementType = UnrealEngineGenerator.getCPlusPlusTypeFromParameter(safeName, methodValue.responses["200"].schema.items, false);
+                code += `
+			const TArray<TSharedPtr<FJsonValue>>* JsonArray;
+			if (JsonValue->TryGetArray(JsonArray))
+			{
+				${resultType} Result;
+				for (int i = 0; i < JsonArray->Num(); i++)
+        {`; 
+                if (elementType == 'int32' || elementType == 'int64' || elementType == 'float' || elementType == 'double') {
+                  code += `
+					double ElementVal;
+					if ((*JsonArray)[i]->TryGetNumber(ElementVal))
+					{
+						Result.Add(ElementVal);
+          }
+`;
+                } else if (elementType == 'bool') {
+                  code += `
+					bool ElementVal;
+					if ((*JsonArray)[i]->TryGetBool(ElementVal))
+					{
+						Result.Add(ElementVal);
+          }
+`;
+                } else if (elementType.startsWith('FString')) {
+                  code += `
+					FString ElementVal;
+					if ((*JsonArray)[i]->TryGetString(ElementVal))
+					{
+						Result.Add(ElementVal);
+          }
+`;
                 } else {
                   code += `
-			ResultError.HttpStatusCode = Response->GetResponseCode();
-			ResultError.ErrorCode = 0;
-			ResultError.Message = TEXT("No supported deserializer for this response");
-			ResultError.Parameter = TEXT("");
-			UE_LOG_HIVE(Error, TEXT("[fail] ${key} ${pathName} ${methodName}: %s"), *(ResultError.Message));
-			OnFailure.Broadcast(${(!onlyError) ? (defaultInitializer + ', ') : ''}ResultError);
-      return;
-`;
+          ResultError.HttpStatusCode = Response->GetResponseCode();
+          ResultError.ErrorCode = 0;
+          ResultError.Message = TEXT("No supported deserializer for this response");
+          ResultError.Parameter = TEXT("");
+          UE_LOG_HIVE(Error, TEXT("[fail] ${key} ${pathName} ${methodName}: %s"), *(ResultError.Message));
+          OnFailure.Broadcast(${(!onlyError) ? (defaultInitializer + ', ') : ''}ResultError);
+          return;
+  `;
                 }
+                code += `
+				}
+				UE_LOG_HIVE(Warning, TEXT("[success] ${key} ${pathName} ${methodName}"));
+				OnSuccess.Broadcast(Result, ResultError);
+			}
+			else
+			{
+				ResultError.HttpStatusCode = Response->GetResponseCode();
+				ResultError.ErrorCode = 0;
+				ResultError.Message = TEXT("Unable to deserialize JSON response as expected type!");
+				ResultError.Parameter = TEXT("");
+				UE_LOG_HIVE(Error, TEXT("[fail] ${key} ${pathName} ${methodName}: %s"), *(ResultError.Message));
+				OnFailure.Broadcast(${(!onlyError) ? (defaultInitializer + ', ') : ''}ResultError);
+				return;
+      }
+`;
               } else if (resultType == 'int32' || resultType == 'int64' || resultType == 'float' || resultType == 'double') {
                 code += `
 			double Result;
