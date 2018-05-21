@@ -1,0 +1,155 @@
+import { stripDefinition } from "./definition";
+import { normalizeTypeName } from "./normalize";
+import { apiNames } from "./apiNames";
+import { avoidConflictingCPlusPlusNames } from "../cpp/naming";
+import { resolveType } from "../ue4/typing";
+
+export interface ITypeSpec {
+  type?:
+    "string" |
+    "number" |
+    "integer" |
+    "boolean" |
+    "array" |
+    "object";
+  format?: string;
+  items?: ITypeSpec;
+  schema?: string;
+  namespace?: string;
+  apiFriendlyName?: string;
+  document?: any;
+}
+
+export interface IParameterSpec extends ITypeSpec {
+  name?: string;
+  in?: "query" | "body";
+  description?: string;
+  required?: boolean;
+}
+
+export interface IDefinitionSpec extends ITypeSpec {
+  name?: string;
+  normalizedName?: string;
+  description?: string;
+  properties?: IPropertySpec[];
+}
+
+export interface IPropertySpec extends ITypeSpec {
+  name?: string;
+  description?: string;
+}
+
+export interface ITypeContext {
+  namespace: string;
+  apiId: string;
+  document: any;
+  obj: any;
+}
+
+export interface ITypeContextWithName extends ITypeContext {
+  name: string;
+}
+
+export function convertGeneric(context: ITypeContext): ITypeSpec {
+  if (context.obj.type !== null) {
+    if (context.obj.type === 'array') {
+      return {
+        type: 'array',
+        document: context.document,
+        items: convertGeneric({
+          namespace: context.namespace, 
+          apiId: context.apiId,
+          document: context.document,
+          obj: context.obj.items,
+        }),
+      };
+    } else {
+      return {
+        type: context.obj.type,
+        document: context.document,
+        format: context.obj.format,
+      };
+    }
+  }
+
+  if (context.obj.$ref !== null) {
+    return {
+      namespace: context.namespace,
+      apiFriendlyName: apiNames[context.apiId],
+      document: context.document,
+      schema: stripDefinition(context.obj.$ref),
+    };
+  }
+
+  if (context.obj.schema !== null) {
+    return convertGeneric({
+      namespace: context.namespace,
+      apiId: context.apiId, 
+      document: context.document,
+      obj: context.obj.schema,
+    });
+  }
+
+  throw new Error('Unable to convert Swagger type info to type spec');
+}
+
+export function convertProperty(context: ITypeContextWithName): IPropertySpec {
+  const def = convertGeneric(context) as IPropertySpec;
+  def.name = avoidConflictingCPlusPlusNames(context.name);
+  def.description = context.obj.description;
+  return def;
+}
+
+export function convertParameter(context: ITypeContext): IParameterSpec {
+  const def = convertGeneric(context) as IParameterSpec;
+  def.name = avoidConflictingCPlusPlusNames(context.obj.name);
+  def.description = context.obj.description;
+  def.in = context.obj.in;
+  def.required = context.obj.required;
+  return def;
+}
+
+export function convertDefinition(context: ITypeContextWithName): IDefinitionSpec {
+  const def = convertGeneric(context) as IDefinitionSpec;
+  def.name = context.name;
+  def.normalizedName = normalizeTypeName(context.name);
+  def.description = context.obj.description;
+  def.properties = [];
+  for (const propertyName in context.obj.properties) {
+    if (context.obj.properties.hasOwnProperty(propertyName)) {
+      def.properties.push(convertProperty({
+        namespace: context.namespace,
+        apiId: context.apiId,
+        document: context.document,
+        obj: context.obj.properties[propertyName],
+        name: propertyName,
+      }));
+    }
+  }
+  return def;
+}
+
+/**
+ * Loads the Swagger API definitions into definition specifications.
+ * 
+ * @param apiId The API ID.
+ * @param document The Swagger API document.
+ * @param namespace The namespace for types in this document. 
+ */
+export function loadDefinitions(apiId: string, document: any, namespace: string): Map<string, IDefinitionSpec> {
+  const definitions = new Map<string, IDefinitionSpec>();
+  for (const defName in document.definitions) {
+    const definitionSpec = convertDefinition({
+      apiId: apiId,
+      namespace: namespace,
+      document: document,
+      obj: document.definitions[defName],
+      name: defName,
+    });
+    const ueType = resolveType(definitionSpec);
+    definitions.set(
+      ueType.getNameForDependencyEmit(definitionSpec),
+      definitionSpec);
+  }
+  return definitions;
+}

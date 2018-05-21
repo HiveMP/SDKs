@@ -1,0 +1,16 @@
+export const apiNames = {
+  "admin-session": "Administrative Sessions",
+  "attribute": "Attributes",
+  "event": "Events",
+  "game-server": "Game Servers",
+  "integration": "Integrations",
+  "lobby": "Game Lobbies",
+  "nat-punchthrough": "NAT Punchthrough",
+  "reporting": "Reporting",
+  "revenue-share": "Revenue Share",
+  "pos": "Point of Sale",
+  "temp-session": "Temporary Sessions",
+  "ugc-cache": "UGC Cache",
+  "user-session": "User Sessions",
+  "search": "Search",
+};
