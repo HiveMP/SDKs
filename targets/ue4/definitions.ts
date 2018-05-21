@@ -1,4 +1,5 @@
 import { resolveType } from "./typing";
+import { IDefinitionSpec } from "../common/typeSpec";
 
 /**
  * Returns the emitted C++ structure definition for the API type definition.
@@ -12,6 +13,7 @@ export function emitDefinitionAndDependencies(emittedDefinitions: Set<string>, d
     // This definition has already been emitted.
     return '';
   }
+  emittedDefinitions.add(definitionName);
   const value = definitions.get(definitionName);
   const ueType = resolveType(value);
   const dependencies = ueType.getDependencies(value);
@@ -26,6 +28,5 @@ export function emitDefinitionAndDependencies(emittedDefinitions: Set<string>, d
   if (structure !== null) {
     result += structure;
   }
-  emittedDefinitions.add(definitionName);
   return result;
 }

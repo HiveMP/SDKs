@@ -136,7 +136,7 @@ void U${spec.implementationName}::Activate()
     *FString::Join(QueryStringElements, TEXT("&"))));
   HttpRequest->SetHeader(TEXT("api_key"), this->ApiKey);
   HttpRequest->SetVerb(TEXT("${spec.method}"));
-  HttpRequest->OnProcessRequestComplete().BindLambda([this](FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, TWeakObjectPtr<U${implName}> SelfRef)
+  HttpRequest->OnProcessRequestComplete().BindLambda([this](FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, TWeakObjectPtr<U${spec.implementationName}> SelfRef)
   {
     if (!SelfRef.IsValid())
     {

@@ -11,9 +11,11 @@ export interface ITypeSpec {
     "integer" |
     "boolean" |
     "array" |
-    "object";
+    "object" |
+    "map";
   format?: string;
   items?: ITypeSpec;
+  mapValue?: ITypeSpec;
   schema?: string;
   namespace?: string;
   apiFriendlyName?: string;
@@ -51,7 +53,7 @@ export interface ITypeContextWithName extends ITypeContext {
 }
 
 export function convertGeneric(context: ITypeContext): ITypeSpec {
-  if (context.obj.type !== null) {
+  if (context.obj.type !== undefined) {
     if (context.obj.type === 'array') {
       return {
         type: 'array',
@@ -63,6 +65,18 @@ export function convertGeneric(context: ITypeContext): ITypeSpec {
           obj: context.obj.items,
         }),
       };
+    } else if (context.obj.type === 'object' && context.obj.additionalProperties !== undefined) {
+      return {
+        type: 'map',
+        mapValue: convertGeneric({
+          namespace: context.namespace, 
+          apiId: context.apiId,
+          document: context.document,
+          obj: context.obj.additionalProperties,
+        }),
+        document: context.document,
+        format: context.obj.format,
+      };
     } else {
       return {
         type: context.obj.type,
@@ -72,7 +86,7 @@ export function convertGeneric(context: ITypeContext): ITypeSpec {
     }
   }
 
-  if (context.obj.$ref !== null) {
+  if (context.obj.$ref !== undefined) {
     return {
       namespace: context.namespace,
       apiFriendlyName: apiNames[context.apiId],
@@ -81,7 +95,7 @@ export function convertGeneric(context: ITypeContext): ITypeSpec {
     };
   }
 
-  if (context.obj.schema !== null) {
+  if (context.obj.schema !== undefined) {
     return convertGeneric({
       namespace: context.namespace,
       apiId: context.apiId, 
@@ -90,7 +104,7 @@ export function convertGeneric(context: ITypeContext): ITypeSpec {
     });
   }
 
-  throw new Error('Unable to convert Swagger type info to type spec');
+  throw new Error('Unable to convert Swagger type info to type spec: ' + JSON.stringify(context.obj, null, 2));
 }
 
 export function convertProperty(context: ITypeContextWithName): IPropertySpec {
@@ -110,14 +124,14 @@ export function convertParameter(context: ITypeContext): IParameterSpec {
 }
 
 export function convertDefinition(context: ITypeContextWithName): IDefinitionSpec {
-  const def = convertGeneric(context) as IDefinitionSpec;
+  const def: IDefinitionSpec = convertGeneric(context) as IDefinitionSpec;
   def.name = context.name;
   def.normalizedName = normalizeTypeName(context.name);
   def.description = context.obj.description;
-  def.properties = [];
+  const properties = [];
   for (const propertyName in context.obj.properties) {
     if (context.obj.properties.hasOwnProperty(propertyName)) {
-      def.properties.push(convertProperty({
+      properties.push(convertProperty({
         namespace: context.namespace,
         apiId: context.apiId,
         document: context.document,
@@ -126,7 +140,15 @@ export function convertDefinition(context: ITypeContextWithName): IDefinitionSpe
       }));
     }
   }
-  return def;
+  return {
+    name: context.name,
+    normalizedName: normalizeTypeName(context.name),
+    description: context.obj.description,
+    namespace: context.namespace,
+    document: context.document,
+    schema: context.name,
+    properties: properties,
+  };
 }
 
 /**

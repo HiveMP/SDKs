@@ -7,7 +7,7 @@ import { TargetGenerator } from './TargetGenerator';
 import { TargetOptions } from "./TargetOptions";
 import { resolveType } from './ue4/typing';
 import { convertDefinition, IDefinitionSpec } from './common/typeSpec';
-import { IApiSpec } from './common/apiSpec';
+import { IApiSpec, loadApi } from './common/apiSpec';
 import { emitMethodResultDelegateDefinition, emitMethodProxyHeaderDeclaration, emitMethodProxyConstructorImplementation, emitMethodProxyCallImplementation } from './ue4/methods';
 import { emitDefinitionAndDependencies } from './ue4/definitions';
 
@@ -16,6 +16,10 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
 
   async generate(documents: {[id: string]: swagger.Document}, opts: TargetOptions): Promise<void> {
     const apis = new Set<IApiSpec>();
+
+    for (const apiId in documents) {
+      apis.add(loadApi(apiId, documents[apiId]));
+    }
 
     let header = fragments.cppHeader;
     for (const api of apis) {

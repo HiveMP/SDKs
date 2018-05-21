@@ -2,10 +2,10 @@ import { IUnrealEngineType, resolveType, IDeserializationInfo } from "../typing"
 import { ITypeSpec, IDefinitionSpec, IParameterSpec } from '../../common/typeSpec';
 import { normalizeTypeName } from "../../common/normalize";
 
-export class ObjectType implements IUnrealEngineType {
+export class MapType implements IUnrealEngineType {
   public doesHandleType(spec: ITypeSpec): boolean {
-    return spec.type === 'object' &&
-      spec.mapValue === undefined;
+    return spec.type === 'map' &&
+      spec.mapValue !== undefined;
   }
 
   public getCPlusPlusInType(spec: ITypeSpec): string {

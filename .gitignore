@@ -35,3 +35,5 @@ UnrealEngine-*.zip
 /node_modules/
 /client_connect/ccsrc/src/hivemp/index.ts
 /client_connect/cchost/embed.cpp
+
+build/

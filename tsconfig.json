@@ -6,5 +6,9 @@
     "lib": [
       "es6"
     ],
-  }
+    "outDir": "build/"
+  },
+  "include": [
+    "targets/**/*.ts"
+  ]
 }

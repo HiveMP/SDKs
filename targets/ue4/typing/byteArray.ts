@@ -36,10 +36,8 @@ export class ByteArrayType implements IUnrealEngineType {
   }
 
   public emitDeserializationFragment(info: IDeserializationInfo): string {
-    const name = `F_${info.name}_${info.nestLevel}`;
     return `
-const TSharedPtr<FJsonValue> ${name} = ${info.from}->TryGetField(TEXT("${info.name}"));
-if (!${name}}.IsValid() || ${name}->IsNull())
+if (!${info.from}}.IsValid() || ${info.from}->IsNull())
 {
   ${info.into}.HasValue = false;
   ${info.into}.Value.Empty();
@@ -47,7 +45,7 @@ if (!${name}}.IsValid() || ${name}->IsNull())
 else
 {
   ${info.into}.HasValue = true;
-  FBase64::Decode(${name}->AsString(), ${info.into}.Value);
+  FBase64::Decode(${info.from}->AsString(), ${info.into}.Value);
 }
 `;
   }
@@ -61,6 +59,16 @@ else
   }
 
   public emitSerializationFragment(info: IDeserializationInfo): string {
+    return `
+if (${info.from}.HasValue)
+{
+  ${info.into} = MakeShareable(new FJsonValueString(FBase64::Encode(${info.from}.Value)));
+}
+else
+{
+  ${info.into} = MakeShareable(new FJsonValueNull());
+}
+`;
   }
 
   public getAssignmentFrom(spec: ITypeSpec, variable: string): string {

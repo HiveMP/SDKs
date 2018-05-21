@@ -7,6 +7,8 @@ import { FloatType } from './typing/float';
 import { IntegerType } from './typing/integer';
 import { StringType } from './typing/string';
 import { SchemaType } from './typing/schema';
+import { MapType } from './typing/map';
+import { ObjectType } from './typing/object';
 
 const types: IUnrealEngineType[] = [
   new ArrayType(),
@@ -14,8 +16,10 @@ const types: IUnrealEngineType[] = [
   new ByteArrayType(),
   new FloatType(),
   new IntegerType(),
-  new StringType(),
+  new MapType(),
+  new ObjectType(),
   new SchemaType(),
+  new StringType(),
 ];
 
 export interface IDeserializationInfo {
@@ -73,5 +77,5 @@ export function resolveType(spec: ITypeSpec): IUnrealEngineType {
     }
   }
 
-  throw new Error('Unable to resolve type for spec');
+  throw new Error('Unable to resolve type for spec: ' + JSON.stringify(spec, null, 2));
 }

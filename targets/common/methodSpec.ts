@@ -14,6 +14,11 @@ export interface IMethodSpec {
   apiFriendlyName: string;
 
   /**
+   * The base path for the API.
+   */
+  basePath: string;
+
+  /**
    * The HTTP path to the API method.
    */
   path: string;
@@ -108,12 +113,17 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
 
       let response: ITypeSpec | null = null;
       if (methodValue.responses !== undefined && methodValue.responses["200"] !== undefined) {
-        response = convertGeneric({
-          namespace: namespace,
-          apiId: apiId,
-          document: document,
-          obj: methodValue.responses["200"],
-        });
+        try {
+          response = convertGeneric({
+            namespace: namespace,
+            apiId: apiId,
+            document: document,
+            obj: methodValue.responses["200"],
+          });
+        } catch (ex) {
+          // If the response doesn't contain a value type definition, then the method
+          // doesn't return a response value.
+        }
       }
 
       let parameters = new Set<IParameterSpec>();
@@ -123,7 +133,7 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
             namespace: namespace,
             apiId: apiId,
             document: document,
-            obj: methodValue.responses["200"],
+            obj: parameter,
           }))
         }
       }
@@ -131,6 +141,7 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
       methods.add({
         apiId: apiId,
         apiFriendlyName: apiNames[apiId],
+        basePath: document.basePath,
         path: pathName,
         method: methodName,
         operationId: operationId,

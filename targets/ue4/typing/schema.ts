@@ -6,7 +6,7 @@ import { escapeForMultilineComment } from "../../cpp/escape";
 
 export class SchemaType implements IUnrealEngineType {
   public doesHandleType(spec: ITypeSpec): boolean {
-    return spec.schema !== null;
+    return spec.schema !== undefined;
   }
 
   public getCPlusPlusInType(spec: ITypeSpec): string {
