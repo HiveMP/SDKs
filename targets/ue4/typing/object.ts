@@ -66,7 +66,7 @@ export class ObjectType implements IUnrealEngineType {
 
   public pushOntoQueryStringArray(arrayVariable: string, spec: IParameterSpec): string | null {
     return `
-${arrayVariable}.Add(FString::Printf("${spec.name}=%s", *FGenericPlatformHttp::UrlEncode(this->Field_${spec.name})));
+${arrayVariable}.Add(FString::Printf(TEXT("${spec.name}=%s"), *FGenericPlatformHttp::UrlEncode(this->Field_${spec.name})));
 `;
   }
 

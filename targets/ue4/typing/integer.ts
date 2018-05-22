@@ -38,7 +38,7 @@ export class IntegerType implements IUnrealEngineType {
 
   public emitDeserializationFragment(info: IDeserializationInfo): string {
     return `
-if (!${info.from}}.IsValid() || ${info.from}->IsNull())
+if (!${info.from}.IsValid() || ${info.from}->IsNull())
 {
   ${info.into}.HasValue = false;
   ${info.into}.Value = 0;
@@ -77,14 +77,14 @@ else
   }
 
   public getDefaultInitialiser(spec: ITypeSpec): string {
-    return `0`;
+    return `FNullableInt32(false, 0)`;
   }
 
   public pushOntoQueryStringArray(arrayVariable: string, spec: IParameterSpec): string | null {
     return `
 if (this->Field_${spec.name}.HasValue)
 {
-  ${arrayVariable}.Add(FString::Printf("${spec.name}=%i", this->Field_${spec.name}.Value));
+  ${arrayVariable}.Add(FString::Printf(TEXT("${spec.name}=%i"), this->Field_${spec.name}.Value));
 }
 `;
   }

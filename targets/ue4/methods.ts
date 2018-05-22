@@ -1,5 +1,6 @@
 import { IMethodSpec } from "../common/methodSpec";
 import { resolveType } from "./typing";
+import { resolve } from "path";
 
 export function emitMethodResultDelegateDefinition(spec: IMethodSpec): string {
   if (spec.response !== null) {
@@ -97,7 +98,7 @@ U${spec.implementationName}* U${spec.implementationName}::PerformHiveCall(
   for (const parameter of spec.parameters) {
     const ueType = resolveType(parameter);
     code += `
-  Proxy->Field_${parameter.name} = ${ueType.getAssignmentFrom(parameter, parameter.name)}
+  Proxy->Field_${parameter.name} = ${ueType.getAssignmentFrom(parameter, parameter.name)};
 `;
   }
   code += `
@@ -109,7 +110,7 @@ void U${spec.implementationName}::Activate()
 {
   UE_LOG_HIVE(Display, TEXT("[start] ${spec.apiId} ${spec.path} ${spec.method}"));
 
-  const TArray<FString> QueryStringElements;
+  TArray<FString> QueryStringElements;
 `;
   for (const parameter of spec.parameters) {
     if (parameter.in === 'query') {
@@ -136,6 +137,41 @@ void U${spec.implementationName}::Activate()
     *FString::Join(QueryStringElements, TEXT("&"))));
   HttpRequest->SetHeader(TEXT("api_key"), this->ApiKey);
   HttpRequest->SetVerb(TEXT("${spec.method}"));
+`;
+  if (spec.method !== 'get') {
+    let hasBody = false;
+    for (const parameter of spec.parameters) {
+      if (parameter.in === 'body') {
+        const ueType = resolveType(parameter);
+        code += `
+  TSharedPtr<FJsonValue> BodyJson;
+  FString BodyString = TEXT("");
+  ${ueType.emitSerializationFragment({
+    spec: parameter,
+    into: 'BodyJson',
+    from: `this->Field_${parameter.name}`,
+    nestLevel: 0,
+  })}
+  if (BodyJson.IsValid())
+  {
+    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
+    FJsonSerializer::Serialize(BodyJson, TEXT(""), Writer);
+  }
+  HttpRequest->SetContentAsString(BodyString);
+  HttpRequest->SetHeader(TEXT("Content-Length"), FString::Printf(TEXT("%i"), BodyString.Len()));
+  HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+`;
+        hasBody = true;
+        break;
+      }
+    }
+    if (!hasBody) {
+      code += `
+  HttpRequest->SetHeader(TEXT("Content-Length"), TEXT("0"));
+`;
+    }
+  }
+  code += `
   HttpRequest->OnProcessRequestComplete().BindLambda([this](FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, TWeakObjectPtr<U${spec.implementationName}> SelfRef)
   {
     if (!SelfRef.IsValid())

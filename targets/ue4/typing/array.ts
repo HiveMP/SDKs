@@ -40,19 +40,19 @@ export class ArrayType implements IUnrealEngineType {
     const itemName = `_I${info.nestLevel}`;
     const ueItemType = resolveType(info.spec.items);
     return `
-if (!${info.from}}.IsValid() || ${info.from}->IsNull())
+if (!${info.from}.IsValid() || ${info.from}->IsNull())
 {
   ${info.into}.Empty();
 }
 else
 {
   const TArray<TSharedPtr<FJsonValue>> ${arrayName} = ${info.from}->AsArray();
-  for (int i = 0; i < ${arrayName}->Num(); i++)
+  for (int i = 0; i < ${arrayName}.Num(); i++)
   {
     ${ueItemType.getCPlusPlusInType(info.spec.items)} ${itemName};
     ${ueItemType.emitDeserializationFragment({
       spec: info.spec.items,
-      from: `(*${arrayName})[i]`,
+      from: `${arrayName}[i]`,
       into: itemName,
       nestLevel: info.nestLevel + 1,
     })}
@@ -75,16 +75,20 @@ else
     const itemName = `_I${info.nestLevel}`;
     const ueItemType = resolveType(info.spec.items);
     return `
-for (int i = 0; i < ${info.from}->Num(); i++)
 {
-  TSharedPtr<FJsonValue> ${itemName};
-  ${ueItemType.emitDeserializationFragment({
-    spec: info.spec.items,
-    from: `(*${info.from})[i]`,
-    into: itemName,
-    nestLevel: info.nestLevel + 1,
-  })}
-  ${info.into}.Add(${itemName});
+  TArray<TSharedPtr<FJsonValue>> ${arrayName};
+  for (int i = 0; i < ${info.from}.Num(); i++)
+  {
+    TSharedPtr<FJsonValue> ${itemName};
+    ${ueItemType.emitSerializationFragment({
+      spec: info.spec.items,
+      from: `${info.from}[i]`,
+      into: itemName,
+      nestLevel: info.nestLevel + 1,
+    })}
+    ${arrayName}.Add(${itemName});
+  }
+  ${info.into} = MakeShareable(new FJsonValueArray(${arrayName}));
 }
 `;
   }

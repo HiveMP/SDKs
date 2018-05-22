@@ -36,7 +36,7 @@ export class BooleanType implements IUnrealEngineType {
 
   public emitDeserializationFragment(info: IDeserializationInfo): string {
     return `
-if (!${info.from}}.IsValid() || ${info.from}->IsNull())
+if (!${info.from}.IsValid() || ${info.from}->IsNull())
 {
   ${info.into}.HasValue = false;
   ${info.into}.Value = false;
@@ -61,7 +61,7 @@ else
     return `
 if (${info.from}.HasValue)
 {
-  ${info.into} = MakeShareable(new FJsonValueBool(${info.from}.Value));
+  ${info.into} = MakeShareable(new FJsonValueBoolean(${info.from}.Value));
 }
 else
 {
@@ -75,14 +75,21 @@ else
   }
 
   public getDefaultInitialiser(spec: ITypeSpec): string {
-    return `false`;
+    return `FNullableBoolean(false, false)`;
   }
 
   public pushOntoQueryStringArray(arrayVariable: string, spec: IParameterSpec): string | null {
     return `
 if (this->Field_${spec.name}.HasValue)
 {
-  ${arrayVariable}.Add(FString::Printf("${spec.name}=%s", this->Field_${spec.name}.Value ? TEXT("true") : TEXT("false")));
+  if (this->Field_${spec.name}.Value)
+  {
+    ${arrayVariable}.Add(TEXT("${spec.name}=true"));
+  }
+  else
+  {
+    ${arrayVariable}.Add(TEXT("${spec.name}=false"));
+  }
 }
 `;
   }
@@ -93,14 +100,14 @@ if (Response->GetContentAsString().Equals(TEXT("true")))
 {
   struct FHiveApiError ResultError;
   UE_LOG_HIVE(Warning, TEXT("[success] ${logContext}"));
-  OnSuccess.Broadcast(true, ResultError);
+  OnSuccess.Broadcast(FNullableBoolean(true, true), ResultError);
   return;
 }
 else if (Response->GetContentAsString().Equals(TEXT("false")))
 {
   struct FHiveApiError ResultError;
   UE_LOG_HIVE(Warning, TEXT("[success] ${logContext}"));
-  OnSuccess.Broadcast(false, ResultError);
+  OnSuccess.Broadcast(FNullableBoolean(true, false), ResultError);
   return;
 }
 `

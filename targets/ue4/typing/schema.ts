@@ -10,11 +10,11 @@ export class SchemaType implements IUnrealEngineType {
   }
 
   public getCPlusPlusInType(spec: ITypeSpec): string {
-    return 'FHive_' + spec.namespace + '_' + normalizeTypeName(spec.schema);
+    return 'struct FHive' + spec.namespace + '_' + normalizeTypeName(spec.schema);
   }
 
   public getCPlusPlusOutType(spec: ITypeSpec): string {
-    return 'const FHive_' + spec.namespace + '_' + normalizeTypeName(spec.schema) + '&';
+    return 'const struct FHive' + spec.namespace + '_' + normalizeTypeName(spec.schema) + '&';
   }
 
   public getNameForDependencyEmit(spec: ITypeSpec): string | null {
@@ -22,7 +22,7 @@ export class SchemaType implements IUnrealEngineType {
   }
 
   public getDependencies(spec: IDefinitionSpec): string[] {
-    return spec.properties.map(value => resolveType(value).getNameForDependencyEmit(value));
+    return spec.properties.map(value => resolveType(value).getNameForDependencyEmit(value)).filter(x => x !== null);
   }
 
   public emitStructureDefinition(spec: IDefinitionSpec): string | null {
@@ -34,7 +34,7 @@ struct FHive${spec.namespace}_${spec.normalizedName}
   
   /** In HiveMP, all structs can be nullable in API requests and responses. This property allows you to set or get whether or not the struct is actually null. */
   UPROPERTY(BlueprintReadWrite, meta = (DisplayName = "Has Value?"))
-  bool _IsValid;
+  bool _HasValue;
 
 `;
     for (const property of spec.properties) {
@@ -88,7 +88,7 @@ struct FHive${spec.namespace}_${spec.normalizedName} DeserializeFHive${spec.name
 
   public emitDeserializationFragment(info: IDeserializationInfo): string {
     return `
-if (!${info.from}}.IsValid() || ${info.from}->IsNull())
+if (!${info.from}.IsValid() || ${info.from}->IsNull())
 {
   ${info.into}._HasValue = false;
 }
@@ -141,7 +141,7 @@ TSharedPtr<FJsonObject> SerializeFHive${spec.namespace}_${spec.normalizedName}(s
     return `
 if (${info.from}._HasValue)
 {
-  ${info.into} = SerializeFHive${info.spec.namespace}_${normalizeTypeName(info.spec.schema)}(${info.from});
+  ${info.into} = MakeShareable(new FJsonValueObject(SerializeFHive${info.spec.namespace}_${normalizeTypeName(info.spec.schema)}(${info.from})));
 }
 else
 {

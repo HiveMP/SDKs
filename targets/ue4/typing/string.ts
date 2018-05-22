@@ -37,7 +37,7 @@ export class StringType implements IUnrealEngineType {
 
   public emitDeserializationFragment(info: IDeserializationInfo): string {
     return `
-if (!${info.from}}.IsValid() || ${info.from}->IsNull())
+if (!${info.from}.IsValid() || ${info.from}->IsNull())
 {
   ${info.into}.HasValue = false;
   ${info.into}.Value = TEXT("");
@@ -76,14 +76,14 @@ else
   }
 
   public getDefaultInitialiser(spec: ITypeSpec): string {
-    return `TEXT("")`;
+    return `FNullableString(false, TEXT(""))`;
   }
 
   public pushOntoQueryStringArray(arrayVariable: string, spec: IParameterSpec): string | null {
     return `
 if (this->Field_${spec.name}.HasValue)
 {
-  ${arrayVariable}.Add(FString::Printf("${spec.name}=%i", *FGenericPlatformHttp::UrlEncode(this->Field_${spec.name}.Value)));
+  ${arrayVariable}.Add(FString::Printf(TEXT("${spec.name}=%s"), *FGenericPlatformHttp::UrlEncode(this->Field_${spec.name}.Value)));
 }
 `;
   }

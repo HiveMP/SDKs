@@ -38,13 +38,13 @@ void UHiveMPUtilBlueprintLibrary::SendNatPunchthroughRequest(UObject* WorldConte
 		// For some reason, Unreal receives a newline after base64 decoding the negotation message,
 		// should not occur (testing raw decoding of the base64 doesn't show any newlines in it).
 		// Strip the newline data here.
-		auto NegotiationLen = Negotiation.message.Num();
-		if (Negotiation.message[Negotiation.message.Num() - 2] == '\r' &&
-			Negotiation.message[Negotiation.message.Num() - 1] == '\n')
+		auto NegotiationLen = Negotiation.message.Value.Num();
+		if (Negotiation.message.Value[Negotiation.message.Value.Num() - 2] == '\r' &&
+			Negotiation.message.Value[Negotiation.message.Value.Num() - 1] == '\n')
 		{
 			NegotiationLen -= 2;
 		}
-		else if (Negotiation.message[Negotiation.message.Num() - 1] == '\n')
+		else if (Negotiation.message.Value[Negotiation.message.Value.Num() - 1] == '\n')
 		{
 			NegotiationLen -= 1;
 		}
@@ -52,13 +52,13 @@ void UHiveMPUtilBlueprintLibrary::SendNatPunchthroughRequest(UObject* WorldConte
 		uint8* Packet = (uint8*)malloc(NegotiationLen);
 		for (int i = 0; i < NegotiationLen; i++)
 		{
-			Packet[i] = Negotiation.message[i];
+			Packet[i] = Negotiation.message.Value[i];
 		}
-		FString Address = FString::Printf(TEXT("%s:%i"), *(Negotiation.host), Negotiation.port);
+		FString Address = FString::Printf(TEXT("%s:%i"), *(Negotiation.host.Value), Negotiation.port.Value);
 
 		if (NetDriver != NULL)
 		{
-			NetDriver->LowLevelSend(Address, Packet, Negotiation.message.Num() * 8 /* this argument is in bits, so multiply by 8 */);
+			NetDriver->LowLevelSend(Address, Packet, Negotiation.message.Value.Num() * 8 /* this argument is in bits, so multiply by 8 */);
 		}
 		else if (WorldContextObject != NULL)
 		{
@@ -79,7 +79,7 @@ void UHiveMPUtilBlueprintLibrary::SendNatPunchthroughRequest(UObject* WorldConte
 				{
 					const uint8* DataToSend = reinterpret_cast<uint8*>(Packet);
 
-					int32 CountBits = Negotiation.message.Num() * 8;
+					int32 CountBits = Negotiation.message.Value.Num() * 8;
 
 					int32 BytesSent = 0;
 					uint32 CountBytes = FMath::DivideAndRoundUp(CountBits, 8);
@@ -113,7 +113,7 @@ void UHiveMPUtilBlueprintLibrary::SendNatPunchthroughRequestToClient(UObject* Wo
 		//
 		// If you don't configure this, clients will be disconnected when they receive this packet.
 		Packet[0] = 0;
-		FString Address = FString::Printf(TEXT("%s:%i"), *(Endpoint.host), Endpoint.port);
+		FString Address = FString::Printf(TEXT("%s:%i"), *(Endpoint.host.Value), Endpoint.port.Value);
 
 		if (NetDriver != NULL)
 		{

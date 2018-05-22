@@ -37,7 +37,7 @@ export class ByteArrayType implements IUnrealEngineType {
 
   public emitDeserializationFragment(info: IDeserializationInfo): string {
     return `
-if (!${info.from}}.IsValid() || ${info.from}->IsNull())
+if (!${info.from}.IsValid() || ${info.from}->IsNull())
 {
   ${info.into}.HasValue = false;
   ${info.into}.Value.Empty();
@@ -72,11 +72,11 @@ else
   }
 
   public getAssignmentFrom(spec: ITypeSpec, variable: string): string {
-    return `TArray<uint8>(${variable})`;
+    return `FNullableByteArray(${variable}.HasValue, TArray<uint8>(${variable}.Value))`;
   }
 
   public getDefaultInitialiser(spec: ITypeSpec): string {
-    return `TArray<uint8>()`;
+    return `FNullableByteArray(false, TArray<uint8>())`;
   }
 
   public getQueryStringEncodingParameter(spec: IParameterSpec): string | null {
@@ -87,7 +87,7 @@ else
     return `
 if (this->Field_${spec.name}.HasValue)
 {
-  ${arrayVariable}.Add(FString::Printf("${spec.name}=%s", *FGenericPlatformHttp::UrlEncode(FBase64::Encode(this->Field_${spec.name}.Value))));
+  ${arrayVariable}.Add(FString::Printf(TEXT("${spec.name}=%s"), *FGenericPlatformHttp::UrlEncode(FBase64::Encode(this->Field_${spec.name}.Value))));
 }
 `;
   }

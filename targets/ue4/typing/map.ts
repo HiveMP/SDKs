@@ -65,9 +65,7 @@ export class MapType implements IUnrealEngineType {
   }
 
   public pushOntoQueryStringArray(arrayVariable: string, spec: IParameterSpec): string | null {
-    return `
-${arrayVariable}.Add(FString::Printf("${spec.name}=%s", *FGenericPlatformHttp::UrlEncode(this->Field_${spec.name})));
-`;
+    return null;
   }
 
   public getCustomResponseHandler(spec: ITypeSpec): string {

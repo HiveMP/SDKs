@@ -13,6 +13,7 @@ export const cppHeader = `
 #include "HttpModule.h"
 #include "GenericPlatformHttp.h"
 #include "Base64.h"
+#include "HiveMPNullables.h"
 #include "HiveMPBlueprintLibrary.generated.h"
 
 #define UE_LOG_HIVE(Verbosity, Format, ...) \\

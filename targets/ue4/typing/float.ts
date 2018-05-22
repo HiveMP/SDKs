@@ -38,7 +38,7 @@ export class FloatType implements IUnrealEngineType {
 
   public emitDeserializationFragment(info: IDeserializationInfo): string {
     return `
-if (!${info.from}}.IsValid() || ${info.from}->IsNull())
+if (!${info.from}.IsValid() || ${info.from}->IsNull())
 {
   ${info.into}.HasValue = false;
   ${info.into}.Value = 0;
@@ -46,7 +46,7 @@ if (!${info.from}}.IsValid() || ${info.from}->IsNull())
 else
 {
   ${info.into}.HasValue = true;
-  ${info.into}.Value = ${info.from}->AsNumber();
+  ${info.into}.Value = (float)(${info.from}->AsNumber());
 }
 `;
   }
@@ -77,14 +77,14 @@ else
   }
 
   public getDefaultInitialiser(spec: ITypeSpec): string {
-    return `0`;
+    return `FNullableFloat(false, 0)`;
   }
 
   public pushOntoQueryStringArray(arrayVariable: string, spec: IParameterSpec): string | null {
     return `
 if (this->Field_${spec.name}.HasValue)
 {
-  ${arrayVariable}.Add(FString::Printf("${spec.name}=%f", this->Field_${spec.name}.Value));
+  ${arrayVariable}.Add(FString::Printf(TEXT("${spec.name}=%f"), (float)(this->Field_${spec.name}.Value)));
 }
 `;
   }

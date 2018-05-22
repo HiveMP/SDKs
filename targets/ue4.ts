@@ -35,6 +35,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
       for (const definitionValue of api.definitions.values()) {
         const ueType = resolveType(definitionValue);
         header += ueType.emitDeserializationHeader(definitionValue);
+        header += ueType.emitSerializationHeader(definitionValue);
       }
       
       for (const method of api.methods) {
@@ -51,6 +52,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
       for (const definitionValue of api.definitions.values()) {
         const ueType = resolveType(definitionValue);
         code += ueType.emitDeserializationImplementation(definitionValue);
+        code += ueType.emitSerializationImplementation(definitionValue);
       }
 
       for (const method of api.methods) {

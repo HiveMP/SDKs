@@ -8,12 +8,22 @@ import { IDefinitionSpec } from "../common/typeSpec";
  * @param definitions A full map of the definitions in the document.
  * @param definitionName The definition to be emitted.
  */
-export function emitDefinitionAndDependencies(emittedDefinitions: Set<string>, definitions: Map<string, IDefinitionSpec>, definitionName: string): string {
+export function emitDefinitionAndDependencies(
+  emittedDefinitions: Set<string>, 
+  definitions: Map<string, IDefinitionSpec>, 
+  definitionName: string,
+  chain?: string[]): string {
+  if (chain === undefined) {
+    chain = [];
+  }
+  chain = [...chain, definitionName];
+  if (chain.length > 10) {
+    throw new Error('recursive dependency on definitions detected: ' + JSON.stringify(chain, null, 2));
+  }
   if (emittedDefinitions.has(definitionName)) {
     // This definition has already been emitted.
     return '';
   }
-  emittedDefinitions.add(definitionName);
   const value = definitions.get(definitionName);
   const ueType = resolveType(value);
   const dependencies = ueType.getDependencies(value);
@@ -22,11 +32,13 @@ export function emitDefinitionAndDependencies(emittedDefinitions: Set<string>, d
     result += this.emitDefinitionAndDependencies(
       emittedDefinitions,
       definitions,
-      definitionName);
+      dependency,
+      chain);
   }
   const structure = ueType.emitStructureDefinition(value);
   if (structure !== null) {
     result += structure;
   }
+  emittedDefinitions.add(definitionName);
   return result;
 }
