@@ -13,6 +13,8 @@ class UHiveMPNullableBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
+// This is REQUIRED. Without the public accessibility declaration here, the functions will still be available in
+// the blueprint editor by searching for them by name, but the autocasting functionality won't work.
 public:
 
 	// --- Implict Casts ---
