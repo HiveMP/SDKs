@@ -21,6 +21,7 @@ import {
 import {
   MuJsTypeScriptGenerator
 } from './targets/mujs';
+import { apiNames } from './targets/common/apiNames';
 
 let targets = [
   new CSharp35Generator(),
@@ -32,30 +33,12 @@ let targets = [
   new MuJsTypeScriptGenerator(),
 ];
 
-let apis = [
-  'admin-session',
-  'api-key',
-  'attribute',
-  'billing',
-  //'audit',
-  'client-connect',
-  //'error',
-  'event',
-  'game-server',
-  'integration',
-  'lobby',
-  'reporting',
-  'revenue-share',
-  //'matchmaking',
-  'nat-punchthrough',
-  'netcode',
-  'temp-session',
-  'pos',
-  'ugc-cache',
-  'user-session',
-  'search',
-  'scheduling',
-];
+let apis = [];
+for (const apiKey in apiNames) {
+  if (apiNames.hasOwnProperty(apiKey)) {
+    apis.push(apiKey);
+  }
+}
 
 let command = null;
 
