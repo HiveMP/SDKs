@@ -59,45 +59,76 @@ namespace HiveMP.Api
 
         private async Task ListenForMessagesAndRaiseEvents()
         {
-            var buffer = WebSocket.CreateServerBuffer(4096);
-            var resultBuilder = new StringBuilder();
-            while ((_webSocket.State == WebSocketState.Connecting ||
-                _webSocket.State == WebSocketState.Open) &&
-                !_cancellationToken.IsCancellationRequested)
+            try
             {
-                var result = await _webSocket.ReceiveAsync(buffer, _cancellationToken);
-
-                if (result.MessageType == WebSocketMessageType.Text)
+                var buffer = WebSocket.CreateServerBuffer(4096);
+                var resultBuilder = new StringBuilder();
+                while ((_webSocket.State == WebSocketState.Connecting ||
+                    _webSocket.State == WebSocketState.Open) &&
+                    !_cancellationToken.IsCancellationRequested)
                 {
-                    resultBuilder.Append(Encoding.UTF8.GetString(buffer.Array, 0, result.Count));
-                }
-                else
-                {
-                    // We don't handle binary messages.
-                }
-
-                if (result.EndOfMessage)
-                {
-                    var jsonRequest = resultBuilder.ToString();
-                    var jsonObject = JsonConvert.DeserializeObject<JObject>(jsonRequest);
-
-                    var requestType = jsonObject.Property("type").Value<string>();
-                    var requestObject = jsonObject.Property("value").Value<JToken>();
-
                     try
                     {
-                        HandleMessage(requestType, requestObject, _cancellationToken);
+                        var result = await _webSocket.ReceiveAsync(buffer, _cancellationToken);
+
+                        if (result.MessageType == WebSocketMessageType.Text)
+                        {
+                            resultBuilder.Append(Encoding.UTF8.GetString(buffer.Array, 0, result.Count));
+                        }
+                        else
+                        {
+                            // We don't handle binary messages.
+                        }
+
+                        if (result.EndOfMessage)
+                        {
+                            var jsonRequest = resultBuilder.ToString();
+                            var jsonObject = JsonConvert.DeserializeObject<JObject>(jsonRequest);
+
+                            var requestType = jsonObject.Property("type").Value<string>();
+                            var requestObject = jsonObject.Property("value").Value<JToken>();
+
+                            try
+                            {
+                                await HandleMessage(requestType, requestObject, _cancellationToken);
+                            }
+                            catch
+                            {
+                                // TODO: Provide an interface for propagating exceptions here.
+                            }
+                        }
+
+                        if (result.CloseStatus != null)
+                        {
+                            break;
+                        }
                     }
-                    catch
+                    catch (TaskCanceledException) when ((_webSocket.State != WebSocketState.Connecting &&
+                      _webSocket.State != WebSocketState.Open) ||
+                      _cancellationToken.IsCancellationRequested)
                     {
-                        // TODO: Provide an interface for propagating exceptions here.
+                        // Normal shutdown.
+
+                        // TODO: Some websocket non-open states are error states, and we should maybe think
+                        // about propagating them in the SDK. However, from HiveMP's perspective there is
+                        // no semantic difference between the server closing the connection normally
+                        // or returning an error value, as the API never uses WebSocket error states to
+                        // communicate differentiating information to the client. In all cases of disconnection,
+                        // if the client wanted to remain connected, they just need to connect again.
+
+                        break;
                     }
                 }
 
-                if (result.CloseStatus != null)
+                if (_webSocket.State == WebSocketState.Connecting ||
+                    _webSocket.State == WebSocketState.Open)
                 {
-                    break;
+                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "The client terminated the connection due to token cancellation", CancellationToken.None);
                 }
+            }
+            finally
+            {
+                _webSocket.Dispose();
             }
         }
     }

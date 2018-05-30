@@ -284,7 +284,7 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// </summary>
         public async System.Threading.Tasks.Task WaitForDisconnect(System.Threading.CancellationToken cancellationToken)
         {
-            base.WaitForDisconnect(cancellationToken);
+            await base.WaitForDisconnect(cancellationToken);
         }
 
         protected override async System.Threading.Tasks.Task HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value, System.Threading.CancellationToken cancellationToken)
@@ -328,7 +328,7 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// </summary>
         public async System.Threading.Tasks.Task WaitForDisconnect(System.Threading.CancellationToken cancellationToken)
         {
-            base.WaitForDisconnect(cancellationToken);
+            await base.WaitForDisconnect(cancellationToken);
         }
 
         protected override System.Threading.Tasks.Task HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value, System.Threading.CancellationToken cancellationToken)

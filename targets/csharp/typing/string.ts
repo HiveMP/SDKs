@@ -28,7 +28,7 @@ export class StringType implements ICSharpType {
 if (arguments.${name} == null || arguments.${name}.Trim() == "") throw new System.ArgumentNullException("arguments.${name}");`;
     }
     code += `
-if (arguments.${name} != null && arguments.${name}.Trim() == "") urlBuilder_.Append("${spec.name}=").Append(System.Uri.EscapeDataString(arguments.${name})).Append("&");`;
+if (arguments.${name} != null && arguments.${name}.Trim() != "") urlBuilder_.Append("${spec.name}=").Append(System.Uri.EscapeDataString(arguments.${name})).Append("&");`;
     return code;
   }
 }
