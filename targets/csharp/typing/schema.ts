@@ -48,7 +48,7 @@ export class SchemaType implements ICSharpType {
       /// <summary>
       /// ${escapeForXmlComment(spec.description, "        /// ")}
       /// </summary>
-      [Newtonsoft.Json.JsonProperty("${spec.name}")]
+      [Newtonsoft.Json.JsonProperty("${property.name}")]
       public ${csType.getCSharpType(property)} ${name} { get; set; }
 `;
     }

@@ -88,6 +88,26 @@ export interface IMethodSpec {
    * Whether or not this method is only callable within the HiveMP cluster.
    */
   isClusterOnly: boolean;
+
+  /**
+   * Whether this method expects a Websocket connection.
+   */
+  isWebSocket: boolean;
+
+  /**
+   * The supported protocol messages that clients can send to the WebSocket.
+   */
+  webSocketRequestMessageTypes: Set<IWebSocketProtocolType>;
+
+  /**
+   * The supported protocol messages that clients may receive from the WebSocket.
+   */
+  webSocketResponseMessageTypes: Set<IWebSocketProtocolType>;
+}
+
+export interface IWebSocketProtocolType {
+  protocolMessageId: string;
+  type: ITypeSpec | null;
 }
 
 /**
@@ -122,6 +142,37 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
       const implementationName = namespace + '_' + tag + '_' + operationId;
 
       const isClusterOnly = methodValue["x-accepted-api-key-types"].length == 1 && methodValue["x-accepted-api-key-types"][0] == "__cluster_only__";
+      const isWebSocket = methodValue["x-websocket"] !== undefined && methodValue["x-websocket"];
+
+      const webSocketRequestMessageTypes = new Set<IWebSocketProtocolType>();
+      const webSocketResponseMessageTypes = new Set<IWebSocketProtocolType>();
+
+      if (isWebSocket) {
+        const rawRequest = methodValue["x-websocket-request-messages"];
+        const rawResponse = methodValue["x-websocket-response-messages"];
+        for (let i = 0; i < rawRequest.length; i++) {
+          webSocketRequestMessageTypes.add({
+            protocolMessageId: rawRequest.protocolMessageId,
+            type: convertGeneric({
+              namespace: namespace,
+              apiId: apiId,
+              document: document,
+              obj: rawRequest,
+            }),
+          });
+        }
+        for (let i = 0; i < rawResponse.length; i++) {
+          webSocketResponseMessageTypes.add({
+            protocolMessageId: rawResponse.protocolMessageId,
+            type: convertGeneric({
+              namespace: namespace,
+              apiId: apiId,
+              document: document,
+              obj: rawResponse,
+            }),
+          });
+        }
+      }
 
       let response: ITypeSpec | null = null;
       if (methodValue.responses !== undefined && methodValue.responses["200"] !== undefined) {
@@ -168,6 +219,9 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
         response: response,
         tag: tag,
         isClusterOnly: isClusterOnly,
+        isWebSocket: isWebSocket,
+        webSocketRequestMessageTypes: webSocketRequestMessageTypes,
+        webSocketResponseMessageTypes: webSocketResponseMessageTypes,
       });
     }
   }

@@ -1,5 +1,6 @@
 import { IMethodSpec } from "../common/methodSpec";
 import { resolveType } from "./typing";
+import { camelCase } from "./naming";
 
 export interface IMethodReturnTypes {
   syncType: string;
@@ -14,6 +15,12 @@ export function getReturnTypes(spec: IMethodSpec): IMethodReturnTypes {
   if (spec.response != null) {
     const csType = resolveType(spec.response);
     returnValue = csType.getNonNullableCSharpType(spec.response);
+    asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
+    promiseResolve = 'System.Action<' + returnValue + '>';
+  }
+  if (spec.isWebSocket) {
+    const name = camelCase(spec.operationId);
+    returnValue = name + 'Socket';
     asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
     promiseResolve = 'System.Action<' + returnValue + '>';
   }

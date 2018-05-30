@@ -52,6 +52,37 @@ export function interfaceMethodDeclarations(values: {
 `;
 }
 
+export function interfaceWebSocketMethodDeclarations(values: {
+  methodName: string,
+  methodNameEscaped: string,
+  methodSummary: string,
+  methodDescription: string,
+  returnTypes: IMethodReturnTypes,
+}) {
+  return `
+#if HAS_TASKS
+      /// <summary>
+      /// ${values.methodSummary}
+      /// </summary>
+      /// <remarks>
+      /// ${values.methodDescription}
+      /// </remarks>
+      /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
+      ${values.returnTypes.asyncType} ${values.methodName}Async(${values.methodName}Request arguments);
+
+      /// <summary>
+      /// ${values.methodSummary}
+      /// </summary>
+      /// <remarks>
+      /// ${values.methodDescription}
+      /// </remarks>
+      /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
+      /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
+      ${values.returnTypes.asyncType} ${values.methodName}Async(${values.methodName}Request arguments, System.Threading.CancellationToken cancellationToken);
+#endif
+`;
+}
+
 export function implementationMethodDeclarations(values: {
   apiId: string,
   methodName: string,
@@ -591,5 +622,119 @@ export function implementationMethodDeclarations(values: {
                   client_.Dispose();
           }
       }
+`;
+}
+
+export function implementationWebSocketMethodDeclarations(values: {
+  apiId: string,
+  methodName: string,
+  methodNameEscaped: string,
+  methodSummary: string,
+  methodDescription: string,
+  methodOperationId: string,
+  methodPath: string,
+  methodHttpMethod: string,
+  parameterBodyLoadingCode: string,
+  parameterQueryLoadingCode: string,
+  returnTypes: IMethodReturnTypes,
+  returnSyncPrefix: string,
+  promiseReturnExtra: string,
+  promiseReturnType: string,
+  promiseResolve: string,
+  httpResponseHandler: string,
+  legacyParameterXmlComments: string,
+  parameterDeclarations: string,
+  parameterDeclarationsSuffix: string,
+  requestClassConstruction: string,
+  clientConnectWait: string,
+  clientConnectWaitAsync: string,
+  clientConnectResponseHandler: string,
+}) {
+  return `
+#if HAS_TASKS
+      /// <summary>
+      /// ${values.methodSummary}
+      /// </summary>
+      /// <remarks>
+      /// ${values.methodDescription}
+      /// </remarks>
+      ${values.legacyParameterXmlComments}
+      [System.Obsolete(
+          "API calls with fixed position parameters are subject to change when new optional parameters " +
+          "are added to the API; use the ${values.methodName}Async(${values.methodName}Request) version of this method " +
+          "instead to ensure forward compatibility")]
+      public ${values.returnTypes.asyncType} ${values.methodName}Async(${values.parameterDeclarations})
+      {
+          return ${values.methodName}Async(${values.requestClassConstruction}, System.Threading.CancellationToken.None);
+      }
+
+      /// <summary>
+      /// ${values.methodSummary}
+      /// </summary>
+      /// <remarks>
+      /// ${values.methodDescription}
+      /// </remarks>
+      ${values.legacyParameterXmlComments}
+      /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
+      [System.Obsolete(
+          "API calls with fixed position parameters are subject to change when new optional parameters " +
+          "are added to the API; use the ${values.methodName}Async(${values.methodName}Request,CancellationToken) version of this method " +
+          "instead to ensure forward compatibility")]
+      public ${values.returnTypes.asyncType} ${values.methodName}Async(${values.parameterDeclarations}${values.parameterDeclarationsSuffix}System.Threading.CancellationToken cancellationToken)
+      {
+          return ${values.methodName}Async(${values.requestClassConstruction}, cancellationToken);
+      }
+      
+      /// <summary>
+      /// ${values.methodSummary}
+      /// </summary>
+      /// <remarks>
+      /// ${values.methodDescription}
+      /// </remarks>
+      /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
+      public ${values.returnTypes.asyncType} ${values.methodName}Async(${values.methodName}Request arguments)
+      {
+          return ${values.methodName}Async(arguments, System.Threading.CancellationToken.None);
+      }
+
+      /// <summary>
+      /// ${values.methodSummary}
+      /// </summary>
+      /// <remarks>
+      /// ${values.methodDescription}
+      /// </remarks>
+      /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
+      public async ${values.returnTypes.asyncType} ${values.methodName}Async(${values.methodName}Request arguments, System.Threading.CancellationToken cancellationToken)
+      {
+          var wsBaseUrl = BaseUrl;
+          if (wsBaseUrl.StartsWith("https://"))
+          {
+              wsBaseUrl = "wss://" + wsBaseUrl.Substring("https://".Length);
+          }
+          if (wsBaseUrl.StartsWith("http://"))
+          {
+              wsBaseUrl = "ws://" + wsBaseUrl.Substring("http://".Length);
+          }
+
+          var urlBuilder_ = new System.Text.StringBuilder();
+          urlBuilder_.Append(wsBaseUrl).Append("${values.methodPath}?");
+          ${values.parameterQueryLoadingCode}
+          urlBuilder_.Length--;
+   
+          if (InterceptRequest != null)
+          {
+              var url = urlBuilder_.ToString();
+              var newUrl = InterceptRequest(null, url);
+              urlBuilder_.Remove(0, urlBuilder_.Length);
+              urlBuilder_.Append(newUrl);
+          }
+
+          var client = new System.Net.WebSockets.ClientWebSocket();
+          client.Options.SetRequestHeader("X-API-Key", ApiKey ?? string.Empty);
+          await client.ConnectAsync(new System.Uri(urlBuilder_.ToString()), cancellationToken);
+
+          return new ${values.methodName}Socket(client);
+      }
+#endif
 `;
 }

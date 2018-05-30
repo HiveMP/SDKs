@@ -5,7 +5,7 @@ import { resolveType } from "./typing";
 import { escapeForXmlComment } from "./escape";
 import * as fragments from './fragments';
 import { getReturnTypes } from "./return";
-import { emitInterfaceMethodDeclarations, emitImplementationMethodDeclarations, emitRequestClassForMethod } from "./methods";
+import { emitInterfaceMethodDeclarations, emitImplementationMethodDeclarations, emitRequestClassForMethod, emitWebSocketClassForMethod } from "./methods";
 import { TargetOptions } from "../TargetOptions";
 
 export function emitControllerAndImplementation(api: IApiSpec, tag: string, opts: TargetOptions) {
@@ -77,6 +77,21 @@ export function emitControllerAndImplementation(api: IApiSpec, tag: string, opts
     }
 
     code += emitRequestClassForMethod(method);
+  }
+
+  // Declare WebSocket classes.
+  for (const method of api.methods) {
+    if (method.tag !== tag) {
+      continue;
+    }
+    if (method.isClusterOnly && !opts.includeClusterOnly) {
+      continue;
+    }
+    if (!method.isWebSocket) {
+      continue;
+    }
+
+    code += emitWebSocketClassForMethod(method);
   }
 
   return code;

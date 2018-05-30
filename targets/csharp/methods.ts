@@ -5,23 +5,7 @@ import { escapeForXmlComment } from "./escape";
 import * as fragments from './fragments';
 import { getParametersFromMethodParameters } from "./parameters";
 import { resolveType } from "./typing";
-
-export function emitInterfaceMethodDeclarations(spec: IMethodSpec) {
-  const methodName = camelCase(spec.operationId);
-  const returnTypes = getReturnTypes(spec);
-
-  const methodSummary = escapeForXmlComment(spec.summary, "        /// ");
-  const methodDescription = escapeForXmlComment(spec.description, "        /// ");
-  const methodNameEscaped = escapeForXmlComment(methodName, " ");
-
-  return fragments.interfaceMethodDeclarations({
-    methodSummary: methodSummary,
-    methodName: methodName,
-    methodNameEscaped: methodNameEscaped,
-    methodDescription: methodDescription,
-    returnTypes: returnTypes
-  });
-}
+import { normalizeWebSocketProtocolName } from "../common/normalize";
 
 function getRequestClassConstruction(spec: IMethodSpec) {
   let createRequest = `new ${camelCase(spec.operationId)}Request
@@ -123,6 +107,28 @@ function getParameterBodyLoadingCode(spec: IMethodSpec) {
   return code;
 }
 
+export function emitInterfaceMethodDeclarations(spec: IMethodSpec) {
+  const methodName = camelCase(spec.operationId);
+  const returnTypes = getReturnTypes(spec);
+
+  const methodSummary = escapeForXmlComment(spec.summary, "        /// ");
+  const methodDescription = escapeForXmlComment(spec.description, "        /// ");
+  const methodNameEscaped = escapeForXmlComment(methodName, " ");
+
+  let implementor = fragments.interfaceMethodDeclarations;
+  if (spec.isWebSocket) {
+    implementor = fragments.interfaceWebSocketMethodDeclarations;
+  }
+
+  return implementor({
+    methodSummary: methodSummary,
+    methodName: methodName,
+    methodNameEscaped: methodNameEscaped,
+    methodDescription: methodDescription,
+    returnTypes: returnTypes
+  });
+}
+
 export function emitImplementationMethodDeclarations(spec: IMethodSpec, opts: {
   clientConnectWait: string,
   clientConnectWaitAsync: string,
@@ -149,11 +155,12 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec, opts: {
   const clientConnectResponseHandler = getClientConnectResponseHandler(returnTypes);
   const httpResponseHandler = getHttpResponseHandler(returnTypes);
 
-if (parameterQueryLoadingCode === null) {
-  throw new Error('wat ' + JSON.stringify(spec));
-}
+  let implementor = fragments.implementationMethodDeclarations;
+  if (spec.isWebSocket) {
+    implementor = fragments.implementationWebSocketMethodDeclarations;
+  }
 
-  return fragments.implementationMethodDeclarations({
+  return implementor({
     apiId: spec.apiId,
     methodName,
     methodNameEscaped,
@@ -201,5 +208,136 @@ export function emitRequestClassForMethod(spec: IMethodSpec) {
   code += `
     }
 `;
+  return code;
+}
+
+export function emitWebSocketClassForMethod(spec: IMethodSpec) {
+  const name = camelCase(spec.operationId);
+  let code = `
+    [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
+    public sealed class ${name}Socket : HiveMP.Api.HiveMPWebSocket
+    {
+        public ${name}Socket(System.Net.WebSockets.ClientWebSocket webSocket) : base(webSocket)
+        {
+        }
+
+  `;
+  for (const requestMessage of spec.webSocketRequestMessageTypes) {
+    const csType = resolveType(requestMessage.type);
+    const protocolName = camelCase(normalizeWebSocketProtocolName(requestMessage.protocolMessageId));
+    code += `
+#if HAS_TASKS
+        /// <summary>
+        /// (The SDK does not generate this description yet)
+        /// </summary>
+        public async System.Threading.Tasks.Task Send${protocolName}(${csType.getCSharpType(requestMessage.type)} message, System.Threading.CancellationToken cancellationToken = null)
+        {
+            var serializedMessage = Newtonsoft.Json.SerializeObject(new {
+                type = "${requestMessage.protocolMessageId}",
+                value = serializedMessage,
+            });
+            var messageBytes = System.Text.Encoding.UTF8.GetBytes(serializedMessage);
+            var arraySegment = new System.ArraySegment(messageBytes);
+            await _webSocket.SendAsync(
+                arraySegment,
+                System.Net.WebSockets.WebSocketMessageType.Text,
+                true,
+                cancellationToken ?? new System.Threading.CancellationToken(false));
+        }
+#endif
+`;
+  }
+  for (const responseMessage of spec.webSocketResponseMessageTypes) {
+    const csType = resolveType(responseMessage.type);
+    const protocolName = camelCase(normalizeWebSocketProtocolName(responseMessage.protocolMessageId));
+    code += `
+#if HAS_TASKS
+        /// <summary>
+        /// (The SDK does not generate this description yet)
+        /// </summary>
+        public event System.Func<${csType.getCSharpType(responseMessage.type)}, System.Threading.CancellationToken, System.Threading.Tasks.Task> On${protocolName};
+#endif
+`;
+  }
+  if (spec.webSocketResponseMessageTypes.size > 0) {
+    code += `
+#if HAS_TASKS
+        /// <summary>
+        /// Once this method is called, events will start being fired when new messages come in. The
+        /// socket caches received messages between the time the connection was actually established
+        /// and when this method is called, so you don't miss any messages that are received during that
+        /// time.
+        ///
+        /// This method is automatically called if needed by <see cref="WaitForDisconnect" />, therefore
+        /// you only need to call this if you want to have events raised before you call
+        /// <see cref="WaitForDisconnect" />.
+        /// </summary>
+        public void StartRaisingEvents()
+        {
+            base.StartRaisingEvents();
+        }
+
+        /// <summary>
+        /// Wait until the WebSocket is closed by the server.  Handlers registered with
+        /// events will continue to fire while this method is called (but it is not required
+        /// to call this method to get events to fire).
+        /// </summary>
+        public async System.Threading.Tasks.Task WaitForDisconnect(System.Threading.CancellationToken cancellationToken)
+        {
+            base.WaitForDisconnect(cancellationToken);
+        }
+
+        protected override async System.Threading.Tasks.Task HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value, System.Threading.CancellationToken cancellationToken)
+        {
+            switch (protocolId)
+            {
+`;
+    for (const responseMessage of spec.webSocketResponseMessageTypes) {
+      const csType = resolveType(responseMessage.type);
+      const protocolName = camelCase(normalizeWebSocketProtocolName(responseMessage.protocolMessageId));
+      code += `
+                case "${responseMessage.protocolMessageId}":
+                {
+                    var message = value.ToObject<${csType.getCSharpType(responseMessage.type)}>();
+                    var handler = On${protocolName};
+                    if (handler == null)
+                    {
+                        return;
+                    }
+                    var invocationList = handler.GetInvocationList();
+                    var handlerTasks = new System.Threading.Tasks.Task[invocationList.Length];
+                    for (var i = 0; i < invocationList.Length; i++)
+                    {
+                        handlerTasks = ((System.Func<${csType.getCSharpType(responseMessage.type)}, System.Threading.CancellationToken, System.Threading.Tasks.Task>)invocationList[i])(message, cancellationToken);
+                    }
+                    await System.Threading.Tasks.Task.WhenAll(handlerTasks);
+                }
+`;
+    }
+    code += `
+            }
+        }
+#endif
+    }
+`;
+  } else {
+    code += `
+#if HAS_TASKS
+        /// <summary>
+        /// Wait until the WebSocket is closed by the server.
+        /// </summary>
+        public async System.Threading.Tasks.Task WaitForDisconnect(System.Threading.CancellationToken cancellationToken)
+        {
+            base.WaitForDisconnect(cancellationToken);
+        }
+
+        protected override System.Threading.Tasks.Task HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value, System.Threading.CancellationToken cancellationToken)
+        {
+            return System.Threading.Tasks.Task.CompletedTask;
+        }
+#endif
+    }
+`;
+  }
   return code;
 }

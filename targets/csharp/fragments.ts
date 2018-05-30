@@ -5,8 +5,14 @@ export { getDefines } from './fragments/defines';
 export { namespaceBegin, namespaceEnd } from './fragments/namespace';
 export { interfacePrefix, interfaceSuffix } from './fragments/controllerInterface';
 export { implementationPrefix, implementationSuffix } from './fragments/controllerImplementation';
-export { interfaceMethodDeclarations, implementationMethodDeclarations } from './fragments/methods';
+export { 
+  interfaceMethodDeclarations, 
+  interfaceWebSocketMethodDeclarations,
+  implementationMethodDeclarations, 
+  implementationWebSocketMethodDeclarations 
+} from './fragments/methods';
 export { getPromiseClass } from './fragments/promise';
+export { getWebSocketClass } from './fragments/websocket';
 
 export function getCodePrefix(defines: string[]) {
   return `

@@ -61,12 +61,14 @@ abstract class CSharpGenerator implements TargetGenerator {
     const httpClientClass = fragments.getHttpClientClass(defines);
     const hiveExceptionClass = fragments.getExceptionClass(defines);
     const hivePromiseClass = fragments.getPromiseClass(defines);
+    const hiveSocketClass = fragments.getWebSocketClass(defines);
     const hiveSdkSetup = fragments.getSdkSetup(defines);
 
     await this.writeFileContent(opts, 'HiveMP.cs', code);
     await this.writeFileContent(opts, 'RetryableHttpClient.cs', httpClientClass);
     await this.writeFileContent(opts, 'HiveMPException.cs', hiveExceptionClass);
     await this.writeFileContent(opts, 'HiveMPPromise.cs', hivePromiseClass);
+    await this.writeFileContent(opts, 'HiveMPWebSocket.cs', hiveSocketClass);
     await this.writeFileContent(opts, 'HiveMPSDKSetup.cs', hiveSdkSetup);
 
     if (opts.enableClientConnect) {
