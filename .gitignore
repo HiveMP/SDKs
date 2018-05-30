@@ -37,3 +37,4 @@ UnrealEngine-*.zip
 /client_connect/cchost/embed.cpp
 
 build/
+.DS_Store
