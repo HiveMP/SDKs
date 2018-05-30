@@ -10,6 +10,7 @@ import { convertDefinition, IDefinitionSpec } from './common/typeSpec';
 import { IApiSpec, loadApi } from './common/apiSpec';
 import { emitMethodResultDelegateDefinition, emitMethodProxyHeaderDeclaration, emitMethodProxyConstructorImplementation, emitMethodProxyCallImplementation } from './ue4/methods';
 import { emitDefinitionAndDependencies } from './ue4/definitions';
+import { generateUe4Namespace } from './ue4/namespace';
 
 export abstract class UnrealEngineGenerator implements TargetGenerator {
   abstract get name(): string;
@@ -18,7 +19,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
     const apis = new Set<IApiSpec>();
 
     for (const apiId in documents) {
-      apis.add(loadApi(apiId, documents[apiId]));
+      apis.add(loadApi(apiId, documents[apiId], generateUe4Namespace));
     }
 
     let header = fragments.cppHeader;

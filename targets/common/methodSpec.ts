@@ -78,6 +78,16 @@ export interface IMethodSpec {
    * return a response.
    */
   response: ITypeSpec | null;
+
+  /**
+   * The tag of the method (used to group these into "clients" in some SDKs).
+   */
+  tag: string;
+
+  /**
+   * Whether or not this method is only callable within the HiveMP cluster.
+   */
+  isClusterOnly: boolean;
 }
 
 /**
@@ -110,6 +120,8 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
       const descriptionLimited: string = description.length > 1000 ? (description.substr(0, 1000) + "...") : description;
 
       const implementationName = namespace + '_' + tag + '_' + operationId;
+
+      const isClusterOnly = methodValue["x-accepted-api-key-types"].length == 1 && methodValue["x-accepted-api-key-types"][0] == "__cluster_only__";
 
       let response: ITypeSpec | null = null;
       if (methodValue.responses !== undefined && methodValue.responses["200"] !== undefined) {
@@ -154,6 +166,8 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
         implementationName: implementationName,
         parameters: parameters,
         response: response,
+        tag: tag,
+        isClusterOnly: isClusterOnly,
       });
     }
   }

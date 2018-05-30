@@ -7,16 +7,4 @@ export interface TargetGenerator {
 }
 
 export class GeneratorUtility {
-  static isClusterOnlyMethod(method: any): boolean {
-    return method["x-accepted-api-key-types"].length == 1 &&
-           method["x-accepted-api-key-types"][0] == "__cluster_only__";
-  }
-
-  static isCommonDefinitionName(name: string): boolean {
-    return name == 'HiveSystemError' ||
-      name == 'HiveMPSystemError' ||
-      name == 'HiveSystemErrorData' ||
-      name == 'HiveMPSystemErrorData' ||
-      name == 'HiveMPSystemQueryError';
-  }
 }
