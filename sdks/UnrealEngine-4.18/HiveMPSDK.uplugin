@@ -12,6 +12,11 @@
       "Name": "HiveMPSDK",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "WebSocket",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
     }
   ],
 	"Plugins": [

@@ -81,7 +81,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
     });
 
     await new Promise<void>((resolve, reject) => {
-      fs.copy("client_connect/cchost/", opts.outputDir + "/Source/Private/cchost", { overwrite: true }, (err) => {
+      fs.copy("client_connect/cchost/", opts.outputDir + "/Source/HiveMPSDK/Private/cchost", { overwrite: true }, (err) => {
         if (err) {
           reject(err);
         }
@@ -90,7 +90,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
     });
 
     await new Promise<void>((resolve, reject) => {
-      fs.copy("client_connect/mujs/", opts.outputDir + "/Source/Private/mujs", { overwrite: true }, (err) => {
+      fs.copy("client_connect/mujs/", opts.outputDir + "/Source/HiveMPSDK/Private/mujs", { overwrite: true }, (err) => {
         if (err) {
           reject(err);
         }
@@ -99,7 +99,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
     });
 
     await new Promise<void>((resolve, reject) => {
-      fs.unlink(opts.outputDir + "/Source/Private/mujs/one.c", (err) => {
+      fs.unlink(opts.outputDir + "/Source/HiveMPSDK/Private/mujs/one.c", (err) => {
         if (err) {
           reject(err);
         }
@@ -108,7 +108,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
     });
 
     await new Promise<void>((resolve, reject) => {
-      fs.unlink(opts.outputDir + "/Source/Private/mujs/main.c", (err) => {
+      fs.unlink(opts.outputDir + "/Source/HiveMPSDK/Private/mujs/main.c", (err) => {
         if (err) {
           reject(err);
         }
@@ -117,7 +117,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
     });
 
     await new Promise<void>((resolve, reject) => {
-      fs.copy("client_connect/polyfill/", opts.outputDir + "/Source/Private/polyfill", { overwrite: true }, (err) => {
+      fs.copy("client_connect/polyfill/", opts.outputDir + "/Source/HiveMPSDK/Private/polyfill", { overwrite: true }, (err) => {
         if (err) {
           reject(err);
         }
@@ -126,12 +126,12 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
     });
 
     await new Promise((resolve, reject) => {
-      fs.writeFile(path.join(opts.outputDir, 'Source/Private/HiveMPBlueprintLibrary.cpp'), code, (err) => {
+      fs.writeFile(path.join(opts.outputDir, 'Source/HiveMPSDK/Private/HiveMPBlueprintLibrary.cpp'), code, (err) => {
         if (err) {
           reject(err);
           return;
         }
-        fs.writeFile(path.join(opts.outputDir, 'Source/Public/HiveMPBlueprintLibrary.h'), header, (err) => {
+        fs.writeFile(path.join(opts.outputDir, 'Source/HiveMPSDK/Public/HiveMPBlueprintLibrary.h'), header, (err) => {
           if (err) {
             reject(err);
             return;
