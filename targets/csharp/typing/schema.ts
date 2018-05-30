@@ -3,6 +3,7 @@ import { ITypeSpec, IDefinitionSpec, IParameterSpec } from "../../common/typeSpe
 import { normalizeTypeName } from "../../common/normalize";
 import { escapeForXmlComment } from "../escape";
 import { camelCase } from "../naming";
+import { isErrorStructure } from "../error";
 
 export class SchemaType implements ICSharpType {
   public doesHandleType(spec: ITypeSpec): boolean {
@@ -10,7 +11,14 @@ export class SchemaType implements ICSharpType {
   }
   
   public getCSharpType(spec: ITypeSpec): string {
+    if (isErrorStructure(spec.schema)) {
+      return 'HiveMP.Api.' + normalizeTypeName(spec.schema);  
+    }
     return spec.namespace + '.' + normalizeTypeName(spec.schema);
+  }
+
+  public getNonNullableCSharpType(spec: ITypeSpec): string {
+    return this.getCSharpType(spec);
   }
 
   public emitStructureDefinition(spec: IDefinitionSpec): string | null {

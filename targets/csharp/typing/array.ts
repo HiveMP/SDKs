@@ -10,6 +10,10 @@ export class ArrayType implements ICSharpType {
     return resolveType(spec.items).getCSharpType(spec.items) + '[]';
   }
 
+  public getNonNullableCSharpType(spec: ITypeSpec): string {
+    return this.getCSharpType(spec);
+  }
+
   public emitStructureDefinition(spec: IDefinitionSpec): string | null {
     return null;
   }

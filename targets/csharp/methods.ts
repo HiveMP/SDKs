@@ -100,8 +100,10 @@ function getLegacyParameterXmlComments(spec: IMethodSpec) {
 function getParameterQueryLoadingCode(spec: IMethodSpec) {
   let code = '';
   for (const parameter of spec.parameters) {
-    const csType = resolveType(parameter);
-    code += csType.pushOntoQueryStringArray(parameter);
+    if (parameter.in == "query") {
+      const csType = resolveType(parameter);
+      code += (csType.pushOntoQueryStringArray(parameter) || '');
+    }
   }
   return code;
 }
@@ -140,11 +142,16 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec, opts: {
   const returnSyncPrefix = returnTypes.syncType == 'void' ? '' : 'return ';
   const promiseReturnExtra = returnTypes.syncType == 'void' ? 'return true;' : '';
   const promiseReturnType = returnTypes.syncType == 'void' ? 'bool' : returnTypes.syncType;
+  const promiseResolve = returnTypes.syncType == 'void' ? '_ => resolve()' : 'resolve';
   const requestClassConstruction = getRequestClassConstruction(spec);
   const legacyParameterXmlComments = getLegacyParameterXmlComments(spec);
 
   const clientConnectResponseHandler = getClientConnectResponseHandler(returnTypes);
   const httpResponseHandler = getHttpResponseHandler(returnTypes);
+
+if (parameterQueryLoadingCode === null) {
+  throw new Error('wat ' + JSON.stringify(spec));
+}
 
   return fragments.implementationMethodDeclarations({
     apiId: spec.apiId,
@@ -161,6 +168,7 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec, opts: {
     returnSyncPrefix,
     promiseReturnExtra,
     promiseReturnType,
+    promiseResolve,
     httpResponseHandler,
     legacyParameterXmlComments,
     parameterDeclarations,

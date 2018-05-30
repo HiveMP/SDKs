@@ -12,6 +12,10 @@ export class StringType implements ICSharpType {
     return 'string';
   }
 
+  public getNonNullableCSharpType(spec: ITypeSpec): string {
+    return this.getCSharpType(spec);
+  }
+
   public emitStructureDefinition(spec: IDefinitionSpec): string | null {
     return null;
   }

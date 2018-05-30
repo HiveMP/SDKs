@@ -8,7 +8,11 @@ export class ObjectType implements ICSharpType {
   }
   
   public getCSharpType(spec: ITypeSpec): string {
-    return 'object';
+    return 'Newtonsoft.Json.Linq.JObject';
+  }
+
+  public getNonNullableCSharpType(spec: ITypeSpec): string {
+    return this.getCSharpType(spec);
   }
 
   public emitStructureDefinition(spec: IDefinitionSpec): string | null {

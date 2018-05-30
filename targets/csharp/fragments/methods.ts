@@ -67,6 +67,7 @@ export function implementationMethodDeclarations(values: {
   returnSyncPrefix: string,
   promiseReturnExtra: string,
   promiseReturnType: string,
+  promiseResolve: string,
   httpResponseHandler: string,
   legacyParameterXmlComments: string,
   parameterDeclarations: string,
@@ -130,7 +131,7 @@ export function implementationMethodDeclarations(values: {
       /// ${values.methodDescription}
       /// </remarks>
       /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
-      public ${values.returnTypes.asyncType} ${values.methodName}Async(${values.methodName}Request arguments, System.Threading.CancellationToken cancellationToken)
+      public async ${values.returnTypes.asyncType} ${values.methodName}Async(${values.methodName}Request arguments, System.Threading.CancellationToken cancellationToken)
       {
           ${values.clientConnectWaitAsync}
 
@@ -415,7 +416,7 @@ export function implementationMethodDeclarations(values: {
           {
               ${values.returnSyncPrefix}${values.methodName}Internal(arguments);
               ${values.promiseReturnExtra}
-          }, _ => resolve(), reject);
+          }, ${values.promiseResolve}, reject);
       }
 
       /// <summary>
@@ -427,7 +428,7 @@ export function implementationMethodDeclarations(values: {
       /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
       [System.Obsolete(
           "Synchronous invocations are deprecated, because Client Connect implementations must be able to execute independent of the main application thread. If you invoke this method and a Client Connect implementation is present, an exception will be thrown. You should use the async/await version of this call where available. If you don't have access to async/await (.NET 4.5 and above), use the promise variant of this API call.")]
-      ${values.returnTypes.syncType} ${values.methodName}(${values.methodName}Request arguments)
+      public ${values.returnTypes.syncType} ${values.methodName}(${values.methodName}Request arguments)
       {
           ${values.returnSyncPrefix} ${values.methodName}Internal(arguments);
       }
@@ -519,7 +520,7 @@ export function implementationMethodDeclarations(values: {
               
               var request_ = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(url_);
               request_.Method = "${values.methodHttpMethod}";
-              request_.ContentLength = content.Length;
+              request_.ContentLength = content_.Length;
               request_.Accept = "application/json";
               client_.UpdateRequest(request_);
 

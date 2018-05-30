@@ -11,6 +11,14 @@ export class IntegerType implements ICSharpType {
   
   public getCSharpType(spec: ITypeSpec): string {
     if (spec.format === 'int32') {
+      return 'int?';
+    } else {
+      return 'long?';
+    }
+  }
+
+  public getNonNullableCSharpType(spec: ITypeSpec): string {
+    if (spec.format === 'int32') {
       return 'int';
     } else {
       return 'long';
@@ -26,10 +34,10 @@ export class IntegerType implements ICSharpType {
     let code = '';
     if (spec.required) {
       code += `
-if (arguments.${name} == null) throw new System.ArgumentNullException("arguments.${name}");`;
+if (!arguments.${name}.HasValue) throw new System.ArgumentNullException("arguments.${name}");`;
     }
     code += `
-if (arguments.${name} != null) urlBuilder_.Append("${spec.name}=").Append(System.Uri.EscapeDataString(arguments.${name}.ToString())).Append("&");`;
+if (arguments.${name}.HasValue) urlBuilder_.Append("${spec.name}=").Append(System.Uri.EscapeDataString(arguments.${name}.Value.ToString())).Append("&");`;
     return code;
   }
 }

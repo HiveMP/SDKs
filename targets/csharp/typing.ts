@@ -27,6 +27,8 @@ export interface ICSharpType {
 
   getCSharpType(spec: ITypeSpec): string;
 
+  getNonNullableCSharpType(spec: ITypeSpec): string;
+
   emitStructureDefinition(spec: IDefinitionSpec): string | null;
 
   pushOntoQueryStringArray(spec: IParameterSpec): string | null;

@@ -6,7 +6,7 @@ export function getPromiseClass(defines: string[]) {
 // </auto-generated>
 //------------------------
 
-${defines}
+${defines.join("\n")}
 
 #if UNITY_5 || UNITY_5_3_OR_NEWER
 #define IS_UNITY
@@ -29,7 +29,7 @@ namespace HiveMP.Api
     {
 #if !IS_UNITY
         public static Func<object> CoroutineWaitObjectFactory = null;
-        public static Func<IEnumerator> ScheduleCoroutine = null;
+        public static Action<IEnumerator> ScheduleCoroutine = null;
 #endif
     }
 

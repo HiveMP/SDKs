@@ -43,6 +43,7 @@ abstract class CSharpGenerator implements TargetGenerator {
     code += emitCommonErrorStructures(apis.values().next().value);
     code += fragments.namespaceEnd;
     for (const api of apis) {
+      code += fragments.namespaceBegin(api.namespace);
       for (const definition of api.definitions.values()) {
         const csType = resolveType(definition);
         code += csType.emitStructureDefinition(definition);
@@ -54,6 +55,7 @@ abstract class CSharpGenerator implements TargetGenerator {
           tag,
           opts);
       }
+      code += fragments.namespaceEnd;
     }
 
     const httpClientClass = fragments.getHttpClientClass(defines);

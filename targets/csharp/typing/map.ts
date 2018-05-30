@@ -8,7 +8,11 @@ export class MapType implements ICSharpType {
   }
   
   public getCSharpType(spec: ITypeSpec): string {
-    return 'Dictionary<string, ' + resolveType(spec.mapValue).getCSharpType(spec.mapValue) + '>';
+    return 'System.Collections.Generic.Dictionary<string, ' + resolveType(spec.mapValue).getCSharpType(spec.mapValue) + '>';
+  }
+
+  public getNonNullableCSharpType(spec: ITypeSpec): string {
+    return this.getCSharpType(spec);
   }
 
   public emitStructureDefinition(spec: IDefinitionSpec): string | null {

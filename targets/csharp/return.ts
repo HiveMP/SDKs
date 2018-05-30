@@ -13,7 +13,7 @@ export function getReturnTypes(spec: IMethodSpec): IMethodReturnTypes {
   let promiseResolve = 'System.Action';
   if (spec.response != null) {
     const csType = resolveType(spec.response);
-    returnValue = csType.getCSharpType(spec.response);
+    returnValue = csType.getNonNullableCSharpType(spec.response);
     asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
     promiseResolve = 'System.Action<' + returnValue + '>';
   }

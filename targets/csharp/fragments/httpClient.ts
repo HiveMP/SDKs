@@ -11,12 +11,11 @@ ${defines.join("\n")}
 using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Net;
 #if HAS_HTTPCLIENT
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-#else
-using System.Net;
 #endif
 using System.Threading;
 #if HAS_TASKS
@@ -25,10 +24,11 @@ using System.Threading.Tasks;
 
 namespace HiveMP.Api
 {
-#if HAS_HTTPCLIENT
     public class RetryableHttpClient : IDisposable
     {
+#if HAS_HTTPCLIENT
         private readonly HttpClient _httpClient;
+#endif
 
         static RetryableHttpClient()
         {
@@ -37,19 +37,49 @@ namespace HiveMP.Api
 
         public RetryableHttpClient()
         {
+#if HAS_HTTPCLIENT
             _httpClient = new HttpClient();
+#else
+            DefaultRequestHeaders = new System.Collections.Generic.Dictionary<string, string>();
+#endif
         }
 
+#if HAS_HTTPCLIENT
         public HttpRequestHeaders DefaultRequestHeaders
         {
             get => _httpClient.DefaultRequestHeaders;
         }
+#else
+        public System.Collections.Generic.Dictionary<string, string> DefaultRequestHeaders { get; set; }
+#endif
 
         public void Dispose()
         {
+#if HAS_HTTPCLIENT
             _httpClient.Dispose();
+#endif
         }
 
+        public HttpWebRequest UpdateRequest(HttpWebRequest request)
+        {
+            foreach (var kv in DefaultRequestHeaders)
+            {
+#if HAS_HTTPCLIENT
+                request.Headers.Add(kv.Key, kv.Value.First());
+#else
+                request.Headers.Add(kv.Key, kv.Value);
+#endif
+            }
+            return request;
+        }
+
+        public HttpWebResponse ExecuteRequest(HttpWebRequest request)
+        {
+            // TODO: Handle #6001 errors with retry logic
+            return (HttpWebResponse)request.GetResponse();
+        }
+
+#if HAS_HTTPCLIENT
         public Task<HttpResponseMessage> GetAsync(string requestUri)
         {
             return SendAsync(new HttpRequestMessage(HttpMethod.Get, requestUri), HttpCompletionOption.ResponseContentRead, CancellationToken.None);
@@ -176,42 +206,8 @@ namespace HiveMP.Api
                 while (true);
             }
         }
-    }
-#else
-    public class RetryableHttpClient : System.IDisposable
-    {
-        static RetryableHttpClient()
-        {
-            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
-        }
-
-        public RetryableHttpClient()
-        {
-            DefaultRequestHeaders = new System.Collections.Generic.Dictionary<string, string>();
-        }
-
-        public System.Collections.Generic.Dictionary<string, string> DefaultRequestHeaders { get; set; }
-        
-        public HttpWebRequest UpdateRequest(HttpWebRequest request)
-        {
-            foreach (var kv in DefaultRequestHeaders)
-            {
-                request.Headers.Add(kv.Key, kv.Value);
-            }
-            return request;
-        }
-
-        public HttpWebResponse ExecuteRequest(HttpWebRequest request)
-        {
-            // TODO: Handle #6001 errors with retry logic
-            return (HttpWebResponse)request.GetResponse();
-        }
-
-        public void Dispose()
-        {
-        }
-    }
 #endif
+    }
 }    
 `;
 }
