@@ -12,7 +12,7 @@ struct FNullableString
 {
 	GENERATED_BODY()
 
-	FNullableString();
+	FNullableString() = default;
  
 	FNullableString(bool NewHasValue, FString NewValue)
 	{
@@ -35,7 +35,7 @@ struct FNullableFloat
 {
 	GENERATED_BODY()
 
-	FNullableFloat();
+	FNullableFloat() = default;
  
 	FNullableFloat(bool NewHasValue, float NewValue)
 	{
@@ -58,7 +58,7 @@ struct FNullableInt32
 {
 	GENERATED_BODY()
 
-	FNullableInt32();
+	FNullableInt32() = default;
  
 	FNullableInt32(bool NewHasValue, int32 NewValue)
 	{
@@ -81,7 +81,7 @@ struct FNullableBoolean
 {
 	GENERATED_BODY()
 
-	FNullableBoolean();
+	FNullableBoolean() = default;
  
 	FNullableBoolean(bool NewHasValue, bool NewValue)
 	{
@@ -104,7 +104,7 @@ struct FNullableByteArray
 {
 	GENERATED_BODY()
 
-	FNullableByteArray();
+	FNullableByteArray() = default;
  
 	FNullableByteArray(bool NewHasValue, const TArray<uint8>& NewValue)
 	{
