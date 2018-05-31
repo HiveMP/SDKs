@@ -1,84 +1,18 @@
 import { IMethodSpec } from "../common/methodSpec";
 import { resolveType } from "./typing";
-import { resolve } from "path";
 
-export function emitMethodResultDelegateDefinition(spec: IMethodSpec): string {
-  /*if (spec.isWebSocket) {
-    return `
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(F${spec.implementationName}_Delegate, F${spec.implementationName}_ProtocolSocket, Result, const FHiveApiError&, Error);
-`;
-  } else*/ if (spec.response !== null) {
-    const ueType = resolveType(spec.response);
-    return `
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(F${spec.implementationName}_Delegate, ${ueType.getCPlusPlusOutType(spec.response)}, Result, const FHiveApiError&, Error);
-`;
-  } else {
-    return `
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(F${spec.implementationName}_Delegate, const FHiveApiError&, Error);
-`;
-  }
-}
-
-export function emitMethodProxyHeaderDeclaration(spec: IMethodSpec): string {
-  let header = `
-UCLASS()
-class HIVEMPSDK_API U${spec.implementationName} : public UOnlineBlueprintCallProxyBase
-{
-	GENERATED_UCLASS_BODY()
-
-	UPROPERTY(BlueprintAssignable)
-	F${spec.implementationName}_Delegate OnSuccess;
-
-	UPROPERTY(BlueprintAssignable)
-	F${spec.implementationName}_Delegate OnFailure;
-
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", WorldContext="WorldContextObject", DisplayName="${spec.displayNameEscapedForDoubleQuotes}", ToolTip="${spec.descriptionLimitedEscapedForDoubleQuotes}"), Category="HiveMP|${spec.apiFriendlyName}")
-	static U${spec.implementationName}* PerformHiveCall(
-		UObject* WorldContextObject,
-    FString ApiKey
-`;
-  for (const parameter of spec.parameters) {
-    const ueType = resolveType(parameter);
-    header += `
-    , ${ueType.getCPlusPlusInType(parameter)} ${parameter.name}
-`;
-  }
-  header += `
-  );
-
-	// UOnlineBlueprintCallProxyBase interface
-	virtual void Activate() override;
-	// End of UOnlineBlueprintCallProxyBase interface
-
-private:
-	// The world context object in which this call is taking place
-	UObject* WorldContextObject;
-
-  FString ApiKey;
-
-`;
-  for (const parameter of spec.parameters) {
-    const ueType = resolveType(parameter);
-    header += `
-    ${ueType.getCPlusPlusInType(parameter)} Field_${parameter.name};
-`;
-  }
-  header += `
-};
-
-`;
-  return header;
-}
-
-export function emitMethodProxyConstructorImplementation(spec: IMethodSpec): string {
+export function emitMethodWebSocketDeclaration(spec: IMethodSpec): string {
   return `
 
-U${spec.implementationName}::U${spec.implementationName}(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer), WorldContextObject(nullptr) { }
-
 `;
 }
 
-export function emitMethodProxyCallImplementation(spec: IMethodSpec): string {
+export function emitMethodWebSocketDefinition(spec: IMethodSpec): string {
+  return `
+`;
+}
+
+export function emitMethodWebSocketCallImplementation(spec: IMethodSpec): string {
   let code = `
 
 U${spec.implementationName}* U${spec.implementationName}::PerformHiveCall(
@@ -187,11 +121,11 @@ void U${spec.implementationName}::Activate()
     if (!HttpResponse.IsValid())
     {
       struct FHiveApiError ResultError;
-      ResultError.HttpStatusCode = FNullableInt32(false, 0);
-      ResultError.ErrorCode = FNullableInt32(false, 0);
-      ResultError.Message = FNullableString(true, TEXT("HTTP response was not valid!"));
-      ResultError.Parameter = FNullableString(false, TEXT(""));
-      UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message.Value));
+      ResultError.HttpStatusCode = 0;
+      ResultError.ErrorCode = 0;
+      ResultError.Message = TEXT("HTTP response was not valid!");
+      ResultError.Parameter = TEXT("");
+      UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message));
       ${failureBroadcast};
       return;
     }
@@ -207,11 +141,11 @@ void U${spec.implementationName}::Activate()
     if (!FJsonSerializer::Deserialize(Reader, JsonValue) || !JsonValue.IsValid())
     {
       struct FHiveApiError ResultError;
-      ResultError.HttpStatusCode = FNullableInt32(true, Response->GetResponseCode());
-      ResultError.ErrorCode = FNullableInt32(false, 0);
-      ResultError.Message = FNullableString(true, TEXT("Unable to deserialize JSON response!"));
-      ResultError.Parameter = FNullableString(false, TEXT(""));
-      UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message.Value));
+      ResultError.HttpStatusCode = Response->GetResponseCode();
+      ResultError.ErrorCode = 0;
+      ResultError.Message = TEXT("Unable to deserialize JSON response!");
+      ResultError.Parameter = TEXT("");
+      UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message));
       ${failureBroadcast};
       return;
     }
@@ -229,43 +163,31 @@ void U${spec.implementationName}::Activate()
         auto GotErrorCode = (*JsonObject)->TryGetNumberField(TEXT("code"), ErrorCode);
 
         struct FHiveApiError ResultError;
-        ResultError.HttpStatusCode = FNullableInt32(true, Response->GetResponseCode());
+        ResultError.HttpStatusCode = Response->GetResponseCode();
         if (GotErrorCode)
         {
-          ResultError.ErrorCode = FNullableInt32(true, (int32)ErrorCode);
-        }
-        else
-        {
-          ResultError.ErrorCode = FNullableInt32(false, 0);
+          ResultError.ErrorCode = (int32)ErrorCode;
         }
         if (GotMessage)
         {
-          ResultError.Message = FNullableString(true, Message);
-        }
-        else
-        {
-          ResultError.Message = FNullableString(false, TEXT(""));
+          ResultError.Message = Message;
         }
         if (GotParameter)
         {
-          ResultError.Parameter = FNullableString(true, Parameter);
+          ResultError.Parameter = Parameter;
         }
-        else
-        {
-          ResultError.Parameter = FNullableString(false, TEXT(""));
-        }
-        UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message.Value));
+        UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message));
         ${failureBroadcast};
         return;
       }
       else
       {
         struct FHiveApiError ResultError;
-        ResultError.HttpStatusCode = FNullableInt32(true, Response->GetResponseCode());
-        ResultError.ErrorCode = FNullableInt32(false, 0);
-        ResultError.Message = FNullableString(true, TEXT("Unable to deserialize JSON response as HiveMP system error!"));
-        ResultError.Parameter = FNullableString(false, TEXT(""));
-        UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message.Value));
+        ResultError.HttpStatusCode = Response->GetResponseCode();
+        ResultError.ErrorCode = 0;
+        ResultError.Message = TEXT("Unable to deserialize JSON response as HiveMP system error!");
+        ResultError.Parameter = TEXT("");
+        UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message));
         ${failureBroadcast};
         return;
       }

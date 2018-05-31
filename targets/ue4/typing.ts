@@ -47,6 +47,10 @@ export interface IUnrealEngineType {
 
   getDependencies(spec: IDefinitionSpec): string[];
 
+  getBaseFilenameForDependencyEmit(spec: ITypeSpec): string | null;
+
+  getDependenciesBaseFilenames(spec: IDefinitionSpec): string[];
+
   emitStructureDefinition(spec: IDefinitionSpec): string | null;
 
   emitDeserializationHeader(spec: IDefinitionSpec): string | null;

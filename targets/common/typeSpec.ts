@@ -142,6 +142,7 @@ export function convertDefinition(context: ITypeContextWithName): IDefinitionSpe
   }
   return {
     name: context.name,
+    apiFriendlyName: apiNames[context.apiId],
     normalizedName: normalizeTypeName(context.name),
     description: context.obj.description,
     namespace: context.namespace,

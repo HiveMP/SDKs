@@ -9,7 +9,8 @@
 #include "DelegateCombinations.h"
 #include "OnlineSubsystem.h"
 #include "HiveMPNullables.h"
-#include "HiveMPBlueprintLibrary.h"
+#include "Generated/Struct_nat_punchthrough_NATEndpoint.h"
+#include "Generated/Struct_nat_punchthrough_NATNegotation.h"
 #include "HiveMPUtilBlueprintLibrary.generated.h"
 
 UCLASS()

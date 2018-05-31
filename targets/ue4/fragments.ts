@@ -16,11 +16,6 @@ export const cppHeader = `
 #include "HiveMPNullables.h"
 #include "HiveMPBlueprintLibrary.generated.h"
 
-#define UE_LOG_HIVE(Verbosity, Format, ...) \\
-{ \\
-  UE_LOG(LogOnline, Verbosity, TEXT("%s%s"), TEXT("HiveMP: "), *FString::Printf(Format, ##__VA_ARGS__)); \\
-}
-
 USTRUCT(BlueprintType)
 struct FHiveApiError
 {
@@ -41,11 +36,61 @@ struct FHiveApiError
 
 `;
 
-export const cppCode = `
+export function getCppStructHeader(dependencies: string[], baseFilename: string) {
+  return `
 #pragma once
 
-#include "HiveMPBlueprintLibrary.h"
-#include "cchost/connect.impl.h"
-#include "cchost/module/hotpatching/module.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "JsonReader.h"
+#include "JsonSerializer.h"
+#include "Base64.h"
+#include "HiveMPNullables.h"
+${dependencies.map(x => `#include "${x}.h"
+`).join("")}
+#include "${baseFilename}.generated.h"
 
 `;
+}
+
+export function getCppStructCode(baseFilename: string) {
+  return `
+#include "${baseFilename}.h"
+
+`;
+}
+
+export function getCppMethodHeader(dependencies: string[], baseFilename: string) {
+  return `
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Net/OnlineBlueprintCallProxyBase.h"
+#include "DelegateCombinations.h"
+#include "HiveMPNullables.h"
+#include "Struct__common_HiveMPSystemError.h"
+${dependencies.map(x => `#include "${x}.h"
+`).join("")}
+#include "${baseFilename}.generated.h"
+
+`;
+}
+
+export function getCppMethodCode(baseFilename: string) {
+  return `
+#include "${baseFilename}.h"
+#include "IHttpResponse.h"
+#include "HttpModule.h"
+#include "GenericPlatformHttp.h"
+#include "../cchost/connect.impl.h"
+#include "../cchost/module/hotpatching/module.h"
+#include "../HiveMPLogging.h"
+
+#define UE_LOG_HIVE(Verbosity, Format, ...) \\
+{ \\
+  UE_LOG(LogHiveMP, Verbosity, TEXT("%s%s"), TEXT("HiveMP: "), *FString::Printf(Format, ##__VA_ARGS__)); \\
+}
+
+`;
+}

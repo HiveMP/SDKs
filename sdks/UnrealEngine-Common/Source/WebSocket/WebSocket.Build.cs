@@ -66,7 +66,7 @@ public class WebSocket : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
-            Definitions.Add("PLATFORM_UWP=0");
+            PublicDefinitions.Add("PLATFORM_UWP=0");
             PrivateDependencyModuleNames.Add("zlib");
             PrivateDependencyModuleNames.Add("OpenSSL");
             PrivateIncludePaths.Add("WebSocket/ThirdParty/include/Win64");
@@ -88,7 +88,7 @@ public class WebSocket : ModuleRules
         }
         if (Target.Platform == UnrealTargetPlatform.Win32)
         {
-            Definitions.Add("PLATFORM_UWP=0");
+            PublicDefinitions.Add("PLATFORM_UWP=0");
             PrivateDependencyModuleNames.Add("zlib");
             PrivateDependencyModuleNames.Add("OpenSSL");
             PrivateIncludePaths.Add("WebSocket/ThirdParty/include/Win32");
@@ -110,7 +110,7 @@ public class WebSocket : ModuleRules
         }
         else if(Target.Platform == UnrealTargetPlatform.HTML5)
         {
-            Definitions.Add("PLATFORM_UWP=0");
+            PublicDefinitions.Add("PLATFORM_UWP=0");
             string strStaticPath = Path.GetFullPath(Path.Combine(ModulePath, "ThirdParty/lib/HTML5/"));
             PublicLibraryPaths.Add(strStaticPath);
 
@@ -125,7 +125,7 @@ public class WebSocket : ModuleRules
         }
         else if(Target.Platform == UnrealTargetPlatform.Mac)
         {
-            Definitions.Add("PLATFORM_UWP=0");
+            PublicDefinitions.Add("PLATFORM_UWP=0");
             PrivateIncludePaths.Add("WebSocket/ThirdParty/include/Mac");
             string strStaticPath = Path.GetFullPath(Path.Combine(ModulePath, "ThirdParty/lib/Mac/"));
             //PublicLibraryPaths.Add(strStaticPath);
@@ -143,7 +143,7 @@ public class WebSocket : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            Definitions.Add("PLATFORM_UWP=0");
+            PublicDefinitions.Add("PLATFORM_UWP=0");
             PrivateDependencyModuleNames.Add("OpenSSL");
             PrivateIncludePaths.Add("WebSocket/ThirdParty/include/Linux");
             string strStaticPath = Path.GetFullPath(Path.Combine(ModulePath, "ThirdParty/lib/Linux/"));
@@ -162,7 +162,7 @@ public class WebSocket : ModuleRules
         }
         else if(Target.Platform == UnrealTargetPlatform.IOS)
         {
-            Definitions.Add("PLATFORM_UWP=0");
+            PublicDefinitions.Add("PLATFORM_UWP=0");
             PrivateIncludePaths.Add("WebSocket/ThirdParty/include/IOS");
 
             string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath + "/Source/");
@@ -185,7 +185,7 @@ public class WebSocket : ModuleRules
         }
         else if(Target.Platform == UnrealTargetPlatform.Android)
         {
-            Definitions.Add("PLATFORM_UWP=0");
+            PublicDefinitions.Add("PLATFORM_UWP=0");
             PrivateIncludePaths.Add("WebSocket/ThirdParty/include/Android");
             string strStaticPath = Path.GetFullPath(Path.Combine(ModulePath, "ThirdParty/lib/Android/armeabi-v7a"));
             PublicLibraryPaths.Add(strStaticPath);

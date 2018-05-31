@@ -22,6 +22,14 @@ export class BooleanType implements IUnrealEngineType {
     return [];
   }
 
+  public getBaseFilenameForDependencyEmit(spec: ITypeSpec): string | null {
+    return null;
+  }
+
+  public getDependenciesBaseFilenames(spec: IDefinitionSpec): string[] {
+    return [];
+  }
+
   public emitStructureDefinition(spec: IDefinitionSpec): string | null {
     return null;
   }

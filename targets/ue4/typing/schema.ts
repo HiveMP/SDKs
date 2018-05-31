@@ -1,20 +1,53 @@
 import { IUnrealEngineType, resolveType, IDeserializationInfo, ISerializationInfo } from "../typing";
-import { ITypeSpec, IDefinitionSpec, IParameterSpec } from '../../common/typeSpec';
+import { ITypeSpec, IDefinitionSpec, IParameterSpec, IPropertySpec } from '../../common/typeSpec';
 import { normalizeTypeName } from "../../common/normalize";
 import { stripDefinition } from "../../common/definition";
 import { escapeForMultilineComment } from "../../cpp/escape";
+import { isErrorStructure } from "../../common/error";
 
 export class SchemaType implements IUnrealEngineType {
   public doesHandleType(spec: ITypeSpec): boolean {
     return spec.schema !== undefined;
   }
 
+  private getNamespace(spec: ITypeSpec): string {
+    if (isErrorStructure(spec.schema)) {
+      return '';
+    } else {
+      return spec.namespace;
+    }
+  }
+
+  private translateSpecialPropertyName(spec: ITypeSpec, property: IPropertySpec) {
+    if (spec.schema === 'HiveMPSystemError') {
+      switch (property.name) {
+        case 'code':
+          return 'ErrorCode';
+        case 'message':
+          return 'Message';
+        case 'fields':
+          return 'Parameter';
+        default:
+          return property.name;
+      }
+    }
+    return property.name;
+  }
+
   public getCPlusPlusInType(spec: ITypeSpec): string {
-    return 'struct FHive' + spec.namespace + '_' + normalizeTypeName(spec.schema);
+    if (isErrorStructure(spec.schema) && spec.schema === 'HiveMPSystemError') {
+      return 'struct FHiveApiError';
+    }
+    
+    return 'struct FHive' + this.getNamespace(spec) + '_' + normalizeTypeName(spec.schema);
   }
 
   public getCPlusPlusOutType(spec: ITypeSpec): string {
-    return 'const struct FHive' + spec.namespace + '_' + normalizeTypeName(spec.schema) + '&';
+    if (isErrorStructure(spec.schema) && spec.schema === 'HiveMPSystemError') {
+      return 'const struct FHiveApiError&';
+    }
+    
+    return 'const struct FHive' + this.getNamespace(spec) + '_' + normalizeTypeName(spec.schema) + '&';
   }
 
   public getNameForDependencyEmit(spec: ITypeSpec): string | null {
@@ -25,10 +58,28 @@ export class SchemaType implements IUnrealEngineType {
     return spec.properties.map(value => resolveType(value).getNameForDependencyEmit(value)).filter(x => x !== null);
   }
 
+  public getBaseFilenameForDependencyEmit(spec: ITypeSpec): string | null {
+    if (isErrorStructure(spec.schema)) {
+      return 'Struct__common_' + normalizeTypeName(spec.schema);
+    }
+    
+    return 'Struct_' + spec.namespace + '_' + normalizeTypeName(spec.schema);
+  }
+
+  public getDependenciesBaseFilenames(spec: IDefinitionSpec): string[] {
+    return spec.properties.map(value => resolveType(value).getBaseFilenameForDependencyEmit(value)).filter(x => x !== null);
+  }
+
   public emitStructureDefinition(spec: IDefinitionSpec): string | null {
+    const friendlyName = isErrorStructure(spec.schema) ? '' : spec.apiFriendlyName + ', ';
+    let structDeclName = 'struct HIVEMPSDK_API FHive' + this.getNamespace(spec) + '_' + normalizeTypeName(spec.schema);
+    if (isErrorStructure(spec.schema) && spec.schema === 'HiveMPSystemError') {
+      structDeclName = 'struct HIVEMPSDK_API FHiveApiError';
+    }
+
     let structure = `
-USTRUCT(BlueprintType, meta=(DisplayName="HiveMP ${spec.apiFriendlyName} ${spec.name}"))
-struct FHive${spec.namespace}_${spec.normalizedName}
+USTRUCT(BlueprintType, meta=(DisplayName="${spec.name} (${friendlyName}HiveMP)"))
+${structDeclName}
 {
   GENERATED_BODY()
   
@@ -37,12 +88,19 @@ struct FHive${spec.namespace}_${spec.normalizedName}
   bool _HasValue;
 
 `;
+    if (spec.schema === 'HiveMPSystemError') {
+      structure += `
+  /** The HTTP status code associated with this error, or 0 if there is no HTTP status code. */
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "HTTP Status Code"))
+  FNullableInt32 HttpStatusCode;
+`;
+    }
     for (const property of spec.properties) {
       const ueType = resolveType(property);
       structure += `
   /** ${escapeForMultilineComment(property.description)} */
-  UPROPERTY(BlueprintReadWrite)
-  ${ueType.getCPlusPlusInType(property)} ${property.name};
+  UPROPERTY(EditAnywhere, BlueprintReadWrite)
+  ${ueType.getCPlusPlusInType(property)} ${this.translateSpecialPropertyName(spec, property)};
 `;
     }
     structure += `
@@ -53,15 +111,15 @@ struct FHive${spec.namespace}_${spec.normalizedName}
 
   public emitDeserializationHeader(spec: IDefinitionSpec): string | null {
     return `
-struct FHive${spec.namespace}_${spec.normalizedName} DeserializeFHive${spec.namespace}_${spec.normalizedName}(TSharedPtr<FJsonObject> obj);
+${this.getCPlusPlusInType(spec)} DeserializeFHive${this.getNamespace(spec)}_${spec.normalizedName}(TSharedPtr<FJsonObject> obj);
 `;
   }
 
   public emitDeserializationImplementation(spec: IDefinitionSpec): string | null {
     let code = `
-struct FHive${spec.namespace}_${spec.normalizedName} DeserializeFHive${spec.namespace}_${spec.normalizedName}(TSharedPtr<FJsonObject> obj)
+${this.getCPlusPlusInType(spec)} DeserializeFHive${this.getNamespace(spec)}_${spec.normalizedName}(TSharedPtr<FJsonObject> obj)
 {
-  struct FHive${spec.namespace}_${spec.normalizedName} Target;
+  ${this.getCPlusPlusInType(spec)} Target;
 
   Target._HasValue = true;
 
@@ -75,7 +133,7 @@ struct FHive${spec.namespace}_${spec.normalizedName} DeserializeFHive${spec.name
       code += ueType.emitDeserializationFragment({
         spec: property,
         from: name,
-        into: `Target.${property.name}`,
+        into: `Target.${this.translateSpecialPropertyName(spec, property)}`,
         nestLevel: 0,
       });
     }
@@ -95,20 +153,20 @@ if (!${info.from}.IsValid() || ${info.from}->IsNull())
 else
 {
   const TSharedPtr<FJsonObject> _O = ${info.from}->AsObject(); 
-  ${info.into} = DeserializeFHive${info.spec.namespace}_${normalizeTypeName(info.spec.schema)}(_O);
+  ${info.into} = DeserializeFHive${this.getNamespace(info.spec)}_${normalizeTypeName(info.spec.schema)}(_O);
 }
 `;
   }
 
   public emitSerializationHeader(spec: IDefinitionSpec): string | null {
     return `
-TSharedPtr<FJsonObject> SerializeFHive${spec.namespace}_${spec.normalizedName}(struct FHive${spec.namespace}_${spec.normalizedName} obj);
+TSharedPtr<FJsonObject> SerializeFHive${this.getNamespace(spec)}_${spec.normalizedName}(${this.getCPlusPlusInType(spec)} obj);
 `;
   }
 
   public emitSerializationImplementation(spec: IDefinitionSpec): string | null {
     let code = `
-TSharedPtr<FJsonObject> SerializeFHive${spec.namespace}_${spec.normalizedName}(struct FHive${spec.namespace}_${spec.normalizedName} obj)
+TSharedPtr<FJsonObject> SerializeFHive${this.getNamespace(spec)}_${spec.normalizedName}(${this.getCPlusPlusInType(spec)} obj)
 {
   TSharedPtr<FJsonObject> Target = MakeShareable(new FJsonObject());
 
@@ -122,7 +180,7 @@ TSharedPtr<FJsonObject> SerializeFHive${spec.namespace}_${spec.normalizedName}(s
       code += ueType.emitSerializationFragment({
         spec: property,
         into: name,
-        from: `obj.${property.name}`,
+        from: `obj.${this.translateSpecialPropertyName(spec, property)}`,
         nestLevel: 0,
       });
       code += `
@@ -141,7 +199,7 @@ TSharedPtr<FJsonObject> SerializeFHive${spec.namespace}_${spec.normalizedName}(s
     return `
 if (${info.from}._HasValue)
 {
-  ${info.into} = MakeShareable(new FJsonValueObject(SerializeFHive${info.spec.namespace}_${normalizeTypeName(info.spec.schema)}(${info.from})));
+  ${info.into} = MakeShareable(new FJsonValueObject(SerializeFHive${this.getNamespace(info.spec)}_${normalizeTypeName(info.spec.schema)}(${info.from})));
 }
 else
 {

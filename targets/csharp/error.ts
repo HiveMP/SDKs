@@ -1,13 +1,7 @@
 import { IApiSpec } from "../common/apiSpec";
 import { resolveType } from "./typing";
-
-export function isErrorStructure(definitionName: string) {
-  return definitionName == 'HiveSystemError' ||
-    definitionName == 'HiveMPSystemError' ||
-    definitionName == 'HiveSystemErrorData' ||
-    definitionName == 'HiveMPSystemErrorData' ||
-    definitionName == 'HiveMPSystemQueryError';
-}
+import { isErrorStructure } from "../common/error";
+export { isErrorStructure } from "../common/error";
 
 export function emitCommonErrorStructures(api: IApiSpec) {
   let code = '';

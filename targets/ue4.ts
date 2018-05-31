@@ -11,6 +11,9 @@ import { IApiSpec, loadApi } from './common/apiSpec';
 import { emitMethodResultDelegateDefinition, emitMethodProxyHeaderDeclaration, emitMethodProxyConstructorImplementation, emitMethodProxyCallImplementation } from './ue4/methods';
 import { emitDefinitionAndDependencies } from './ue4/definitions';
 import { generateUe4Namespace } from './ue4/namespace';
+import * as mkdirp from 'mkdirp';
+import { isErrorStructure } from './common/error';
+import { normalizeTypeName } from './common/normalize';
 
 export abstract class UnrealEngineGenerator implements TargetGenerator {
   abstract get name(): string;
@@ -22,43 +25,74 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
       apis.add(loadApi(apiId, documents[apiId], generateUe4Namespace));
     }
 
-    let header = fragments.cppHeader;
-    for (const api of apis) {
-      const emittedDefinitions = new Set<string>()
-      for (const definitionName of api.definitions.keys()) {
-        header += emitDefinitionAndDependencies(
-          emittedDefinitions,
-          api.definitions,
-          definitionName
-        );
-      }
+    await this.makeDirectory(opts, 'Source/HiveMPSDK/Public/Generated');
+    await this.makeDirectory(opts, 'Source/HiveMPSDK/Private/Generated');
 
-      for (const definitionValue of api.definitions.values()) {
+    const emittedErrorStructures = new Set<string>();
+
+    for (const api of apis) {
+      for (const definitionName of api.definitions.keys()) {
+        const definitionValue = api.definitions.get(definitionName);
         const ueType = resolveType(definitionValue);
-        header += ueType.emitDeserializationHeader(definitionValue);
-        header += ueType.emitSerializationHeader(definitionValue);
+
+        const normalizedSchemaName = normalizeTypeName(definitionValue.schema);
+        if (isErrorStructure(normalizedSchemaName)) {
+          if (emittedErrorStructures.has(normalizedSchemaName)) {
+            continue;
+          } else {
+            emittedErrorStructures.add(normalizedSchemaName);
+          }
+        }
+
+        const structure = ueType.emitStructureDefinition(definitionValue);
+        const baseFilename = ueType.getBaseFilenameForDependencyEmit(definitionValue);
+
+        const dependencies = ueType.getDependenciesBaseFilenames(definitionValue);
+        let structureHeader = fragments.getCppStructHeader(
+          dependencies,
+          baseFilename);
+        let structureCode = fragments.getCppStructCode(baseFilename);
+        if (structure !== null) {
+          structureHeader += structure;
+          structureHeader += ueType.emitDeserializationHeader(definitionValue);
+          structureHeader += ueType.emitSerializationHeader(definitionValue);
+          structureCode += ueType.emitDeserializationImplementation(definitionValue);
+          structureCode += ueType.emitSerializationImplementation(definitionValue);
+        }
+
+        await this.writeFileContent(opts, 'Source/HiveMPSDK/Public/Generated/' + baseFilename + '.h', structureHeader);
+        await this.writeFileContent(opts, 'Source/HiveMPSDK/Private/Generated/' + baseFilename + '.cpp', structureCode);
       }
       
       for (const method of api.methods) {
-        header += emitMethodResultDelegateDefinition(method);
-      }
+        const baseFilename = 'Method_' + method.implementationName;
 
-      for (const method of api.methods) {
-        header += emitMethodProxyHeaderDeclaration(method);
-      }
-    }
+        let dependencies = new Set<string>();
+        if (method.response !== null) {
+          const ueType = resolveType(method.response);
+          const dep = ueType.getBaseFilenameForDependencyEmit(method.response);
+          if (dep !== null) {
+            dependencies.add(dep);
+          }
+        }
+        for (const parameter of method.parameters) {
+          const ueType = resolveType(parameter);
+          const dep = ueType.getBaseFilenameForDependencyEmit(parameter);
+          if (dep !== null) {
+            dependencies.add(dep);
+          }
+        }
 
-    let code = fragments.cppCode;
-    for (const api of apis) {
-      for (const definitionValue of api.definitions.values()) {
-        const ueType = resolveType(definitionValue);
-        code += ueType.emitDeserializationImplementation(definitionValue);
-        code += ueType.emitSerializationImplementation(definitionValue);
-      }
+        let methodHeader = fragments.getCppMethodHeader(Array.from(dependencies), baseFilename);
+        methodHeader += emitMethodResultDelegateDefinition(method);
+        methodHeader += emitMethodProxyHeaderDeclaration(method);
 
-      for (const method of api.methods) {
-        code += emitMethodProxyConstructorImplementation(method);
-        code += emitMethodProxyCallImplementation(method);
+        let methodCode = fragments.getCppMethodCode(baseFilename);
+        methodCode += emitMethodProxyConstructorImplementation(method);
+        methodCode += emitMethodProxyCallImplementation(method);
+
+        await this.writeFileContent(opts, 'Source/HiveMPSDK/Public/Generated/' + baseFilename + '.h', methodHeader);
+        await this.writeFileContent(opts, 'Source/HiveMPSDK/Private/Generated/' + baseFilename + '.cpp', methodCode);
       }
     }
     
@@ -125,7 +159,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
       });
     });
 
-    await new Promise((resolve, reject) => {
+    /*await new Promise((resolve, reject) => {
       fs.writeFile(path.join(opts.outputDir, 'Source/HiveMPSDK/Private/HiveMPBlueprintLibrary.cpp'), code, (err) => {
         if (err) {
           reject(err);
@@ -138,6 +172,37 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
           }
           resolve();
         });
+      });
+    });*/
+  }
+
+  private writeFileContent(opts: TargetOptions, filename: string, code: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const filepath = path.join(opts.outputDir, filename);
+      fs.readFile(filepath, 'utf8', (err, data) => {
+        if (err || data !== code) {
+          fs.writeFile(filepath, code, (err) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            
+            resolve();
+          });
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  private makeDirectory(opts: TargetOptions, directory: string) {
+    return new Promise((resolve, reject) => {
+      mkdirp(path.join(opts.outputDir, directory), (err, made) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
       });
     });
   }

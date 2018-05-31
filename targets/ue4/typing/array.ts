@@ -23,6 +23,14 @@ export class ArrayType implements IUnrealEngineType {
     return [];
   }
 
+  public getBaseFilenameForDependencyEmit(spec: ITypeSpec): string | null {
+    return resolveType(spec.items).getBaseFilenameForDependencyEmit(spec.items);
+  }
+
+  public getDependenciesBaseFilenames(spec: IDefinitionSpec): string[] {
+    return [];
+  }
+
   public emitStructureDefinition(spec: IDefinitionSpec): string | null {
     return null;
   }
