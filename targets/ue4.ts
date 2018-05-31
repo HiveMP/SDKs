@@ -14,6 +14,7 @@ import { generateUe4Namespace } from './ue4/namespace';
 import * as mkdirp from 'mkdirp';
 import { isErrorStructure } from './common/error';
 import { normalizeTypeName } from './common/normalize';
+import { emitMethodWebSocketDeclaration, emitMethodWebSocketDefinition, emitMethodWebSocketCallImplementation } from './ue4/websocket';
 
 export abstract class UnrealEngineGenerator implements TargetGenerator {
   abstract get name(): string;
@@ -83,13 +84,23 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
           }
         }
 
-        let methodHeader = fragments.getCppMethodHeader(Array.from(dependencies), baseFilename);
+        let methodHeader = fragments.getCppMethodHeader(Array.from(dependencies), baseFilename, method.isWebSocket);
+        if (method.isWebSocket) {
+          methodHeader += emitMethodWebSocketDeclaration(method);
+        }
         methodHeader += emitMethodResultDelegateDefinition(method);
         methodHeader += emitMethodProxyHeaderDeclaration(method);
 
         let methodCode = fragments.getCppMethodCode(baseFilename);
+        if (method.isWebSocket) {
+          methodHeader += emitMethodWebSocketDefinition(method);
+        }
         methodCode += emitMethodProxyConstructorImplementation(method);
-        methodCode += emitMethodProxyCallImplementation(method);
+        if (method.isWebSocket) {
+          methodCode += emitMethodWebSocketCallImplementation(method);
+        } else {
+          methodCode += emitMethodProxyCallImplementation(method);
+        }
 
         await this.writeFileContent(opts, 'Source/HiveMPSDK/Public/Generated/' + baseFilename + '.h', methodHeader);
         await this.writeFileContent(opts, 'Source/HiveMPSDK/Private/Generated/' + baseFilename + '.cpp', methodCode);
@@ -158,22 +169,6 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
         resolve();
       });
     });
-
-    /*await new Promise((resolve, reject) => {
-      fs.writeFile(path.join(opts.outputDir, 'Source/HiveMPSDK/Private/HiveMPBlueprintLibrary.cpp'), code, (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        fs.writeFile(path.join(opts.outputDir, 'Source/HiveMPSDK/Public/HiveMPBlueprintLibrary.h'), header, (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve();
-        });
-      });
-    });*/
   }
 
   private writeFileContent(opts: TargetOptions, filename: string, code: string): Promise<void> {

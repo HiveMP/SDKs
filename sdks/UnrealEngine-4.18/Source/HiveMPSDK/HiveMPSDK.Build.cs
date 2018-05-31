@@ -20,7 +20,8 @@ namespace UnrealBuildTool.Rules
                 "OnlineSubsystemUtils",
                 "Json",
                 "Http",
-                "PacketHandler"
+                "PacketHandler",
+                "WebSocket"
                 }
                 );
         }

@@ -1,14 +1,54 @@
 import { IMethodSpec } from "../common/methodSpec";
 import { resolveType } from "./typing";
+import { normalizeWebSocketProtocolName } from "../common/normalize";
 
 export function emitMethodWebSocketDeclaration(spec: IMethodSpec): string {
-  return `
-
+  let code = '';
+  
+  for (const response of spec.webSocketResponseMessageTypes) {
+    const name = normalizeWebSocketProtocolName(response.protocolMessageId);
+    const ueType = resolveType(response.type);
+    code += `
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(F${spec.implementationName}_${name}_Delegate, ${ueType.getCPlusPlusOutType(response.type)}, Message);
 `;
+  }
+
+  code += `
+UCLASS(BlueprintType, Transient)
+class HIVEMPSDK_API U${spec.implementationName}_ProtocolSocket : public UObject
+{
+	GENERATED_BODY()
+
+public:
+
+	UPROPERTY()
+	UWebSocketBase* WebSocket;
+  
+`;
+  for (const response of spec.webSocketResponseMessageTypes) {
+    const name = normalizeWebSocketProtocolName(response.protocolMessageId);
+    code += `
+	UPROPERTY(BlueprintAssignable, Category = "HiveMP")
+  F${spec.implementationName}_${name}_Delegate On${name};
+`;
+  }
+  for (const request of spec.webSocketRequestMessageTypes) {
+    const name = normalizeWebSocketProtocolName(request.protocolMessageId);
+    const ueType = resolveType(request.type);
+    code += `
+  UFUNCTION(BlueprintCallable, Category = "HiveMP")
+  void Send${request.protocolMessageId}(${ueType.getCPlusPlusInType(request.type)});
+`;
+  }
+  code += `
+};
+`;
+  return code;
 }
 
 export function emitMethodWebSocketDefinition(spec: IMethodSpec): string {
   return `
+
 `;
 }
 
@@ -28,27 +68,27 @@ U${spec.implementationName}* U${spec.implementationName}::PerformHiveCall(
   code += `
 )
 {
-  U${spec.implementationName}* Proxy = NewObject<U${spec.implementationName}>();
+    U${spec.implementationName}* Proxy = NewObject<U${spec.implementationName}>();
   
-  Proxy->WorldContextObject = WorldContextObject;
-  Proxy->ApiKey = ApiKey;
+    Proxy->WorldContextObject = WorldContextObject;
+    Proxy->ApiKey = ApiKey;
 `;
   for (const parameter of spec.parameters) {
     const ueType = resolveType(parameter);
     code += `
-  Proxy->Field_${parameter.name} = ${ueType.getAssignmentFrom(parameter, parameter.name)};
+    Proxy->Field_${parameter.name} = ${ueType.getAssignmentFrom(parameter, parameter.name)};
 `;
   }
   code += `
 
-  return Proxy;
+    return Proxy;
 }
 
 void U${spec.implementationName}::Activate()
 {
-  UE_LOG_HIVE(Display, TEXT("[start] ${spec.apiId} ${spec.path} ${spec.method}"));
+    UE_LOG_HIVE(Display, TEXT("[start] ${spec.apiId} ${spec.path} ${spec.method}"));
 
-  TArray<FString> QueryStringElements;
+    TArray<FString> QueryStringElements;
 `;
   for (const parameter of spec.parameters) {
     if (parameter.in === 'query') {
@@ -59,166 +99,45 @@ void U${spec.implementationName}::Activate()
     }
   }
 
-  let failureBroadcast = `OnFailure.Broadcast(ResultError)`;
-  let customResponseHandler = '';
-  if (spec.response !== null) {
-    const ueType = resolveType(spec.response);
-    failureBroadcast = `OnFailure.Broadcast(${ueType.getDefaultInitialiser(spec.response)}, ResultError)`;
-    customResponseHandler = ueType.getCustomResponseHandler(spec.response, `${spec.apiId} ${spec.path} ${spec.method}`);
-  }
-
   code += `
 
-  TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-  HttpRequest->SetURL(FString::Printf(
-    TEXT("https://${spec.apiId}-api.hivemp.com${spec.basePath}${spec.path}?%s"),
-    *FString::Join(QueryStringElements, TEXT("&"))));
-  HttpRequest->SetHeader(TEXT("api_key"), this->ApiKey);
-  HttpRequest->SetVerb(TEXT("${spec.method}"));
-`;
-  if (spec.method !== 'get') {
-    let hasBody = false;
-    for (const parameter of spec.parameters) {
-      if (parameter.in === 'body') {
-        const ueType = resolveType(parameter);
-        code += `
-  TSharedPtr<FJsonValue> BodyJson;
-  FString BodyString = TEXT("");
-  ${ueType.emitSerializationFragment({
-    spec: parameter,
-    into: 'BodyJson',
-    from: `this->Field_${parameter.name}`,
-    nestLevel: 0,
-  })}
-  if (BodyJson.IsValid())
-  {
-    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
-    FJsonSerializer::Serialize(BodyJson, TEXT(""), Writer);
-  }
-  HttpRequest->SetContentAsString(BodyString);
-  HttpRequest->SetHeader(TEXT("Content-Length"), FString::Printf(TEXT("%i"), BodyString.Len()));
-  HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-`;
-        hasBody = true;
-        break;
-      }
-    }
-    if (!hasBody) {
-      code += `
-  HttpRequest->SetHeader(TEXT("Content-Length"), TEXT("0"));
-`;
-    }
-  }
-  code += `
-  HttpRequest->OnProcessRequestComplete().BindLambda([this](FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, TWeakObjectPtr<U${spec.implementationName}> SelfRef)
-  {
-    if (!SelfRef.IsValid())
-    {
-      UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: Callback proxy is invalid (did the game shutdown?)"));
-      return;
-    }
+    this->ProtocolSocket = NewObject<U${spec.implementationName}_ProtocolSocket>();
+    this->ProtocolSocket->WebSocket = NewObject<UWebSocketBase>();
 
-    if (!HttpResponse.IsValid())
-    {
-      struct FHiveApiError ResultError;
-      ResultError.HttpStatusCode = 0;
-      ResultError.ErrorCode = 0;
-      ResultError.Message = TEXT("HTTP response was not valid!");
-      ResultError.Parameter = TEXT("");
-      UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message));
-      ${failureBroadcast};
-      return;
-    }
+    TMap<FString, FString> Headers;
+    Headers.Add(TEXT("X-API-Key"), this->ApiKey);
 
-    auto Response = HttpResponse.Get();
+    // TODO: Wire up this->WebSocket->OnReceiveData and this->WebSocket->OnClosed to
+    // handlers inside this->ProtocolSocket->WebSocket.
 
-    UE_LOG_HIVE(Warning, TEXT("[info] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(Response->GetContentAsString()));
-
-    ${customResponseHandler}
-
-    TSharedPtr<FJsonValue> JsonValue;
-    TSharedRef<TJsonReader<TCHAR>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
-    if (!FJsonSerializer::Deserialize(Reader, JsonValue) || !JsonValue.IsValid())
-    {
-      struct FHiveApiError ResultError;
-      ResultError.HttpStatusCode = Response->GetResponseCode();
-      ResultError.ErrorCode = 0;
-      ResultError.Message = TEXT("Unable to deserialize JSON response!");
-      ResultError.Parameter = TEXT("");
-      UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message));
-      ${failureBroadcast};
-      return;
-    }
+    this->ProtocolSocket->WebSocket->OnConnectError.AddDynamic(this, &U${spec.implementationName}::OnWebSocketConnectError);
+    this->ProtocolSocket->WebSocket->OnConnectComplete.AddDynamic(this, &U${spec.implementationName}::OnWebSocketConnect);
     
-    if (!bSucceeded || HttpResponse->GetResponseCode() != 200)
-    {
-      const TSharedPtr<FJsonObject>* JsonObject;
-      if (JsonValue->TryGetObject(JsonObject))
-      {
-        // Parse as Hive system error.
-        FString Message, Parameter;
-        double ErrorCode;
-        auto GotMessage = (*JsonObject)->TryGetStringField(TEXT("message"), Message);
-        auto GotParameter = (*JsonObject)->TryGetStringField(TEXT("fields"), Parameter);
-        auto GotErrorCode = (*JsonObject)->TryGetNumberField(TEXT("code"), ErrorCode);
+    this->ProtocolSocket->WebSocket->Connect(
+      FString::Printf(
+        TEXT("https://${spec.apiId}-api.hivemp.com${spec.basePath}${spec.path}?%s"),
+        *FString::Join(QueryStringElements, TEXT("&"))),
+      Headers
+    );
+}
 
-        struct FHiveApiError ResultError;
-        ResultError.HttpStatusCode = Response->GetResponseCode();
-        if (GotErrorCode)
-        {
-          ResultError.ErrorCode = (int32)ErrorCode;
-        }
-        if (GotMessage)
-        {
-          ResultError.Message = Message;
-        }
-        if (GotParameter)
-        {
-          ResultError.Parameter = Parameter;
-        }
-        UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message));
-        ${failureBroadcast};
-        return;
-      }
-      else
-      {
-        struct FHiveApiError ResultError;
-        ResultError.HttpStatusCode = Response->GetResponseCode();
-        ResultError.ErrorCode = 0;
-        ResultError.Message = TEXT("Unable to deserialize JSON response as HiveMP system error!");
-        ResultError.Parameter = TEXT("");
-        UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message));
-        ${failureBroadcast};
-        return;
-      }
-    }
+void U${spec.implementationName}::OnWebSocketConnect()
+{
+    struct FHiveApiError ResultError;
+    UE_LOG_HIVE(Warning, TEXT("[success, websocket connect] ${spec.apiId} ${spec.path} ${spec.method}"));
+    OnSuccess.Broadcast(this->ProtocolSocket, ResultError);
+}
 
-    {
-      struct FHiveApiError ResultError;
-`;
-  if (spec.response !== null) {
-    const ueType = resolveType(spec.response);
-    code += `
-      ${ueType.getCPlusPlusInType(spec.response)} Result;
-      ${ueType.emitDeserializationFragment({
-        spec: spec.response,
-        into: 'Result',
-        from: 'JsonValue',
-        nestLevel: 0
-      })}
-      UE_LOG_HIVE(Warning, TEXT("[success] ${spec.apiId} ${spec.path} ${spec.method}"));
-      OnSuccess.Broadcast(Result, ResultError);
-`;
-  } else {
-    code += `
-      UE_LOG_HIVE(Warning, TEXT("[success] ${spec.apiId} ${spec.path} ${spec.method}"));
-      OnSuccess.Broadcast(ResultError);
-`;
-  }
-  code += `
-    }
-  }, TWeakObjectPtr<U${spec.implementationName}>(this));
-  HttpRequest->ProcessRequest();
+void U${spec.implementationName}::OnWebSocketConnectError(const FString& ErrorMessage)
+{
+    struct FHiveApiError ResultError;
+    ResultError.HttpStatusCode = FNullableInt32(false, 0);
+    ResultError.ErrorCode = FNullableInt32(false, 0);
+    ResultError.Message = FNullableString(true, ErrorMessage);
+    ResultError.Parameter = FNullableString(false, TEXT(""));
+    UE_LOG_HIVE(Error, TEXT("[fail, websocket connect] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message.Value));
+    OnFailure.Broadcast(nullptr, ResultError);
+    return;
 }
 `;
   return code;

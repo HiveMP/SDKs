@@ -60,7 +60,7 @@ export function getCppStructCode(baseFilename: string) {
 `;
 }
 
-export function getCppMethodHeader(dependencies: string[], baseFilename: string) {
+export function getCppMethodHeader(dependencies: string[], baseFilename: string, isWebSocket: boolean) {
   return `
 #pragma once
 
@@ -70,6 +70,7 @@ export function getCppMethodHeader(dependencies: string[], baseFilename: string)
 #include "DelegateCombinations.h"
 #include "HiveMPNullables.h"
 #include "Struct__common_HiveMPSystemError.h"
+${isWebSocket ? '#include "WebSocketBase.h"' : ''}
 ${dependencies.map(x => `#include "${x}.h"
 `).join("")}
 #include "${baseFilename}.generated.h"

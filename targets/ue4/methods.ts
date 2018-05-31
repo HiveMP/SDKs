@@ -3,11 +3,11 @@ import { resolveType } from "./typing";
 import { resolve } from "path";
 
 export function emitMethodResultDelegateDefinition(spec: IMethodSpec): string {
-  /*if (spec.isWebSocket) {
+  if (spec.isWebSocket) {
     return `
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(F${spec.implementationName}_Delegate, F${spec.implementationName}_ProtocolSocket, Result, const FHiveApiError&, Error);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(F${spec.implementationName}_Delegate, U${spec.implementationName}_ProtocolSocket*, ConnectedSocket, const FHiveApiError&, Error);
 `;
-  } else*/ if (spec.response !== null) {
+  } else if (spec.response !== null) {
     const ueType = resolveType(spec.response);
     return `
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(F${spec.implementationName}_Delegate, ${ueType.getCPlusPlusOutType(spec.response)}, Result, const FHiveApiError&, Error);
@@ -57,6 +57,18 @@ private:
   FString ApiKey;
 
 `;
+  if (spec.isWebSocket) {
+    header += `
+  UPROPERTY()
+  U${spec.implementationName}_ProtocolSocket* ProtocolSocket;
+
+  UFUNCTION()
+  void OnWebSocketConnect();
+
+  UFUNCTION()
+  void OnWebSocketConnectError(const FString& ErrorMessage);
+`;
+  }
   for (const parameter of spec.parameters) {
     const ueType = resolveType(parameter);
     header += `
