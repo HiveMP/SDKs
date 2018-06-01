@@ -93,7 +93,7 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
 
         let methodCode = fragments.getCppMethodCode(baseFilename);
         if (method.isWebSocket) {
-          methodHeader += emitMethodWebSocketDefinition(method);
+          methodCode += emitMethodWebSocketDefinition(method);
         }
         methodCode += emitMethodProxyConstructorImplementation(method);
         if (method.isWebSocket) {

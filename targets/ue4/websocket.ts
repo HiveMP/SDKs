@@ -14,6 +14,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(F${spec.implementationName}_${name}_
   }
 
   code += `
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(F${spec.implementationName}__ServerDisconnect_Delegate);
+
 UCLASS(BlueprintType, Transient)
 class HIVEMPSDK_API U${spec.implementationName}_ProtocolSocket : public UObject
 {
@@ -22,8 +24,29 @@ class HIVEMPSDK_API U${spec.implementationName}_ProtocolSocket : public UObject
 public:
 
 	UPROPERTY()
-	UWebSocketBase* WebSocket;
+  UWebSocketBase* WebSocket;
+
+  void BindEventsToWebSocket();
   
+  /**
+   * Disconnects from the server.
+   */
+  UFUNCTION(BlueprintCallable)
+  void Disconnect();
+
+  /**
+   * Begins raising events in response to inbound messages. Before you call this method
+   * the socket will cache all inbound messages. You should call this method
+   * after you have finished binding handlers to all events you are interested in.
+   */
+  void BeginRaisingEvents();
+
+  /**
+   * Called when the server initiates a disconnection for any reason. This is not called
+   * if the client initiates the disconnect (e.g. by calling Disconnect).
+   */
+  UPROPERTY(BlueprintAssignable)
+  F${spec.implementationName}__ServerDisconnect_Delegate OnServerDisconnected;
 `;
   for (const response of spec.webSocketResponseMessageTypes) {
     const name = normalizeWebSocketProtocolName(response.protocolMessageId);
@@ -41,15 +64,99 @@ public:
 `;
   }
   code += `
+
+private:
+
+  bool ShouldRaiseEvents;
+  TArray<FString> EventCache;
+
+  void HandleReceiveData(const FString& Data);
+  void ProcessMessage(const FString& Data);
+  void HandleClosed();
+
 };
 `;
   return code;
 }
 
 export function emitMethodWebSocketDefinition(spec: IMethodSpec): string {
-  return `
+  let code = `
+void U${spec.implementationName}_ProtocolSocket::Disconnect()
+{
+    this->WebSocket->Close();
+}
 
+void U${spec.implementationName}_ProtocolSocket::BeginRaisingEvents()
+{
+    this->ShouldRaiseEvents = true;
+    for (int i = 0; i < this->EventCache.Num(); i++)
+    {
+        this->ProcessMessage(this->EventCache[i]);
+    }
+    this->EventCache.Empty();
+}
+
+void U${spec.implementationName}_ProtocolSocket::BindEventsToWebSocket()
+{
+    this->WebSocket->OnReceiveData.AddDynamic(this, &U${spec.implementationName}_ProtocolSocket::HandleReceiveData);
+    this->WebSocket->OnClosed.AddDynamic(this, &U${spec.implementationName}_ProtocolSocket::HandleClosed);
+}
+
+void U${spec.implementationName}_ProtocolSocket::HandleReceiveData(const FString& Data)
+{
+    if (this->ShouldRaiseEvents)
+    {
+        this->ProcessMessage(Data);
+    }
+    else
+    {
+        this->EventCache.Add(Data);
+    }
+}
+
+void U${spec.implementationName}_ProtocolSocket::ProcessMessage(const FString& Data)
+{
+    TSharedPtr<FJsonValue> JsonValue;
+    TSharedRef<TJsonReader<TCHAR>> Reader = TJsonReaderFactory<>::Create(Data);
+    if (FJsonSerializer::Deserialize(Reader, JsonValue) && JsonValue.IsValid())
+    {
+        const TSharedPtr<FJsonObject>* JsonObject;
+        if (JsonValue->TryGetObject(JsonObject) && JsonObject->IsValid())
+        {
+            if ((*JsonObject)->HasField(TEXT("type")) && (*JsonObject)->HasField(TEXT("value")))
+            {
+                FString Type = (*JsonObject)->GetStringField(TEXT("type"));
+                const TSharedPtr<FJsonObject> Value = (*JsonObject)->GetObjectField(TEXT("value"));
 `;
+  for (const response of spec.webSocketResponseMessageTypes) {
+    const name = normalizeWebSocketProtocolName(response.protocolMessageId);
+    const ueType = resolveType(response.type);
+    code += `
+                if (Type == TEXT("${response.protocolMessageId}"))
+                {
+                    ${ueType.getCPlusPlusInType(response.type)} Message;
+                    ${ueType.emitDeserializationFragment({
+                      spec: response.type,
+                      from: 'Value',
+                      into: 'Message',
+                      nestLevel: 0,
+                    })}
+                    this->On${name}.Broadcast(Message);
+                }
+`;
+  }
+  code += `
+            }
+        }
+    }
+}
+
+void U${spec.implementationName}_ProtocolSocket::HandleClosed()
+{
+    this->OnServerDisconnected.Broadcast();
+}
+`;
+  return code;
 }
 
 export function emitMethodWebSocketCallImplementation(spec: IMethodSpec): string {
