@@ -118,6 +118,21 @@ namespace HiveMP.Api
 
                         break;
                     }
+                    catch (OperationCanceledException) when ((_webSocket.State != WebSocketState.Connecting &&
+                      _webSocket.State != WebSocketState.Open) ||
+                      _cancellationToken.IsCancellationRequested)
+                    {
+                        // Normal shutdown.
+
+                        // TODO: Some websocket non-open states are error states, and we should maybe think
+                        // about propagating them in the SDK. However, from HiveMP's perspective there is
+                        // no semantic difference between the server closing the connection normally
+                        // or returning an error value, as the API never uses WebSocket error states to
+                        // communicate differentiating information to the client. In all cases of disconnection,
+                        // if the client wanted to remain connected, they just need to connect again.
+
+                        break;
+                    }
                 }
 
                 if (_webSocket.State == WebSocketState.Connecting ||
