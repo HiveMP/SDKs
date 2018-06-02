@@ -67,6 +67,7 @@ public class WebSocket : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
             PublicDefinitions.Add("PLATFORM_UWP=0");
+            PublicDefinitions.Add("LOAD_ROOT_CERTIFICATES_FROM_WIN32_STORE=1");
             PrivateDependencyModuleNames.Add("zlib");
             PrivateDependencyModuleNames.Add("OpenSSL");
             PrivateIncludePaths.Add("WebSocket/ThirdParty/include/Win64");
@@ -89,6 +90,7 @@ public class WebSocket : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Win32)
         {
             PublicDefinitions.Add("PLATFORM_UWP=0");
+            PublicDefinitions.Add("LOAD_ROOT_CERTIFICATES_FROM_WIN32_STORE=1");
             PrivateDependencyModuleNames.Add("zlib");
             PrivateDependencyModuleNames.Add("OpenSSL");
             PrivateIncludePaths.Add("WebSocket/ThirdParty/include/Win32");

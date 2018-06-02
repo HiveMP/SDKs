@@ -26,7 +26,11 @@
 #if PLATFORM_UWP
 #elif PLATFORM_HTML5
 #else
+#define UI UI_ST
+THIRD_PARTY_INCLUDES_START
 #include "libwebsockets.h"
+THIRD_PARTY_INCLUDES_END
+#undef UI
 #endif
 
 #define MAX_ECHO_PAYLOAD 64*1024
@@ -345,7 +349,7 @@ void UWebSocketBase::Connect(const FString& uri, const TMap<FString, FString>& h
 
 	if (strProtocol.ToUpper() == TEXT("WSS"))
 	{
-		iUseSSL = 2;
+		iUseSSL = LCCSCF_USE_SSL;
 	}
 
 	FString strHost;

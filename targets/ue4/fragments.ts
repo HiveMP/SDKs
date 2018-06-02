@@ -70,7 +70,7 @@ export function getCppMethodHeader(dependencies: string[], baseFilename: string,
 #include "DelegateCombinations.h"
 #include "HiveMPNullables.h"
 #include "Struct__common_HiveMPSystemError.h"
-${isWebSocket ? '#include "WebSocketBase.h"' : ''}
+${isWebSocket ? '#include "WebSocketBase.h"\n#include "HiveMPWebSocketContext.h"' : ''}
 ${dependencies.map(x => `#include "${x}.h"
 `).join("")}
 #include "${baseFilename}.generated.h"

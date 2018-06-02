@@ -70,9 +70,13 @@ private:
   bool ShouldRaiseEvents;
   TArray<FString> EventCache;
 
+  UFUNCTION()
   void HandleReceiveData(const FString& Data);
-  void ProcessMessage(const FString& Data);
+
+  UFUNCTION()
   void HandleClosed();
+
+  void ProcessMessage(const FString& Data);
 
 };
 `;
@@ -209,23 +213,21 @@ void U${spec.implementationName}::Activate()
   code += `
 
     this->ProtocolSocket = NewObject<U${spec.implementationName}_ProtocolSocket>();
-    this->ProtocolSocket->WebSocket = NewObject<UWebSocketBase>();
 
     TMap<FString, FString> Headers;
     Headers.Add(TEXT("X-API-Key"), this->ApiKey);
 
-    // TODO: Wire up this->WebSocket->OnReceiveData and this->WebSocket->OnClosed to
-    // handlers inside this->ProtocolSocket->WebSocket.
-
-    this->ProtocolSocket->WebSocket->OnConnectError.AddDynamic(this, &U${spec.implementationName}::OnWebSocketConnectError);
-    this->ProtocolSocket->WebSocket->OnConnectComplete.AddDynamic(this, &U${spec.implementationName}::OnWebSocketConnect);
-    
-    this->ProtocolSocket->WebSocket->Connect(
+    this->ProtocolSocket->WebSocket = ConnectWebSocket(
       FString::Printf(
-        TEXT("https://${spec.apiId}-api.hivemp.com${spec.basePath}${spec.path}?%s"),
+        TEXT("wss://${spec.apiId}-api.hivemp.com${spec.basePath}${spec.path}?%s"),
         *FString::Join(QueryStringElements, TEXT("&"))),
       Headers
     );
+
+    this->ProtocolSocket->BindEventsToWebSocket();
+
+    this->ProtocolSocket->WebSocket->OnConnectError.AddDynamic(this, &U${spec.implementationName}::OnWebSocketConnectError);
+    this->ProtocolSocket->WebSocket->OnConnectComplete.AddDynamic(this, &U${spec.implementationName}::OnWebSocketConnect);
 }
 
 void U${spec.implementationName}::OnWebSocketConnect()

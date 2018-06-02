@@ -27,7 +27,11 @@
 #if PLATFORM_UWP
 #elif PLATFORM_HTML5
 #else
+#define UI UI_ST
+THIRD_PARTY_INCLUDES_START
 #include "libwebsockets.h"
+THIRD_PARTY_INCLUDES_END
+#undef UI
 #endif
 
 #include "WebSocketContext.generated.h"

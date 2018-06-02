@@ -25,6 +25,26 @@
 #include "UObjectGlobals.h"
 #include "WebSocketBase.h"
 
+#ifdef LOAD_ROOT_CERTIFICATES_FROM_WIN32_STORE
+#include <stdio.h>
+#include <windows.h>
+#include <wincrypt.h>
+#include <cryptuiapi.h>
+#include <iostream>
+#include <tchar.h>
+
+#define UI UI_ST
+THIRD_PARTY_INCLUDES_START
+#include <openssl/x509.h>
+#include <openssl/safestack.h>
+THIRD_PARTY_INCLUDES_END
+#undef UI
+
+#pragma comment (lib, "crypt32.lib")
+#pragma comment (lib, "cryptui.lib")
+
+#define MY_ENCODING_TYPE  (PKCS_7_ASN_ENCODING | X509_ASN_ENCODING)
+#endif
 
 #define MAX_PAYLOAD	64*1024
 
@@ -120,6 +140,70 @@ int UWebSocketContext::callback_echo(struct lws *wsi, enum lws_callback_reasons 
 		if (!pWebSocketBase) return -1;
 		pWebSocketBase->ProcessWriteable();
 		break;
+
+#ifdef LOAD_ROOT_CERTIFICATES_FROM_WIN32_STORE
+	case LWS_CALLBACK_OPENSSL_PERFORM_SERVER_CERT_VERIFICATION:
+		{
+			X509_STORE_CTX* ssl = (X509_STORE_CTX*)user;
+
+			HCERTSTORE hStore;
+			PCCERT_CONTEXT pContext = nullptr;
+			X509 *x509;
+			X509_STORE *store = X509_STORE_new();
+
+			hStore = CertOpenSystemStore(NULL, L"ROOT");
+			if (!hStore)
+			{
+				return 1;
+			}
+			
+			int loadCount = 0;
+			pContext = CertEnumCertificatesInStore(hStore, pContext);
+			while (pContext != nullptr)
+			{
+				const unsigned char *encoded_cert = pContext->pbCertEncoded;
+				x509 = nullptr;
+				x509 = d2i_X509(nullptr, &encoded_cert, pContext->cbCertEncoded);
+				if (x509)
+				{
+					int i = X509_STORE_add_cert(store, x509);
+					if (i == 1)
+					{
+						loadCount++;
+					}
+					X509_free(x509);
+				}
+				pContext = CertEnumCertificatesInStore(hStore, pContext);
+			}
+
+			CertFreeCertificateContext(pContext);
+			CertCloseStore(hStore, 0);
+
+			UE_LOG(WebSocket, Log, TEXT("openssl store: loaded %i certificates from Windows root store"), loadCount);
+
+			// Now re-create the validation context using the store based on the Windows root store.
+			X509_STORE_CTX* new_ctx = X509_STORE_CTX_new();
+			STACK_OF(X509)* chain = sk_X509_dup(ssl->chain);
+			X509_STORE_CTX_init(new_ctx, store, ssl->cert, chain);
+
+			X509_verify_cert(new_ctx);
+			int ssl_error = X509_STORE_CTX_get_error(new_ctx);
+			X509_STORE_CTX_set_error(ssl, ssl_error);
+			if (ssl_error != X509_V_OK)
+			{
+				FString ErrorStr = FString(X509_verify_cert_error_string(ssl_error));
+				UE_LOG(WebSocket, Error, TEXT("openssl verify failure: %s"), *ErrorStr);
+			}
+			X509_STORE_CTX_cleanup(new_ctx);
+			X509_STORE_CTX_free(new_ctx);
+			X509_STORE_free(store);
+
+			return 0;
+		}
+
+		UE_LOG(WebSocket, Log, TEXT("loaded certificates from Windows trust store to X509 store"));
+		break;
+#endif
 
 	default:
 		break;
