@@ -1,12 +1,13 @@
 import { IMethodSpec } from "../common/methodSpec";
 import { resolveType } from "./typing";
 import { normalizeWebSocketProtocolName } from "../common/normalize";
+import { camelCase } from "../csharp/naming";
 
 export function emitMethodWebSocketDeclaration(spec: IMethodSpec): string {
   let code = '';
   
   for (const response of spec.webSocketResponseMessageTypes) {
-    const name = normalizeWebSocketProtocolName(response.protocolMessageId);
+    const name = camelCase(normalizeWebSocketProtocolName(response.protocolMessageId));
     const ueType = resolveType(response.type);
     code += `
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(F${spec.implementationName}_${name}_Delegate, ${ueType.getCPlusPlusOutType(response.type)}, Message);
@@ -39,6 +40,7 @@ public:
    * the socket will cache all inbound messages. You should call this method
    * after you have finished binding handlers to all events you are interested in.
    */
+  UFUNCTION(BlueprintCallable)
   void BeginRaisingEvents();
 
   /**
@@ -49,18 +51,18 @@ public:
   F${spec.implementationName}__ServerDisconnect_Delegate OnServerDisconnected;
 `;
   for (const response of spec.webSocketResponseMessageTypes) {
-    const name = normalizeWebSocketProtocolName(response.protocolMessageId);
+    const name = camelCase(normalizeWebSocketProtocolName(response.protocolMessageId));
     code += `
 	UPROPERTY(BlueprintAssignable, Category = "HiveMP")
   F${spec.implementationName}_${name}_Delegate On${name};
 `;
   }
   for (const request of spec.webSocketRequestMessageTypes) {
-    const name = normalizeWebSocketProtocolName(request.protocolMessageId);
+    const name = camelCase(normalizeWebSocketProtocolName(request.protocolMessageId));
     const ueType = resolveType(request.type);
     code += `
   UFUNCTION(BlueprintCallable, Category = "HiveMP")
-  void Send${request.protocolMessageId}(${ueType.getCPlusPlusInType(request.type)});
+  void Send${name}(${ueType.getCPlusPlusInType(request.type)});
 `;
   }
   code += `
@@ -130,18 +132,18 @@ void U${spec.implementationName}_ProtocolSocket::ProcessMessage(const FString& D
             if ((*JsonObject)->HasField(TEXT("type")) && (*JsonObject)->HasField(TEXT("value")))
             {
                 FString Type = (*JsonObject)->GetStringField(TEXT("type"));
-                const TSharedPtr<FJsonObject> Value = (*JsonObject)->GetObjectField(TEXT("value"));
+                const TSharedPtr<FJsonValue>* Value = (*JsonObject)->Values.Find(TEXT("value"));
 `;
   for (const response of spec.webSocketResponseMessageTypes) {
-    const name = normalizeWebSocketProtocolName(response.protocolMessageId);
+    const name = camelCase(normalizeWebSocketProtocolName(response.protocolMessageId));
     const ueType = resolveType(response.type);
     code += `
-                if (Type == TEXT("${response.protocolMessageId}"))
+                if (Value != nullptr && Type == TEXT("${response.protocolMessageId}"))
                 {
                     ${ueType.getCPlusPlusInType(response.type)} Message;
                     ${ueType.emitDeserializationFragment({
                       spec: response.type,
-                      from: 'Value',
+                      from: '(*Value)',
                       into: 'Message',
                       nestLevel: 0,
                     })}

@@ -83,6 +83,22 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
             dependencies.add(dep);
           }
         }
+        if (method.isWebSocket) {
+          for (const request of method.webSocketRequestMessageTypes) {
+            const ueType = resolveType(request.type);
+            const dep = ueType.getBaseFilenameForDependencyEmit(request.type);
+            if (dep !== null) {
+              dependencies.add(dep);
+            }
+          }
+          for (const response of method.webSocketResponseMessageTypes) {
+            const ueType = resolveType(response.type);
+            const dep = ueType.getBaseFilenameForDependencyEmit(response.type);
+            if (dep !== null) {
+              dependencies.add(dep);
+            }
+          }
+        }
 
         let methodHeader = fragments.getCppMethodHeader(Array.from(dependencies), baseFilename, method.isWebSocket);
         if (method.isWebSocket) {
