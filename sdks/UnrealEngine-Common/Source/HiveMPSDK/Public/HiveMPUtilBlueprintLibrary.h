@@ -18,6 +18,8 @@ class UHiveMPUtilBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
+public:
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, meta=(ToolTip = "Gets the URL of the currently running listen server", WorldContext = "WorldContextObject"), Category = "HiveMP|Utilities")
 	static FString GetCurrentWorldUrl(UObject* WorldContextObject);
 
