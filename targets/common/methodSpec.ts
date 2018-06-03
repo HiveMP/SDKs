@@ -152,23 +152,23 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
         const rawResponse = methodValue["x-websocket-response-messages"];
         for (let i = 0; i < rawRequest.length; i++) {
           webSocketRequestMessageTypes.add({
-            protocolMessageId: rawRequest.protocolMessageId,
+            protocolMessageId: rawRequest[i].protocolMessageId,
             type: convertGeneric({
               namespace: namespace,
               apiId: apiId,
               document: document,
-              obj: rawRequest,
+              obj: rawRequest[i],
             }),
           });
         }
         for (let i = 0; i < rawResponse.length; i++) {
           webSocketResponseMessageTypes.add({
-            protocolMessageId: rawResponse.protocolMessageId,
+            protocolMessageId: rawResponse[i].protocolMessageId,
             type: convertGeneric({
               namespace: namespace,
               apiId: apiId,
               document: document,
-              obj: rawResponse,
+              obj: rawResponse[i],
             }),
           });
         }

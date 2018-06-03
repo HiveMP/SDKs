@@ -80,13 +80,13 @@ namespace HiveMP.Api
                             // We don't handle binary messages.
                         }
 
-                        if (result.EndOfMessage)
+                        if (result.EndOfMessage && result.MessageType == WebSocketMessageType.Text)
                         {
                             var jsonRequest = resultBuilder.ToString();
                             var jsonObject = JsonConvert.DeserializeObject<JObject>(jsonRequest);
 
-                            var requestType = jsonObject.Property("type").Value<string>();
-                            var requestObject = jsonObject.Property("value").Value<JToken>();
+                            var requestType = jsonObject.Property("type").Value.ToObject<string>();
+                            var requestObject = jsonObject.Property("value").Value.ToObject<JToken>();
 
                             try
                             {

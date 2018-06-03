@@ -308,9 +308,10 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
                     var handlerTasks = new System.Threading.Tasks.Task[invocationList.Length];
                     for (var i = 0; i < invocationList.Length; i++)
                     {
-                        handlerTasks = ((System.Func<${csType.getCSharpType(responseMessage.type)}, System.Threading.CancellationToken, System.Threading.Tasks.Task>)invocationList[i])(message, cancellationToken);
+                        handlerTasks[i] = ((System.Func<${csType.getCSharpType(responseMessage.type)}, System.Threading.CancellationToken, System.Threading.Tasks.Task>)invocationList[i])(message, cancellationToken);
                     }
                     await System.Threading.Tasks.Task.WhenAll(handlerTasks);
+                    break;
                 }
 `;
     }
