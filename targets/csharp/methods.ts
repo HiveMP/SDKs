@@ -272,9 +272,9 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// you only need to call this if you want to have events raised before you call
         /// <see cref="WaitForDisconnect" />.
         /// </summary>
-        public void StartRaisingEvents()
+        public void StartRaisingEvents(System.Threading.CancellationToken cancellationToken)
         {
-            base.StartRaisingEvents();
+            base.StartRaisingEvents(cancellationToken);
         }
 
         /// <summary>

@@ -38,8 +38,9 @@ namespace HiveMP.Api
             _cancellationToken = new CancellationToken(false);
         }
 
-        protected void StartRaisingEvents()
+        protected void StartRaisingEvents(CancellationToken cancellationToken)
         {
+            _cancellationToken = cancellationToken;
             _listeningTask = Task.Run(ListenForMessagesAndRaiseEvents);
             _hasStartedReceivingMessages = true;
         }
@@ -48,10 +49,13 @@ namespace HiveMP.Api
         {
             if (!_hasStartedReceivingMessages)
             {
-                StartRaisingEvents();
+                StartRaisingEvents(cancellationToken);
             }
-            
-            _cancellationToken = cancellationToken;
+            else if (cancellationToken != CancellationToken.None)
+            {
+                throw new InvalidOperationException("cancellationToken must be CancellationToken.None when calling WaitForDisconnect if StartRaisingEvents has already been called");
+            }
+
             await _listeningTask;
         }
 
@@ -62,7 +66,6 @@ namespace HiveMP.Api
             try
             {
                 var buffer = WebSocket.CreateServerBuffer(4096);
-                var resultBuilder = new StringBuilder();
                 while ((_webSocket.State == WebSocketState.Connecting ||
                     _webSocket.State == WebSocketState.Open) &&
                     !_cancellationToken.IsCancellationRequested)
@@ -70,6 +73,7 @@ namespace HiveMP.Api
                     try
                     {
                         var result = await _webSocket.ReceiveAsync(buffer, _cancellationToken);
+                        var resultBuilder = new StringBuilder();
 
                         if (result.MessageType == WebSocketMessageType.Text)
                         {
