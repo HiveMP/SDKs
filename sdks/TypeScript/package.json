@@ -1,0 +1,16 @@
+{
+  "name": "hivemp",
+  "version": "1.0.0",
+  "description": "HiveMP SDK for TypeScript (Browser + Node.js)",
+  "main": "dist/index.js",
+  "author": "Redpoint Games Pty Ltd",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "typings": "dist/types/index.d.ts",
+  "dependencies": {
+    "@types/superagent": "^3.8.2",
+    "superagent": "^3.8.3"
+  }
+}

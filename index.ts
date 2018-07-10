@@ -21,6 +21,9 @@ import {
 import {
   MuJsTypeScriptGenerator
 } from './targets/mujs';
+import {
+  TypeScriptGenerator
+} from './targets/typescript';
 import { apiNames } from './targets/common/apiNames';
 
 let targets = [
@@ -31,6 +34,7 @@ let targets = [
   new UnrealEngine418Generator(),
   new UnrealEngine419Generator(),
   new MuJsTypeScriptGenerator(),
+  new TypeScriptGenerator(),
 ];
 
 let apis = [];

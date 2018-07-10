@@ -20,24 +20,22 @@ export interface ITypeSpec {
   namespace?: string;
   apiFriendlyName?: string;
   document?: any;
+  name?: string;
 }
 
 export interface IParameterSpec extends ITypeSpec {
-  name?: string;
   in?: "query" | "body";
   description?: string;
   required?: boolean;
 }
 
 export interface IDefinitionSpec extends ITypeSpec {
-  name?: string;
   normalizedName?: string;
   description?: string;
   properties?: IPropertySpec[];
 }
 
 export interface IPropertySpec extends ITypeSpec {
-  name?: string;
   description?: string;
 }
 
