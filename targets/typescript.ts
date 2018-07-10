@@ -6,7 +6,7 @@ import * as fragments from './ts/fragments';
 import { TargetGenerator, GeneratorUtility } from './TargetGenerator';
 import { TargetOptions } from "./TargetOptions";
 import { IApiSpec, loadApi } from './common/apiSpec';
-import { emitCommonErrorStructures } from './ts/error';
+import { emitCommonErrorStructures, isErrorStructure } from './ts/error';
 import { resolveType } from './ts/typing';
 import { generateTypeScriptNamespace } from './ts/namespace';
 // import { emitControllerAndImplementation } from './ts/controllers';
@@ -39,9 +39,13 @@ export class TypeScriptGenerator implements TargetGenerator {
     let code = fragments.nodeJsHeader;
     code += emitCommonErrorStructures(apis.values().next().value);
     for (const api of apis) {
+      code += fragments.namespaceBegin(api.namespace);
+
       for (const definition of api.definitions.values()) {
-        const csType = resolveType(definition);
-        code += csType.emitInterfaceDefinition(definition);
+        if (!isErrorStructure(definition.name)) {
+          const csType = resolveType(definition);
+          code += csType.emitInterfaceDefinition(definition);
+        }
       }
 
       /*
@@ -52,6 +56,8 @@ export class TypeScriptGenerator implements TargetGenerator {
           opts);
       }
       */
+     
+      code += fragments.namespaceEnd;
     }
 
     await this.writeFileContent(opts, 'index.ts', code);
