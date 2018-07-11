@@ -33,7 +33,7 @@ try {
     }
   } else {
     $CMake = (which cmake)
-  }+
+  }
 
   if ($CMake -eq $null -or $CMake -eq "") {
     Write-Error "CMake is not installed!"
