@@ -20,11 +20,6 @@ try {
     Pop-Location
   }
 
-  Write-Output "Creating CMake build directory for Client Connect..."
-  if (!(Test-Path $PSScriptRoot\build)) {
-    mkdir $PSScriptRoot\build
-  }
-
   if ($env:OS -eq "Windows_NT") {
     $CMake = (Find-Command cmake)
     if ($CMake -eq $null) {
@@ -38,10 +33,15 @@ try {
     }
   } else {
     $CMake = (which cmake)
-  }
+  }+
 
   if ($CMake -eq $null -or $CMake -eq "") {
     Write-Error "CMake is not installed!"
+  }
+
+  Write-Output "Creating CMake build directory for Client Connect..."
+  if (!(Test-Path $PSScriptRoot\build)) {
+    mkdir $PSScriptRoot\build
   }
 
   Push-Location $PSScriptRoot\build
