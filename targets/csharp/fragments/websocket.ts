@@ -12,8 +12,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
+#if HAS_TASKS
 using System.Net.WebSockets;
 using System.Threading.Tasks;
+#else
+using WebSocket4Net;
+#endif
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -27,11 +31,17 @@ namespace HiveMP.Api
     /// </summary>
     public abstract class HiveMPWebSocket
     {
+#if HAS_TASKS
         protected readonly ClientWebSocket _webSocket;
         private CancellationToken _cancellationToken;
         private Task _listeningTask;
+#else
+        protected readonly WebSocket _webSocket;
+        private HiveMPDelayedPromise _listeningPromise;
+#endif
         private bool _hasStartedReceivingMessages;
 
+#if HAS_TASKS
         public HiveMPWebSocket(ClientWebSocket webSocket)
         {
             _webSocket = webSocket;
@@ -60,7 +70,7 @@ namespace HiveMP.Api
         }
 
         protected abstract Task HandleMessage(string protocolId, JToken value, CancellationToken cancellationToken);
-
+        
         private async Task ListenForMessagesAndRaiseEvents()
         {
             try
@@ -150,8 +160,72 @@ namespace HiveMP.Api
                 _webSocket.Dispose();
             }
         }
+#else
+        public HiveMPWebSocket(WebSocket webSocket)
+        {
+            _webSocket = webSocket;
+        }
+
+        protected void StartRaisingEvents()
+        {
+            _listeningPromise = new HiveMPDelayedPromise(ListenForMessagesAndRaiseEvents);
+            _hasStartedReceivingMessages = true;
+        }
+
+        protected HiveMPDelayedPromise WaitForDisconnect()
+        {
+            if (!_hasStartedReceivingMessages)
+            {
+                StartRaisingEvents();
+            }
+
+            return _listeningPromise;
+        }
+
+        protected abstract HiveMPDelayedPromise HandleMessage(string protocolId, JToken value);
+
+        private void ListenForMessagesAndRaiseEvents()
+        {
+            try
+            {
+                EventHandler<MessageReceivedEventArgs> receiveHandler = null;
+                EventHandler closedHandler = null;
+                receiveHandler = (sender, e) =>
+                {
+                    var jsonRequest = e.Message;
+                    var jsonObject = JsonConvert.DeserializeObject<JObject>(jsonRequest);
+
+                    var requestType = jsonObject.Property("type").Value.ToObject<string>();
+                    var requestObject = jsonObject.Property("value").Value.ToObject<JToken>();
+
+                    HandleMessage(requestType, requestObject)
+                        .RunWith(() => { }, (ex) =>
+                        {
+                            // TODO: Provide an interface for propagating exceptions here.
+                        });
+                };
+                closedHandler = (sender, e) =>
+                {
+                    _webSocket.MessageReceived -= receiveHandler;
+                    _webSocket.Closed -= closedHandler;
+                };
+                _webSocket.MessageReceived += receiveHandler;
+                _webSocket.Closed += closedHandler;
+                _webSocket.Open();
+
+                while (_webSocket.State != WebSocketState.Closed)
+                {
+                    Thread.Sleep(1000);
+                }
+            }
+            finally
+            {
+                _webSocket.Dispose();
+            }
+        }
+#endif
+
     }
 }
-
 `;
 }

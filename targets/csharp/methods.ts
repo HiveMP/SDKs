@@ -217,9 +217,15 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
     [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
     public sealed class ${name}Socket : HiveMP.Api.HiveMPWebSocket
     {
+#if HAS_TASKS
         public ${name}Socket(System.Net.WebSockets.ClientWebSocket webSocket) : base(webSocket)
         {
         }
+#else
+        public ${name}Socket(WebSocket4Net.WebSocket webSocket) : base(webSocket)
+        {
+        }
+#endif
 
   `;
   for (const requestMessage of spec.webSocketRequestMessageTypes) {
@@ -256,6 +262,11 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// (The SDK does not generate this description yet)
         /// </summary>
         public event System.Func<${csType.getCSharpType(responseMessage.type)}, System.Threading.CancellationToken, System.Threading.Tasks.Task> On${protocolName};
+#else
+        /// <summary>
+        /// (The SDK does not generate this description yet)
+        /// </summary>
+        public event System.Func<${csType.getCSharpType(responseMessage.type)}, HiveMP.Api.HiveMPDelayedPromise> On${protocolName};
 #endif
 `;
   }
@@ -318,6 +329,65 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
     code += `
             }
         }
+#else
+        /// <summary>
+        /// Once this method is called, events will start being fired when new messages come in. The
+        /// socket caches received messages between the time the connection was actually established
+        /// and when this method is called, so you don't miss any messages that are received during that
+        /// time.
+        ///
+        /// This method is automatically called if needed by <see cref="WaitForDisconnect" />, therefore
+        /// you only need to call this if you want to have events raised before you call
+        /// <see cref="WaitForDisconnect" />.
+        /// </summary>
+        public void StartRaisingEvents()
+        {
+            base.StartRaisingEvents();
+        }
+
+        /// <summary>
+        /// Wait until the WebSocket is closed by the server.  Handlers registered with
+        /// events will continue to fire while this method is called (but it is not required
+        /// to call this method to get events to fire).
+        /// </summary>
+        public HiveMP.Api.HiveMPDelayedPromise WaitForDisconnect()
+        {
+            return base.WaitForDisconnect();
+        }
+
+        protected override HiveMP.Api.HiveMPDelayedPromise HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value)
+        {
+            switch (protocolId)
+            {
+`;
+    for (const responseMessage of spec.webSocketResponseMessageTypes) {
+      const csType = resolveType(responseMessage.type);
+      const protocolName = camelCase(normalizeWebSocketProtocolName(responseMessage.protocolMessageId));
+      code += `
+                case "${responseMessage.protocolMessageId}":
+                {
+                    return new HiveMP.Api.HiveMPDelayedPromise(() =>
+                    {
+                        var message = value.ToObject<${csType.getCSharpType(responseMessage.type)}>();
+                        var handler = On${protocolName};
+                        if (handler == null)
+                        {
+                            return;
+                        }
+                        var invocationList = handler.GetInvocationList();
+                        var handlerTasks = new System.Threading.Tasks.Task[invocationList.Length];
+                        for (var i = 0; i < invocationList.Length; i++)
+                        {
+                            handlerTasks[i] = ((System.Func<${csType.getCSharpType(responseMessage.type)}, HiveMP.Api.HiveMPDelayedPromise>)invocationList[i])(message);
+                        }
+                        await System.Threading.Tasks.Task.WhenAll(handlerTasks);
+                    });
+                }
+`;
+    }
+    code += `
+            }
+        }
 #endif
     }
 `;
@@ -335,6 +405,19 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         protected override System.Threading.Tasks.Task HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value, System.Threading.CancellationToken cancellationToken)
         {
             return System.Threading.Tasks.Task.CompletedTask;
+        }
+#else
+        /// <summary>
+        /// Wait until the WebSocket is closed by the server.
+        /// </summary>
+        public HiveMP.Api.HiveMPDelayedPromise WaitForDisconnect()
+        {
+            return base.WaitForDisconnect();
+        }
+
+        protected override HiveMP.Api.HiveMPDelayedPromise HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value)
+        {
+            return new HiveMP.Api.HiveMPDelayedPromise(() => {});
         }
 #endif
     }

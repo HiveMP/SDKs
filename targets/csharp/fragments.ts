@@ -11,7 +11,7 @@ export {
   implementationMethodDeclarations, 
   implementationWebSocketMethodDeclarations 
 } from './fragments/methods';
-export { getPromiseClass } from './fragments/promise';
+export { getPromiseMainThreadReturnClass, getPromiseSchedulerSettingsClass } from './fragments/promise';
 export { getWebSocketClass } from './fragments/websocket';
 
 export function getCodePrefix(defines: string[]) {

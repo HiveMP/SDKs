@@ -62,16 +62,33 @@ abstract class CSharpGenerator implements TargetGenerator {
 
     const httpClientClass = fragments.getHttpClientClass(defines);
     const hiveExceptionClass = fragments.getExceptionClass(defines);
-    const hivePromiseClass = fragments.getPromiseClass(defines);
+    const hivePromiseSchedulerSettingsClass = fragments.getPromiseSchedulerSettingsClass(defines);
+    const hivePromiseMainThreadReturnClass = fragments.getPromiseMainThreadReturnClass(defines);
     const hiveSocketClass = fragments.getWebSocketClass(defines);
     const hiveSdkSetup = fragments.getSdkSetup(defines);
 
     await this.writeFileContent(opts, 'HiveMP.cs', code);
     await this.writeFileContent(opts, 'RetryableHttpClient.cs', httpClientClass);
     await this.writeFileContent(opts, 'HiveMPException.cs', hiveExceptionClass);
-    await this.writeFileContent(opts, 'HiveMPPromise.cs', hivePromiseClass);
+    await this.writeFileContent(opts, 'HiveMPPromiseSchedulerSettings.cs', hivePromiseSchedulerSettingsClass);
+    await this.writeFileContent(opts, 'HiveMPPromiseMainThreadReturn.cs', hivePromiseMainThreadReturnClass);
     await this.writeFileContent(opts, 'HiveMPWebSocket.cs', hiveSocketClass);
     await this.writeFileContent(opts, 'HiveMPSDKSetup.cs', hiveSdkSetup);
+
+    await new Promise<void>((resolve, reject) => {
+      fs.mkdirp(opts.outputDir, (err) => {
+        if (err) {
+          reject(err);
+        }
+        let src = "sdks/CSharp-Common";
+        fs.copy(src, opts.outputDir, { overwrite: true }, (err) => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        });
+      });
+    });
 
     if (opts.enableClientConnect) {
       // Copy Client Connect SDK binaries.
