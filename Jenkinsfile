@@ -16,49 +16,47 @@ if (env.CHANGE_TARGET != null) {
         input "Approve this PR build to run? Check the PR first!"
     }
 }
-node('windows-hispeed') {
-    stage("Checkout + Get Deps") {
-        timeout(20) {
-            gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
-            bat ('echo ' + gitCommit)
-            bat 'git clean -xdff'
-            bat 'git submodule update --init --recursive'
-            bat 'yarn'
-            sdkVersion = readFile 'SdkVersion.txt'
-            sdkVersion = sdkVersion.trim()
-        }
-    }
-    stage("Build Client Connect") {
-        def parallelMap = [:]
-        parallelMap["Windows"] = {
-            timeout(15) {
+stage("Build Client Connect") {
+    def parallelMap = [:]
+    parallelMap["Windows"] = {
+        node('windows-hispeed') {
+            timeout(20) {
+                gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
+                bat ('echo ' + gitCommit)
+                bat 'git clean -xdff'
+                bat 'git submodule update --init --recursive'
+                bat 'yarn'
+                sdkVersion = readFile 'SdkVersion.txt'
+                sdkVersion = sdkVersion.trim()
                 bat 'pwsh client_connect\\Build.ps1'
             }
-        };
-        parallelMap["macOS"] = {
-            node('mac') {
-                timeout(15) {
-                    checkout(poll: false, changelog: false, scm: scm)
-                    sh 'git clean -xdff'
-                    sh 'git submodule update --init --recursive'
-                    sh 'yarn'
-                    sh 'pwsh client_connect/Build.ps1'
-                }
+        }
+    };
+    parallelMap["macOS"] = {
+        node('mac') {
+            timeout(20) {
+                checkout(poll: false, changelog: false, scm: scm)
+                sh 'git clean -xdff'
+                sh 'git submodule update --init --recursive'
+                sh 'yarn'
+                sh 'pwsh client_connect/Build.ps1'
             }
-        };
-        parallelMap["Linux"] = {
-            node('linux') {
-                timeout(15) {
-                    checkout(poll: false, changelog: false, scm: scm)
-                    sh 'git clean -xdff'
-                    sh 'git submodule update --init --recursive'
-                    sh 'yarn'
-                    sh 'pwsh client_connect/Build.ps1'
-                }
+        }
+    };
+    parallelMap["Linux"] = {
+        node('linux') {
+            timeout(20) {
+                checkout(poll: false, changelog: false, scm: scm)
+                sh 'git clean -xdff'
+                sh 'git submodule update --init --recursive'
+                sh 'yarn'
+                sh 'pwsh client_connect/Build.ps1'
             }
-        };
-        parallel (parallelMap)
-    }
+        }
+    };
+    parallel (parallelMap)
+}
+node('windows-hispeed') {
     stage("Generate") {
         def parallelMap = [:]
         parallelMap["CSharp-4.5"] = {
