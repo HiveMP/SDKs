@@ -31,6 +31,10 @@ try {
     $CMake = "C:\PROGRAM FILES (X86)\MICROSOFT VISUAL STUDIO\2017\ENTERPRISE\COMMON7\IDE\COMMONEXTENSIONS\MICROSOFT\CMAKE\CMake\bin\cmake.exe";
   }
 
+  if ($CMake -eq $null -or $CMake -eq "") {
+    Write-Error "CMake is not installed!"
+  }
+
   Push-Location $PSScriptRoot\build
   try {
     Write-Output "Generating Client Connect solution with CMake..."
