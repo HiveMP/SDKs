@@ -13,7 +13,7 @@ try {
   Push-Location $PSScriptRoot\ccsrc
   try {
     Write-Output "Restoring packages for Client Connect SDK..."
-    yarn
+    yarn --ignore-engines
     if ($LASTEXITCODE -ne 0) {
       exit 1
     }
