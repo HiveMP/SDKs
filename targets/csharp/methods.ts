@@ -146,9 +146,9 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec, opts: {
   const parameterDeclarations = getParametersFromMethodParameters(spec.parameters);
   const parameterDeclarationsSuffix = parameterDeclarations != '' ? ', ' : '';
   const returnSyncPrefix = returnTypes.syncType == 'void' ? '' : 'return ';
-  const promiseReturnExtra = returnTypes.syncType == 'void' ? 'return true;' : '';
-  const promiseReturnType = returnTypes.syncType == 'void' ? 'bool' : returnTypes.syncType;
-  const promiseResolve = returnTypes.syncType == 'void' ? '_ => resolve()' : 'resolve';
+  const promiseReturnStore = returnTypes.syncType == 'void' ? '' : 'var store = ';
+  const promiseReturnType = returnTypes.syncType == 'void' ? 'HiveMP.Api.HiveMPPromise' : `HiveMP.Api.HiveMPPromise<${returnTypes.syncType}>`;
+  const promiseResolve = returnTypes.syncType == 'void' ? 'resolve_();' : 'resolve_(store);';
   const requestClassConstruction = getRequestClassConstruction(spec);
   const legacyParameterXmlComments = getLegacyParameterXmlComments(spec);
 
@@ -173,7 +173,7 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec, opts: {
     parameterQueryLoadingCode,
     returnTypes: returnTypes,
     returnSyncPrefix,
-    promiseReturnExtra,
+    promiseReturnStore,
     promiseReturnType,
     promiseResolve,
     httpResponseHandler,
@@ -266,7 +266,7 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// <summary>
         /// (The SDK does not generate this description yet)
         /// </summary>
-        public event System.Func<${csType.getCSharpType(responseMessage.type)}, HiveMP.Api.HiveMPDelayedPromise> On${protocolName};
+        public event System.Action<${csType.getCSharpType(responseMessage.type)}> On${protocolName};
 #endif
 `;
   }
@@ -350,12 +350,12 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// events will continue to fire while this method is called (but it is not required
         /// to call this method to get events to fire).
         /// </summary>
-        public HiveMP.Api.HiveMPDelayedPromise WaitForDisconnect()
+        public HiveMP.Api.HiveMPPromise WaitForDisconnect()
         {
             return base.WaitForDisconnect();
         }
 
-        protected override HiveMP.Api.HiveMPDelayedPromise HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value)
+        protected override void HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value)
         {
             switch (protocolId)
             {
@@ -366,22 +366,19 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
       code += `
                 case "${responseMessage.protocolMessageId}":
                 {
-                    return new HiveMP.Api.HiveMPDelayedPromise(() =>
+                    var message = value.ToObject<${csType.getCSharpType(responseMessage.type)}>();
+                    var handler = On${protocolName};
+                    if (handler == null)
                     {
-                        var message = value.ToObject<${csType.getCSharpType(responseMessage.type)}>();
-                        var handler = On${protocolName};
-                        if (handler == null)
-                        {
-                            return;
-                        }
-                        var invocationList = handler.GetInvocationList();
-                        var handlerTasks = new System.Threading.Tasks.Task[invocationList.Length];
-                        for (var i = 0; i < invocationList.Length; i++)
-                        {
-                            handlerTasks[i] = ((System.Func<${csType.getCSharpType(responseMessage.type)}, HiveMP.Api.HiveMPDelayedPromise>)invocationList[i])(message);
-                        }
-                        await System.Threading.Tasks.Task.WhenAll(handlerTasks);
-                    });
+                        return;
+                    }
+                    var invocationList = handler.GetInvocationList();
+                    var handlerTasks = new HiveMP.Api.HiveMPPromise[invocationList.Length];
+                    for (var i = 0; i < invocationList.Length; i++)
+                    {
+                        ((System.Action<${csType.getCSharpType(responseMessage.type)}>)invocationList[i])(message);
+                    }
+                    return;
                 }
 `;
     }
@@ -410,14 +407,14 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// <summary>
         /// Wait until the WebSocket is closed by the server.
         /// </summary>
-        public HiveMP.Api.HiveMPDelayedPromise WaitForDisconnect()
+        public HiveMP.Api.HiveMPPromise WaitForDisconnect()
         {
             return base.WaitForDisconnect();
         }
 
-        protected override HiveMP.Api.HiveMPDelayedPromise HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value)
+        protected override HiveMP.Api.HiveMPPromise HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value)
         {
-            return new HiveMP.Api.HiveMPDelayedPromise(() => {});
+            return new HiveMP.Api.HiveMPPromise(() => {});
         }
 #endif
     }

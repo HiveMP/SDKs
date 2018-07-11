@@ -24,10 +24,32 @@ node('windows-hispeed') {
             bat 'git clean -xdff'
             bat 'git submodule update --init --recursive'
             bat 'yarn'
-            bat 'yarn run getsdk'
             sdkVersion = readFile 'SdkVersion.txt'
             sdkVersion = sdkVersion.trim()
         }
+    }
+    stage("Build Client Connect") {
+        def parallelMap = [:]
+        parallelMap["Windows"] = {
+            timeout(15) {
+                bat 'pwsh client_connect\\Build.ps1'
+            }
+        };
+        parallelMap["macOS"] = {
+            node('mac') {
+                timeout(15) {
+                    bat 'pwsh client_connect/Build.ps1'
+                }
+            }
+        };
+        parallelMap["Linux"] = {
+            node('linux') {
+                timeout(15) {
+                    bat 'pwsh client_connect/Build.ps1'
+                }
+            }
+        };
+        parallel (parallelMap)
     }
     stage("Generate") {
         def parallelMap = [:]

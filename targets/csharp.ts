@@ -64,6 +64,7 @@ abstract class CSharpGenerator implements TargetGenerator {
     const hiveExceptionClass = fragments.getExceptionClass(defines);
     const hivePromiseSchedulerSettingsClass = fragments.getPromiseSchedulerSettingsClass(defines);
     const hivePromiseMainThreadReturnClass = fragments.getPromiseMainThreadReturnClass(defines);
+    const hiveUnityCallbackMonoBehaviourClass = fragments.getPromiseUnityCallbackMonoBehaviourClass(defines);
     const hiveSocketClass = fragments.getWebSocketClass(defines);
     const hiveSdkSetup = fragments.getSdkSetup(defines);
 
@@ -72,6 +73,7 @@ abstract class CSharpGenerator implements TargetGenerator {
     await this.writeFileContent(opts, 'HiveMPException.cs', hiveExceptionClass);
     await this.writeFileContent(opts, 'HiveMPPromiseSchedulerSettings.cs', hivePromiseSchedulerSettingsClass);
     await this.writeFileContent(opts, 'HiveMPPromiseMainThreadReturn.cs', hivePromiseMainThreadReturnClass);
+    await this.writeFileContent(opts, 'HiveMPUnityCallbackMonoBehaviour.cs', hiveUnityCallbackMonoBehaviourClass);
     await this.writeFileContent(opts, 'HiveMPWebSocket.cs', hiveSocketClass);
     await this.writeFileContent(opts, 'HiveMPSDKSetup.cs', hiveSdkSetup);
 
@@ -132,7 +134,11 @@ export class CSharp35Generator extends CSharpGenerator {
   }
   
   async postGenerate(opts: TargetOptions): Promise<void> {
-    fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+    if (opts.enableClientConnect) {
+      fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+    } else {
+      fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.NoClientConnect.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+    }
     fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.sln"), path.join(opts.outputDir, "HiveMP.sln"));
     fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/packages.config"), path.join(opts.outputDir, "packages.config"));
   }
@@ -148,7 +154,11 @@ export class CSharp45Generator extends CSharpGenerator {
   }
   
   async postGenerate(opts: TargetOptions): Promise<void> {
-    fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+    if (opts.enableClientConnect) {
+      fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+    } else {
+      fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.NoClientConnect.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+    }
     fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.sln"), path.join(opts.outputDir, "HiveMP.sln"));
     fs.copySync(path.join(__dirname, "../sdks/CSharp-4.5/HiveMP.nuspec"), path.join(opts.outputDir, "HiveMP.nuspec"));
   }

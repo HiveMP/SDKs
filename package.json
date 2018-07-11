@@ -27,7 +27,6 @@
   },
   "scripts": {
     "generate-client-connect": "node ./node_modules/ts-node/dist/bin.js index.ts generate MuJS-TypeScript ./client_connect/ccsrc/src/hivemp",
-    "generator": "node ./node_modules/ts-node/dist/bin.js index.ts",
-    "getsdk": "node ./node_modules/ts-node/dist/bin.js getsdk.ts"
+    "generator": "node ./node_modules/ts-node/dist/bin.js index.ts"
   }
 }

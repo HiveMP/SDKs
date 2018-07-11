@@ -48,7 +48,7 @@ export function interfaceMethodDeclarations(values: {
       /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
       /// <param name="resolve">The callback to run when the API call returns. This is always executed on the main thread.</param>
       /// <param name="reject">The callback to run when the API call failed. This is always executed on the main thread.</param>
-      void ${values.methodName}Promise(${values.methodName}Request arguments, ${values.returnTypes.promiseType} resolve, System.Action<HiveMP.Api.HiveMPException> reject);
+      void ${values.methodName}Promise(${values.methodName}Request arguments, ${values.returnTypes.promiseType} resolve, System.Action<System.Exception> reject);
 `;
 }
 
@@ -96,7 +96,7 @@ export function implementationMethodDeclarations(values: {
   parameterQueryLoadingCode: string,
   returnTypes: IMethodReturnTypes,
   returnSyncPrefix: string,
-  promiseReturnExtra: string,
+  promiseReturnStore: string,
   promiseReturnType: string,
   promiseResolve: string,
   httpResponseHandler: string,
@@ -441,13 +441,20 @@ export function implementationMethodDeclarations(values: {
       /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
       /// <param name="resolve">The callback to run when the API call returns. This is always executed on the main thread.</param>
       /// <param name="reject">The callback to run when the API call failed. This is always executed on the main thread.</param>
-      public void ${values.methodName}Promise(${values.methodName}Request arguments, ${values.returnTypes.promiseType} resolve, System.Action<HiveMP.Api.HiveMPException> reject)
+      public void ${values.methodName}Promise(${values.methodName}Request arguments, ${values.returnTypes.promiseType} resolve, System.Action<System.Exception> reject)
       {
-          new HiveMP.Api.HiveMPPromise<${values.promiseReturnType}>(() =>
+          HiveMP.Api.HiveMPPromiseScheduler.Execute(new ${values.promiseReturnType}((resolve_, reject_) =>
           {
-              ${values.returnSyncPrefix}${values.methodName}Internal(arguments);
-              ${values.promiseReturnExtra}
-          }, ${values.promiseResolve}, reject);
+              try
+              {
+                  ${values.promiseReturnStore}${values.methodName}Internal(arguments);
+                  ${values.promiseResolve}
+              }
+              catch (System.Exception ex)
+              {
+                  reject_(ex);
+              }
+          }).Then(resolve).Catch(reject));
       }
 
       /// <summary>
@@ -638,7 +645,7 @@ export function implementationWebSocketMethodDeclarations(values: {
   parameterQueryLoadingCode: string,
   returnTypes: IMethodReturnTypes,
   returnSyncPrefix: string,
-  promiseReturnExtra: string,
+  promiseReturnStore: string,
   promiseReturnType: string,
   promiseResolve: string,
   httpResponseHandler: string,

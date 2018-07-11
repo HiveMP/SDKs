@@ -37,7 +37,7 @@ namespace HiveMP.Api
         private Task _listeningTask;
 #else
         protected readonly WebSocket _webSocket;
-        private HiveMPDelayedPromise _listeningPromise;
+        private HiveMP.Api.HiveMPPromise _listeningPromise;
 #endif
         private bool _hasStartedReceivingMessages;
 
@@ -168,11 +168,12 @@ namespace HiveMP.Api
 
         protected void StartRaisingEvents()
         {
-            _listeningPromise = new HiveMPDelayedPromise(ListenForMessagesAndRaiseEvents);
+            _listeningPromise = new HiveMP.Api.HiveMPPromise(ListenForMessagesAndRaiseEvents);
+            HiveMP.Api.HiveMPPromiseScheduler.Execute(_listeningPromise);
             _hasStartedReceivingMessages = true;
         }
 
-        protected HiveMPDelayedPromise WaitForDisconnect()
+        protected HiveMP.Api.HiveMPPromise WaitForDisconnect()
         {
             if (!_hasStartedReceivingMessages)
             {
@@ -182,9 +183,9 @@ namespace HiveMP.Api
             return _listeningPromise;
         }
 
-        protected abstract HiveMPDelayedPromise HandleMessage(string protocolId, JToken value);
+        protected abstract void HandleMessage(string protocolId, JToken value);
 
-        private void ListenForMessagesAndRaiseEvents()
+        private void ListenForMessagesAndRaiseEvents(Action resolve, Action<Exception> reject)
         {
             try
             {
@@ -198,16 +199,19 @@ namespace HiveMP.Api
                     var requestType = jsonObject.Property("type").Value.ToObject<string>();
                     var requestObject = jsonObject.Property("value").Value.ToObject<JToken>();
 
-                    HandleMessage(requestType, requestObject)
-                        .RunWith(() => { }, (ex) =>
-                        {
-                            // TODO: Provide an interface for propagating exceptions here.
-                        });
+                    HiveMP.Api.HiveMPPromiseScheduler.ExecuteWithMainThreadCallbacks(
+                        new HiveMP.Api.HiveMPPromise((resolve_, reject_) => { resolve_(); })
+                            .Then(() =>
+                                {
+                                    HandleMessage(requestType, requestObject);
+                                })
+                    );
                 };
                 closedHandler = (sender, e) =>
                 {
                     _webSocket.MessageReceived -= receiveHandler;
                     _webSocket.Closed -= closedHandler;
+                    resolve();
                 };
                 _webSocket.MessageReceived += receiveHandler;
                 _webSocket.Closed += closedHandler;
@@ -217,6 +221,10 @@ namespace HiveMP.Api
                 {
                     Thread.Sleep(1000);
                 }
+            }
+            catch (Exception ex)
+            {
+                reject(ex);
             }
             finally
             {
