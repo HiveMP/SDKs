@@ -38,14 +38,22 @@ node('windows-hispeed') {
         parallelMap["macOS"] = {
             node('mac') {
                 timeout(15) {
-                    bat 'pwsh client_connect/Build.ps1'
+                    checkout(poll: false, changelog: false, scm: scm)
+                    sh 'git clean -xdff'
+                    sh 'git submodule update --init --recursive'
+                    sh 'yarn'
+                    sh 'pwsh client_connect/Build.ps1'
                 }
             }
         };
         parallelMap["Linux"] = {
             node('linux') {
                 timeout(15) {
-                    bat 'pwsh client_connect/Build.ps1'
+                    checkout(poll: false, changelog: false, scm: scm)
+                    sh 'git clean -xdff'
+                    sh 'git submodule update --init --recursive'
+                    sh 'yarn'
+                    sh 'pwsh client_connect/Build.ps1'
                 }
             }
         };
