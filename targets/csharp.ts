@@ -15,6 +15,8 @@ abstract class CSharpGenerator implements TargetGenerator {
   abstract get name(): string;
 
   abstract getDefines(): string;
+  
+  abstract postGenerate(opts: TargetOptions): Promise<void>;
 
   private writeFileContent(opts: TargetOptions, filename: string, code: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
@@ -98,6 +100,8 @@ abstract class CSharpGenerator implements TargetGenerator {
       await copyClientConnectPlatformBinaries("Linux32");
       await copyClientConnectPlatformBinaries("Linux64");
     }
+
+    await this.postGenerate(opts);
   }
 }
 
