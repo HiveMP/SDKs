@@ -22,6 +22,7 @@ node('windows-hispeed') {
             gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
             bat ('echo ' + gitCommit)
             bat 'git clean -xdff'
+            bat 'git submodule update --init --recursive'
             bat 'yarn'
             bat 'yarn run getsdk'
             sdkVersion = readFile 'SdkVersion.txt'
