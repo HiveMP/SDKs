@@ -1,11 +1,10 @@
 #
-# This utility script restores packages, generates and builds the Client Connect DLLs, and generates
-# an SDK into the target folder. While the Jenkinsfile in this repository also does this (and runs
-# tests), this script is a handy way to build and re-deploy the SDK from source to one of your own
-# projects.
+# This utility script restores packages, generates and builds the Client Connect DLLs.
 #
 
 param()
+
+$ErrorActionPreference = 'Stop'
 
 Push-Location $PSScriptRoot
 
@@ -26,9 +25,19 @@ try {
     mkdir $PSScriptRoot\build
   }
 
-  $CMake = (Find-Command cmake)
-  if ($env:OS -eq "Windows_NT" -and $CMake -eq $null) {
-    $CMake = "C:\PROGRAM FILES (X86)\MICROSOFT VISUAL STUDIO\2017\ENTERPRISE\COMMON7\IDE\COMMONEXTENSIONS\MICROSOFT\CMAKE\CMake\bin\cmake.exe";
+  if ($env:OS -eq "Windows_NT") {
+    $CMake = (Find-Command cmake)
+    if ($CMake -eq $null) {
+      $CMake = "C:\PROGRAM FILES (X86)\MICROSOFT VISUAL STUDIO\2017\ENTERPRISE\COMMON7\IDE\COMMONEXTENSIONS\MICROSOFT\CMAKE\CMake\bin\cmake.exe";
+      if (!(Test-Path $CMake)) {
+        $CMake = "C:\PROGRAM FILES (X86)\MICROSOFT VISUAL STUDIO\2017\COMMUNITY\COMMON7\IDE\COMMONEXTENSIONS\MICROSOFT\CMAKE\CMake\bin\cmake.exe";
+        if (!(Test-Path $CMake)) {
+          $CMake = $null
+        }
+      }
+    }
+  } else {
+    $CMake = (which cmake)
   }
 
   if ($CMake -eq $null -or $CMake -eq "") {
