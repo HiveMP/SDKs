@@ -55,28 +55,28 @@
     <None Include="Linux32\libcurl.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Linux32\libHiveMP.ClientConnect.so">
+    <None Include="Linux32\libcchost.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Linux64\libcurl.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Linux64\libHiveMP.ClientConnect.so">
+    <None Include="Linux64\libcchost.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Mac64\libcurl.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Mac64\libHiveMP.ClientConnect.dylib">
+    <None Include="Mac64\libcchost.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Win32\HiveMP.ClientConnect.dll">
+    <None Include="Win32\cchost.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Win32\libcurl.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Win64\HiveMP.ClientConnect.dll">
+    <None Include="Win64\cchost.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Win64\libcurl.dll">

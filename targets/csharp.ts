@@ -100,11 +100,28 @@ abstract class CSharpGenerator implements TargetGenerator {
             if (err) {
               reject(err);
             }
-            let src = "deps/HiveMP.ClientConnect/" + platform;
+            let src = null;
             if (opts.clientConnectSdkPath != null) {
               src = opts.clientConnectSdkPath + "/" + platform;
+            } else {
+              throw new Error('Path to Client Connect binaries must be specified to enable Client Connect!');
             }
             fs.copy(src, opts.outputDir + "/" + platform, { overwrite: true }, (err) => {
+              if (this.name == "Unity") {
+                // Unity requires macOS libraries to have .bundle extension.
+                if (fs.existsSync(opts.outputDir + "/" + platform + "/libcchost.dylib")) {
+                  try {
+                    fs.unlinkSync(opts.outputDir + "/" + platform + "/libcchost.bundle");
+                  } catch { }
+                  fs.renameSync(opts.outputDir + "/" + platform + "/libcchost.dylib", opts.outputDir + "/" + platform + "/libcchost.bundle");
+                }
+                if (fs.existsSync(opts.outputDir + "/" + platform + "/libcurl.dylib")) {
+                  try {
+                    fs.unlinkSync(opts.outputDir + "/" + platform + "/libcurl.bundle");
+                  } catch { }
+                  fs.renameSync(opts.outputDir + "/" + platform + "/libcurl.dylib", opts.outputDir + "/" + platform + "/libcurl.bundle");
+                }
+              }
               if (err) {
                 reject(err);
               }
