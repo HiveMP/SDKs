@@ -18,6 +18,7 @@
 #else
 #include "curl/curl.h"
 #endif
+#include <cstring>
 #include <thread>
 #include <vector>
 #include "../../jsutil.h"
