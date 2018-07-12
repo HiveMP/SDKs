@@ -61,7 +61,11 @@ try {
           $Dir = "bin/"
         }
         Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)cchost$Ext $PSScriptRoot/sdk/$Id/$($Pre)cchost$Ext
-        Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)curl$Ext $PSScriptRoot/sdk/$Id/$($Pre)curl$Ext
+        if ($env:OS -eq "Windows_NT") {
+          Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)curl$Ext $PSScriptRoot/sdk/$Id/$($Pre)libcurl$Ext
+        } else {
+          Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)curl$Ext $PSScriptRoot/sdk/$Id/$($Pre)curl$Ext
+        }
       } finally {
         Pop-Location
       }
