@@ -45,5 +45,5 @@ $EmbeddedCode = $ASCIIBytes -join ",";
 Write-Output "Writing embed.cpp..."
 Set-Content -Path $PSScriptRoot/embed.cpp -Value @"
 #include `"embed.h`"
-const char _embedded_sdk[] { $EmbeddedCode, 0 };
+const char _embedded_sdk[] = { $EmbeddedCode, 0 };
 "@;

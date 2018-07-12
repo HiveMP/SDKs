@@ -267,7 +267,7 @@ long js_call_api_hotpatch(
 	async_func->result = nullptr;
 	async_func->code = 500;
 
-	pending_functions->insert_or_assign(allocated_id, async_func);
+	(*pending_functions)[allocated_id] = async_func;
 
 	if (!js_is_api_hotpatched(api_raw, operation_raw))
 	{

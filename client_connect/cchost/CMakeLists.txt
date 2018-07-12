@@ -7,15 +7,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../polyfill)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../curl/include)
 
 add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/embed.cpp
-	DEPENDS 
-			${ccsrc_files} 
-			${CMAKE_CURRENT_SOURCE_DIR}/embed.ps1 
-			${CMAKE_CURRENT_SOURCE_DIR}/../ccsrc/webpack.config.ts 
-			${CMAKE_CURRENT_SOURCE_DIR}/../ccsrc/package.json
-			${CMAKE_CURRENT_SOURCE_DIR}/../../targets/mujs.ts
-	COMMAND pwsh ARGS ${CMAKE_CURRENT_SOURCE_DIR}/embed.ps1
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/embed.cpp
+  DEPENDS 
+      ${ccsrc_files} 
+      ${CMAKE_CURRENT_SOURCE_DIR}/embed.ps1 
+      ${CMAKE_CURRENT_SOURCE_DIR}/../ccsrc/webpack.config.ts 
+      ${CMAKE_CURRENT_SOURCE_DIR}/../ccsrc/package.json
+      ${CMAKE_CURRENT_SOURCE_DIR}/../../targets/mujs.ts
+  COMMAND pwsh ARGS ${CMAKE_CURRENT_SOURCE_DIR}/embed.ps1
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 if(MSVC)
@@ -24,21 +24,23 @@ if(MSVC)
     string(REGEX REPLACE "/W[0-4]" "/Wall" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
   else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Wall")
-	endif()
+  endif()
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
 add_library(
-	cchost SHARED
-	${mujs_files}
-	${polyfill_files}
-	connect.cpp
-	connect.impl.cpp
-	embed.cpp
-	jsutil.cpp
-	module/timers/module.cpp
-	module/console/module.cpp
-	module/curl-native/module.cpp
-	module/hotpatching/module.cpp)
+  cchost SHARED
+  ${mujs_files}
+  ${polyfill_files}
+  connect.cpp
+  connect.impl.cpp
+  embed.cpp
+  jsutil.cpp
+  module/timers/module.cpp
+  module/console/module.cpp
+  module/curl-native/module.cpp
+  module/hotpatching/module.cpp)
 
 target_include_directories(cchost PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(cchost libcurl)
