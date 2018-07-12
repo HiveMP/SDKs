@@ -39,12 +39,12 @@ def clientConnectCaches = [
 ]
 def preloaded = [:]
 stage("Load Caches") {
-    def sdkPrefix = ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk')
+    def sdkPrefix = ('gs://redpoint-build-cache/' + clientConnectHash)
     node('windows-hispeed') {
         if (clientConnectHash != "") {
             clientConnectCaches.each {
                 try {
-                    googleStorageDownload bucketUri: (sdkPrefix + '/' + it + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('client_connect/sdk/' + it + '/'), pathPrefix: (clientConnectHash + '/sdk/' + it + '/')
+                    googleStorageDownload bucketUri: (sdkPrefix + '/client_connect/sdk/' + it + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('client_connect/sdk/' + it + '/'), pathPrefix: (clientConnectHash + '/client_connect/sdk/' + it + '/')
                     stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cc_sdk_' + it)
                     preloaded[it] = true;
                     echo ('Successfully preloaded Client Connect for target "' + it + '" from Google Cloud')
@@ -72,14 +72,14 @@ stage("Build Client Connect") {
                     parallelArchMap["Win32"] = {
                         if (!preloaded["Win32"]) {
                             bat 'pwsh client_connect\\Build-Arch.ps1 Win32'
-                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk/Win32'), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win32/**'
+                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win32/**'
                             stash includes: ('client_connect/sdk/Win32/**'), name: 'cc_sdk_Win32'
                         }
                     }
                     parallelArchMap["Win64"] = {
                         if (!preloaded["Win64"]) {
                             bat 'pwsh client_connect\\Build-Arch.ps1 Win64'
-                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk/Win64'), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win64/**'
+                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win64/**'
                             stash includes: ('client_connect/sdk/Win64/**'), name: 'cc_sdk_Win64'
                         }
                     }
@@ -99,7 +99,7 @@ stage("Build Client Connect") {
                     sh 'yarn'
                     sh 'pwsh client_connect/Build-Init.ps1'
                     sh 'pwsh client_connect/Build-Arch.ps1 Mac64'
-                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk/Mac64'), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Mac64/**'
+                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Mac64/**'
                     stash includes: ('client_connect/sdk/Mac64/**'), name: 'cc_sdk_Mac64'
                 }
             }
@@ -119,14 +119,14 @@ stage("Build Client Connect") {
                     parallelArchMap["Linux32"] = {
                         if (!preloaded["Linux32"]) {
                             sh 'pwsh client_connect/Build-Arch.ps1 Linux32'
-                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk/Linux32'), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux32/**'
+                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux32/**'
                             stash includes: ('client_connect/sdk/Linux32/**'), name: 'cc_sdk_Linux32'
                         }
                     }
                     parallelArchMap["Linux64"] = {
                         if (!preloaded["Linux64"]) {
                             sh 'pwsh client_connect/Build-Arch.ps1 Linux64'
-                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk/Linux64'), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux64/**'
+                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux64/**'
                             stash includes: ('client_connect/sdk/Linux64/**'), name: 'cc_sdk_Linux64'
                         }
                     }
