@@ -38,6 +38,7 @@ stage("Setup") {
             }
         }
     }
+    parallel (parallelMap)
 }
 def clientConnectCaches = [
     "Win32",
