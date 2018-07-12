@@ -18,4 +18,4 @@ void js_debug_stack_dump(js_State* L, bool simple = false);
 void js_debug_error_dump(js_State* L);
 int js_hasproperty_nopush(js_State *J, int idx, const char *name);
 const char* alloc_copy(const char* fixed);
-const char* serialize_json(js_State* J, int idx, const char* default);
+const char* serialize_json(js_State* J, int idx, const char* def);

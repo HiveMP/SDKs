@@ -134,7 +134,7 @@ const char* alloc_copy(const char* fixed)
 	return result;
 }
 
-const char* serialize_json(js_State* J, int idx, const char* default)
+const char* serialize_json(js_State* J, int idx, const char* def)
 {
 	js_copy(J, idx);
 
@@ -152,7 +152,7 @@ const char* serialize_json(js_State* J, int idx, const char* default)
 	{
 		// We couldn't stringify our object for a JSON response, so return something
 		// hard-coded.
-		outcome = default;
+		outcome = def;
 	}
 	else
 	{
