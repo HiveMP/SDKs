@@ -4,7 +4,7 @@
 
 #include "../../jsutil.h"
 
-struct timer_t {
+struct cc_timer_t {
 	bool immediate;
 	bool isInterval;
 	std::chrono::system_clock::duration interval;
@@ -12,8 +12,8 @@ struct timer_t {
 	const char* registry_name;
 };
 
-std::vector<struct timer_t*>* timers = nullptr;
-std::vector<struct timer_t*>* pending_timers = nullptr;
+std::vector<struct cc_timer_t*>* timers = nullptr;
+std::vector<struct cc_timer_t*>* pending_timers = nullptr;
 
 void js_set_immediate(js_State* J)
 {
@@ -26,7 +26,7 @@ void js_set_immediate(js_State* J)
 	js_copy(J, 1);
 	const char* registry_name = js_ref(J);
 
-	auto timer = new timer_t();
+	auto timer = new cc_timer_t();
 	timer->immediate = true;
 	timer->isInterval = false;
 	timer->interval = std::chrono::seconds(0);
@@ -50,7 +50,7 @@ void js_set_timeout(js_State* J)
 	const char* registry_name = js_ref(J);
 	auto ms = js_touint32(J, 2);
 
-	auto timer = new timer_t();
+	auto timer = new cc_timer_t();
 	timer->immediate = false;
 	timer->isInterval = false;
 	timer->interval = std::chrono::seconds(0);
@@ -74,7 +74,7 @@ void js_set_interval(js_State* J)
 	const char* registry_name = js_ref(J);
 	auto ms = js_touint32(J, 2);
 
-	auto timer = new timer_t();
+	auto timer = new cc_timer_t();
 	timer->immediate = false;
 	timer->isInterval = false;
 	timer->interval = std::chrono::milliseconds(ms);
@@ -88,7 +88,7 @@ void js_set_interval(js_State* J)
 
 void js_clear_timer(js_State* J)
 {
-	auto timer = (struct timer_t*)js_touserdata(J, 1, "Timer");
+	auto timer = (struct cc_timer_t*)js_touserdata(J, 1, "Timer");
 	if (timer == nullptr)
 	{
 		js_pushundefined(J);
@@ -132,8 +132,8 @@ void js_load_timers(js_State* J)
 {
 	if (timers == nullptr)
 	{
-		timers = new std::vector<struct timer_t*>();
-		pending_timers = new std::vector<struct timer_t*>();
+		timers = new std::vector<struct cc_timer_t*>();
+		pending_timers = new std::vector<struct cc_timer_t*>();
 	}
 
 	js_newobject(J);
@@ -157,8 +157,8 @@ void js_load_timers_globals(js_State* J)
 {
 	if (timers == nullptr)
 	{
-		timers = new std::vector<struct timer_t*>();
-		pending_timers = new std::vector<struct timer_t*>();
+		timers = new std::vector<struct cc_timer_t*>();
+		pending_timers = new std::vector<struct cc_timer_t*>();
 	}
 
 	js_pushglobal(J);
