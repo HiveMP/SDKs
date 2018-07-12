@@ -18,27 +18,17 @@ if (env.CHANGE_TARGET != null) {
     }
 }
 stage("Setup") {
-    def parallelMap = [:]
-    parallelMap["Checkout"] = {
-        node('linux') {
-            gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
-            sh ('echo ' + gitCommit)
-            sh 'git clean -xdf'
-            sh 'git submodule update --init --recursive'
-            sh 'git submodule foreach --recursive git clean -xdf'
-            sdkVersion = readFile 'SdkVersion.txt'
-            sdkVersion = sdkVersion.trim()
-            sh 'echo "$(git log --format="format:%H" -1 --follow client_connect/)-$(git log --format="format:%H" -1 --follow Jenkinsfile)-$GIT_BRANCH" > cchash'
-            clientConnectHash = sha1 ('cchash')
-        }
+    node('linux') {
+        gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
+        sh ('echo ' + gitCommit)
+        sh 'git clean -xdf'
+        sh 'git submodule update --init --recursive'
+        sh 'git submodule foreach --recursive git clean -xdf'
+        sdkVersion = readFile 'SdkVersion.txt'
+        sdkVersion = sdkVersion.trim()
+        sh 'echo "$(git log --format="format:%H" -1 --follow client_connect/)-$(git log --format="format:%H" -1 --follow Jenkinsfile)-$BRANCH_NAME" > cchash'
+        clientConnectHash = sha1 ('cchash')
     }
-    parallelMap["Windows Node"] = {
-        node('windows-hispeed') {
-            timeout(20) {
-            }
-        }
-    }
-    parallel (parallelMap)
 }
 def clientConnectCaches = [
     "Win32",
@@ -57,8 +47,10 @@ stage("Load Caches") {
                     googleStorageDownload bucketUri: (sdkPrefix + '/' + it + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('client_connect/sdk/' + it + '/'), pathPrefix: (clientConnectHash + '/sdk/' + it + '/')
                     stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cc_sdk_' + it)
                     preloaded[it] = true;
+                    echo ('Successfully preloaded Client Connect for target "' + it + '" from Google Cloud')
                 } catch (all) {
                     preloaded[it] = false;
+                    echo ('Unable to preload Client Connect for target "' + it + '" from Google Cloud, will build this run...')
                 }
             }
         }
