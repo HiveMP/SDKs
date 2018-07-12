@@ -29,7 +29,7 @@ namespace HiveMP.Api
         /// The callback handler. This is provided so that a scheduler can execute it
         /// on a background thread when desired by the user.
         /// </summary>
-        public HiveMPPromiseDelegate<T> Handler => _handler;
+        public HiveMPPromiseDelegate<T> Handler { get { return _handler; } }
 
         /// <summary>
         /// The resolve method which calls all of the registered "then" chains. This should
