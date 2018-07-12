@@ -9,7 +9,7 @@ $ErrorActionPreference = 'Stop'
 Push-Location $PSScriptRoot
 
 try {
-  Push-Location $PSScriptRoot\ccsrc
+  Push-Location $PSScriptRoot/ccsrc
   try {
     Write-Output "Restoring packages for Client Connect SDK..."
     yarn --ignore-engines
@@ -40,11 +40,11 @@ try {
   }
 
   Write-Output "Creating CMake build directory for Client Connect..."
-  if (!(Test-Path $PSScriptRoot\build)) {
-    mkdir $PSScriptRoot\build
+  if (!(Test-Path $PSScriptRoot/build)) {
+    mkdir $PSScriptRoot/build
   }
 
-  Push-Location $PSScriptRoot\build
+  Push-Location $PSScriptRoot/build
   try {
     Write-Output "Generating Client Connect solution with CMake..."
     if ($env:OS -eq "Windows_NT") {
