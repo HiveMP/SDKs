@@ -42,7 +42,7 @@ try {
   function Build-With-Target($Id, $Target, $CMakeArgs) {
     Write-Output "Building for $Target..."
     if (!(Test-Path $PSScriptRoot/build_$Id)) {
-      mkdir $PSScriptRoot/build_$Id
+      New-Item -ItemType Directory -Path $PSScriptRoot/build_$Id
     }
     Push-Location $PSScriptRoot/build_$Id
     try {
@@ -60,7 +60,7 @@ try {
 
       Write-Output "Assembling into SDK directory..."
       if (!(Test-Path $PSScriptRoot/sdk/$Id)) {
-        mkdir $PSScriptRoot/sdk/$Id
+        New-Item -ItemType Directory -Path $PSScriptRoot/sdk/$Id
       }
       $Ext = ".dll"
       $Pre = ""
