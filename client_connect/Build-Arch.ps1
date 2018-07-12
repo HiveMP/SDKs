@@ -1,25 +1,10 @@
-#
-# This utility script restores packages, generates and builds the Client Connect DLLs.
-#
-
-param()
+param($ArchId)
 
 $ErrorActionPreference = 'Stop'
 
 Push-Location $PSScriptRoot
 
 try {
-  Push-Location $PSScriptRoot/ccsrc
-  try {
-    Write-Output "Restoring packages for Client Connect SDK..."
-    yarn --ignore-engines
-    if ($LASTEXITCODE -ne 0) {
-      exit 1
-    }
-  } finally {
-    Pop-Location
-  }
-
   if ($env:OS -eq "Windows_NT") {
     $CMake = (Find-Command cmake)
     if ($CMake -eq $null) {
@@ -40,44 +25,46 @@ try {
   }
 
   function Build-With-Target($Id, $Target, $CMakeArgs) {
-    Write-Output "Building for $Target..."
-    if (!(Test-Path $PSScriptRoot/build_$Id)) {
-      New-Item -ItemType Directory -Path $PSScriptRoot/build_$Id
-    }
-    Push-Location $PSScriptRoot/build_$Id
-    try {
-      Write-Output "Generating Client Connect solution with CMake..."
-      & $CMake $CMakeArgs ..
-      if ($LASTEXITCODE -ne 0) {
-        exit 1
+    if ($ArchId -eq $Id) {
+      Write-Output "Building for $Target..."
+      if (!(Test-Path $PSScriptRoot/build_$Id)) {
+        New-Item -ItemType Directory -Path $PSScriptRoot/build_$Id
       }
+      Push-Location $PSScriptRoot/build_$Id
+      try {
+        Write-Output "Generating Client Connect solution with CMake..."
+        & $CMake $CMakeArgs ..
+        if ($LASTEXITCODE -ne 0) {
+          exit 1
+        }
 
-      Write-Output "Building Client Connect solution with CMake..."
-      & $CMake --build . --config Release
-      if ($LASTEXITCODE -ne 0) {
-        exit 1
-      }
+        Write-Output "Building Client Connect solution with CMake..."
+        & $CMake --build . --config Release
+        if ($LASTEXITCODE -ne 0) {
+          exit 1
+        }
 
-      Write-Output "Assembling into SDK directory..."
-      if (!(Test-Path $PSScriptRoot/sdk/$Id)) {
-        New-Item -ItemType Directory -Path $PSScriptRoot/sdk/$Id
+        Write-Output "Assembling into SDK directory..."
+        if (!(Test-Path $PSScriptRoot/sdk/$Id)) {
+          New-Item -ItemType Directory -Path $PSScriptRoot/sdk/$Id
+        }
+        $Ext = ".dll"
+        $Pre = ""
+        $Dir = "Release/"
+        if ($global:IsMacOS) {
+          $Ext = ".dylib"
+          $Pre = "lib"
+          $Dir = "bin/Release/"
+        } elseif ($global:IsLinux) {
+          $Ext = ".so"
+          $Pre = "lib"
+          $Dir = "bin/"
+        }
+        Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)cchost$Ext $PSScriptRoot/sdk/$Id/$($Pre)cchost$Ext
+        Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)curl$Ext $PSScriptRoot/sdk/$Id/$($Pre)curl$Ext
+      } finally {
+        Pop-Location
       }
-      $Ext = ".dll"
-      $Pre = ""
-      $Dir = "Release/"
-      if ($global:IsMacOS) {
-        $Ext = ".dylib"
-        $Pre = "lib"
-        $Dir = "bin/Release/"
-      } elseif ($global:IsLinux) {
-        $Ext = ".so"
-        $Pre = "lib"
-        $Dir = "bin/"
-      }
-      Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)cchost$Ext $PSScriptRoot/sdk/$Id/$($Pre)cchost$Ext
-      Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)curl$Ext $PSScriptRoot/sdk/$Id/$($Pre)curl$Ext
-    } finally {
-      Pop-Location
     }
   }
 
