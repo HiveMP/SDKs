@@ -82,13 +82,13 @@ try {
   }
 
   if ($env:OS -eq "Windows_NT") {
-    Build-With-Target "Win32" "Windows/32-bit" '-G "Visual Studio 15 2017"'
-    Build-With-Target "Win64" "Windows/64-bit" '-G "Visual Studio 15 2017 Win64"'
+    Build-With-Target "Win32" "Windows/32-bit" "-G \`"Visual Studio 15 2017\`""
+    Build-With-Target "Win64" "Windows/64-bit" "-G \`"Visual Studio 15 2017 Win64\`""
   } elseif ($global:IsMacOS) {
-    Build-With-Target "Mac64" "macOS/64-bit" '-G Xcode -D CMAKE_OSX_ARCHITECTURES=x86_64 -D OPENSSL_INCLUDE_DIR=/usr/local/opt/openssl/include'
+    Build-With-Target "Mac64" "macOS/64-bit" "-G \`"Xcode\`" -D CMAKE_OSX_ARCHITECTURES=x86_64 -D OPENSSL_INCLUDE_DIR=/usr/local/opt/openssl/include"
   } elseif ($global:IsLinux) {
-    Build-With-Target "Linux32" "Linux/32-bit" '-G "Unix Makefiles" -D CMAKE_BUILD_TYPE=Release -D CMAKE_TOOLCHAIN_FILE=../toolchain/Linux-i386.cmake'
-    Build-With-Target "Linux64" "Linux/64-bit" '-G "Unix Makefiles" -D CMAKE_BUILD_TYPE=Release -D CMAKE_TOOLCHAIN_FILE=../toolchain/Linux-x86_64.cmake'
+    Build-With-Target "Linux32" "Linux/32-bit" "-G \`"Unix Makefiles\`" -D CMAKE_BUILD_TYPE=Release -D CMAKE_TOOLCHAIN_FILE=../toolchain/Linux-i386.cmake"
+    Build-With-Target "Linux64" "Linux/64-bit" "-G \`"Unix Makefiles\`" -D CMAKE_BUILD_TYPE=Release -D CMAKE_TOOLCHAIN_FILE=../toolchain/Linux-x86_64.cmake"
   }
 } finally {
   Pop-Location
