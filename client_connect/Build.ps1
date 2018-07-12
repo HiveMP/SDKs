@@ -53,7 +53,7 @@ try {
       }
 
       Write-Output "Building Client Connect solution with CMake..."
-      & $CMake --build .
+      & $CMake --build . --config Release
       if ($LASTEXITCODE -ne 0) {
         exit 1
       }
@@ -64,11 +64,11 @@ try {
       }
       $Ext = ".dll"
       $Pre = ""
-      $Dir = ""
+      $Dir = "Release/"
       if ($global:IsMacOS) {
         $Ext = ".dylib"
         $Pre = "lib"
-        $Dir = "bin/"
+        $Dir = "bin/Release/"
       } elseif ($global:IsLinux) {
         $Ext = ".so"
         $Pre = "lib"
