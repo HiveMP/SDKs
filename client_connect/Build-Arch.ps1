@@ -62,7 +62,7 @@ try {
         }
         Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)cchost$Ext $PSScriptRoot/sdk/$Id/$($Pre)cchost$Ext
         if ($env:OS -eq "Windows_NT") {
-          Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)curl$Ext $PSScriptRoot/sdk/$Id/$($Pre)libcurl$Ext
+          Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)libcurl$Ext $PSScriptRoot/sdk/$Id/$($Pre)libcurl$Ext
         } else {
           Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)curl$Ext $PSScriptRoot/sdk/$Id/$($Pre)curl$Ext
         }
