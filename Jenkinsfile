@@ -29,6 +29,8 @@ stage("Build Client Connect") {
                 sdkVersion = readFile 'SdkVersion.txt'
                 sdkVersion = sdkVersion.trim()
                 bat 'pwsh client_connect\\Build.ps1'
+                stash includes: ('client_connect/sdk/Win32/**'), name: 'cc_sdk_Win32'
+                stash includes: ('client_connect/sdk/Win64/**'), name: 'cc_sdk_Win64'
             }
         }
     };
@@ -40,6 +42,7 @@ stage("Build Client Connect") {
                 sh 'git submodule update --init --recursive'
                 sh 'yarn'
                 sh 'pwsh client_connect/Build.ps1'
+                stash includes: ('client_connect/sdk/Mac64/**'), name: 'cc_sdk_Mac64'
             }
         }
     };
@@ -51,6 +54,8 @@ stage("Build Client Connect") {
                 sh 'git submodule update --init --recursive'
                 sh 'yarn'
                 sh 'pwsh client_connect/Build.ps1'
+                stash includes: ('client_connect/sdk/Linux32/**'), name: 'cc_sdk_Linux32'
+                stash includes: ('client_connect/sdk/Linux64/**'), name: 'cc_sdk_Linux64'
             }
         }
     };

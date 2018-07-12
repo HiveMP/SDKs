@@ -39,30 +39,56 @@ try {
     Write-Error "CMake is not installed!"
   }
 
-  Write-Output "Creating CMake build directory for Client Connect..."
-  if (!(Test-Path $PSScriptRoot/build)) {
-    mkdir $PSScriptRoot/build
+  function Build-With-Target($Id, $Target, $CMakeArgs) {
+    Write-Output "Building for $Target..."
+    if (!(Test-Path $PSScriptRoot/build_$Id)) {
+      mkdir $PSScriptRoot/build_$Id
+    }
+    Push-Location $PSScriptRoot/build_$Id
+    try {
+      Write-Output "Generating Client Connect solution with CMake..."
+      & $CMake $CMakeArgs ..
+      if ($LASTEXITCODE -ne 0) {
+        exit 1
+      }
+
+      Write-Output "Building Client Connect solution with CMake..."
+      & $CMake --build .
+      if ($LASTEXITCODE -ne 0) {
+        exit 1
+      }
+
+      Write-Output "Assembling into SDK directory..."
+      if (!(Test-Path $PSScriptRoot/sdk/$Id)) {
+        mkdir $PSScriptRoot/sdk/$Id
+      }
+      $Ext = ".dll"
+      $Pre = ""
+      $Dir = ""
+      if ($global:IsMacOS) {
+        $Ext = ".dylib"
+        $Pre = "lib"
+        $Dir = "bin/"
+      } else if ($global:IsLinux) {
+        $Ext = ".so"
+        $Pre = "lib"
+        $Dir = "bin/"
+      }
+      Copy-Item $PSScriptRoot/build/$Dir$($Pre)cchost$Ext $PSScriptRoot/sdk/$Id/$Dir$($Pre)cchost$Ext
+      Copy-Item $PSScriptRoot/build/$Dir$($Pre)curl$Ext $PSScriptRoot/sdk/$Id/$Dir$($Pre)curl$Ext
+    } finally {
+      Pop-Location
+    }
   }
 
-  Push-Location $PSScriptRoot/build
-  try {
-    Write-Output "Generating Client Connect solution with CMake..."
-    if ($env:OS -eq "Windows_NT") {
-      & $CMake -G "Visual Studio 15 2017" ..
-    } else {
-      & $CMake -G "Unix Makefiles" ..
-    }
-    if ($LASTEXITCODE -ne 0) {
-      exit 1
-    }
-
-    Write-Output "Building Client Connect solution with CMake..."
-    & $CMake --build .
-    if ($LASTEXITCODE -ne 0) {
-      exit 1
-    }
-  } finally {
-    Pop-Location
+  if ($env:OS -eq "Windows_NT") {
+    Build-With-Target "Win32" "Windows/32-bit" "-G `"Visual Studio 15 2017`""
+    Build-With-Target "Win64" "Windows/64-bit" "-G `"Visual Studio 15 2017 Win64`""
+  } else if ($global:IsMacOS) {
+    Build-With-Target "Mac64" "macOS/64-bit" "-G Xcode -D CMAKE_OSX_ARCHITECTURES=x86_64 -D OPENSSL_INCLUDE_DIR=/usr/local/opt/openssl/include"
+  } else if ($global:IsLinux) {
+    Build-With-Target "Linux32" "Linux/32-bit" "-G `"Unix Makefiles`" -D CMAKE_BUILD_TYPE=Release -D CMAKE_TOOLCHAIN_FILE=../toolchain/Linux-i386.cmake"
+    Build-With-Target "Linux64" "Linux/64-bit" "-G `"Unix Makefiles`" -D CMAKE_BUILD_TYPE=Release -D CMAKE_TOOLCHAIN_FILE=../toolchain/Linux-x86_64.cmake"
   }
 } finally {
   Pop-Location
