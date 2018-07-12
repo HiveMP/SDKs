@@ -12,6 +12,8 @@ def supportedUnrealVersions = [
     "4.19"
 ]
 def clientConnectHash = ""
+// If changing the steps related to Client Connect build, increase this number.
+def clientConnectBuildConfigVersion = "1"
 if (env.CHANGE_TARGET != null) {
     stage("Confirm") {
         input "Approve this PR build to run? Check the PR first!"
@@ -26,7 +28,7 @@ stage("Setup") {
         sh 'git submodule foreach --recursive git clean -xdf'
         sdkVersion = readFile 'SdkVersion.txt'
         sdkVersion = sdkVersion.trim()
-        sh 'echo "$(git log --format="format:%H" -1 --follow client_connect/)-$(git log --format="format:%H" -1 --follow Jenkinsfile)-$BRANCH_NAME" > cchash'
+        sh 'echo "$(git log --format="format:%H" -1 --follow client_connect/)-' + clientConnectBuildConfigVersion + '-$BRANCH_NAME" > cchash'
         clientConnectHash = sha1 ('cchash')
     }
 }
