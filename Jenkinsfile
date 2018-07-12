@@ -77,6 +77,17 @@ stage("Build Client Connect") {
         }
     };
     parallel (parallelMap)
+    node('windows-hispeed') {
+        // Archive the SDKs together so we can download them from Jenkins for local development
+        ws {
+            unstash name: 'cc_sdk_Win32'
+            unstash name: 'cc_sdk_Win64'
+            unstash name: 'cc_sdk_Mac64'
+            unstash name: 'cc_sdk_Linux32'
+            unstash name: 'cc_sdk_Linux64'
+            archiveArtifacts 'client_connect/sdk/**'
+        }
+    }
 }
 node('windows-hispeed') {
     stage("Generate") {
