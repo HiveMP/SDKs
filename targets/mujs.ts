@@ -95,6 +95,10 @@ export class MuJsTypeScriptGenerator implements TargetGenerator {
       console.warn(ex);
       type = 'any' + nullableSuffix + ' /* unknown */';
     }
+    if (type != null && type.endsWith(".HiveMPSystemError")) {
+      // Temporary workaround until we can use the common TypeScript infrastructure.
+      type = "HiveMPSystemError";
+    }
     return type;
   }
 
