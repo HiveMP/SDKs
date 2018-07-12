@@ -64,11 +64,11 @@ stage("Build Client Connect") {
                 sh 'yarn'
                 sh 'pwsh client_connect/Build-Init.ps1'
                 def parallelArchMap = [:]
-                parallelArchMap["Win32"] = {
+                parallelArchMap["Linux32"] = {
                     sh 'pwsh client_connect/Build-Arch.ps1 Linux32'
                     stash includes: ('client_connect/sdk/Linux32/**'), name: 'cc_sdk_Linux32'
                 }
-                parallelArchMap["Win64"] = {
+                parallelArchMap["Linux64"] = {
                     sh 'pwsh client_connect/Build-Arch.ps1 Linux64'
                     stash includes: ('client_connect/sdk/Linux64/**'), name: 'cc_sdk_Linux64'
                 }
