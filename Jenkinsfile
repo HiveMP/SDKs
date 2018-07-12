@@ -56,7 +56,7 @@ stage("Load Caches") {
                     googleStorageDownload bucketUri: (sdkPrefix + '/' + it + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('client_connect/sdk/' + it + '/'), pathPrefix: (clientConnectHash + '/sdk/' + it + '/')
                     stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cc_sdk_' + it)
                     preloaded[it] = true;
-                } catch {
+                } catch (all) {
                     preloaded[it] = false;
                 }
             }
