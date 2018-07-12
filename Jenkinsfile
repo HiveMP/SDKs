@@ -11,73 +11,141 @@ def supportedUnrealVersions = [
     "4.18",
     "4.19"
 ]
+def clientConnectHash = ""
 if (env.CHANGE_TARGET != null) {
     stage("Confirm") {
         input "Approve this PR build to run? Check the PR first!"
     }
 }
+stage("Setup") {
+    def parallelMap = [:]
+    parallelMap["Checkout"] = {
+        node('linux') {
+            gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
+            sh ('echo ' + gitCommit)
+            sh 'git clean -xdf'
+            sh 'git submodule update --init --recursive'
+            sh 'git submodule foreach --recursive git clean -xdf'
+            sdkVersion = readFile 'SdkVersion.txt'
+            sdkVersion = sdkVersion.trim()
+            sh 'echo "$(git log --format="format:%H" -1 --follow client_connect/)-$(git log --format="format:%H" -1 --follow Jenkinsfile)-$GIT_BRANCH" > cchash'
+            clientConnectHash = sha1 ('cchash')
+        }
+    }
+    parallelMap["Windows Node"] = {
+        node('windows-hispeed') {
+            timeout(20) {
+            }
+        }
+    }
+}
+def clientConnectCaches = [
+    "Win32",
+    "Win64",
+    "Mac64",
+    "Linux32",
+    "Linux64"
+]
+def preloaded = [:]
+stage("Load Caches") {
+    def sdkPrefix = ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk')
+    node('windows-hispeed') {
+        if (clientConnectHash != "") {
+            clientConnectCaches.each {
+                try {
+                    googleStorageDownload bucketUri: (sdkPrefix + '/' + it + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('client_connect/sdk/' + it + '/'), pathPrefix: (clientConnectHash + '/sdk/' + it + '/')
+                    stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cc_sdk_' + it)
+                    preloaded[it] = true;
+                } catch {
+                    preloaded[it] = false;
+                }
+            }
+        }
+    }
+}
 stage("Build Client Connect") {
     def parallelMap = [:]
     parallelMap["Windows"] = {
-        node('windows-hispeed') {
-            timeout(20) {
-                gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
-                bat ('echo ' + gitCommit)
-                bat 'git clean -xdff'
-                bat 'git submodule update --init --recursive'
-                bat 'yarn'
-                sdkVersion = readFile 'SdkVersion.txt'
-                sdkVersion = sdkVersion.trim()
-                bat 'pwsh client_connect\\Build-Init.ps1'
-                def parallelArchMap = [:]
-                parallelArchMap["Win32"] = {
-                    bat 'pwsh client_connect\\Build-Arch.ps1 Win32'
-                    stash includes: ('client_connect/sdk/Win32/**'), name: 'cc_sdk_Win32'
+        if (!preloaded["Win32"] || !preloaded["Win64"]) {
+            node('windows-hispeed') {
+                timeout(20) {
+                    checkout(poll: false, changelog: false, scm: scm)
+                    bat 'git clean -xdf'
+                    bat 'git submodule update --init --recursive'
+                    bat 'git submodule foreach --recursive git clean -xdf'
+                    bat 'yarn'
+                    bat 'pwsh client_connect\\Build-Init.ps1'
+                    def parallelArchMap = [:]
+                    parallelArchMap["Win32"] = {
+                        if (!preloaded["Win32"]) {
+                            bat 'pwsh client_connect\\Build-Arch.ps1 Win32'
+                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk/Win32'), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win32/**'
+                            stash includes: ('client_connect/sdk/Win32/**'), name: 'cc_sdk_Win32'
+                        }
+                    }
+                    parallelArchMap["Win64"] = {
+                        if (!preloaded["Win64"]) {
+                            bat 'pwsh client_connect\\Build-Arch.ps1 Win64'
+                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk/Win64'), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win64/**'
+                            stash includes: ('client_connect/sdk/Win64/**'), name: 'cc_sdk_Win64'
+                        }
+                    }
+                    parallel (parallelArchMap)
                 }
-                parallelArchMap["Win64"] = {
-                    bat 'pwsh client_connect\\Build-Arch.ps1 Win64'
-                    stash includes: ('client_connect/sdk/Win64/**'), name: 'cc_sdk_Win64'
-                }
-                parallel (parallelArchMap)
             }
         }
     };
     parallelMap["macOS"] = {
         node('mac') {
-            timeout(20) {
-                checkout(poll: false, changelog: false, scm: scm)
-                sh 'git clean -xdff'
-                sh 'git submodule update --init --recursive'
-                sh 'yarn'
-                sh 'pwsh client_connect/Build-Init.ps1'
-                sh 'pwsh client_connect/Build-Arch.ps1 Mac64'
-                stash includes: ('client_connect/sdk/Mac64/**'), name: 'cc_sdk_Mac64'
+            if (!preloaded["Mac64"]) {
+                timeout(20) {
+                    checkout(poll: false, changelog: false, scm: scm)
+                    sh 'git clean -xdf'
+                    sh 'git submodule update --init --recursive'
+                    sh 'git submodule foreach --recursive git clean -xdf'
+                    sh 'yarn'
+                    sh 'pwsh client_connect/Build-Init.ps1'
+                    sh 'pwsh client_connect/Build-Arch.ps1 Mac64'
+                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk/Mac64'), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Mac64/**'
+                    stash includes: ('client_connect/sdk/Mac64/**'), name: 'cc_sdk_Mac64'
+                }
             }
         }
     };
     parallelMap["Linux"] = {
         node('linux') {
-            timeout(20) {
-                checkout(poll: false, changelog: false, scm: scm)
-                sh 'git clean -xdff'
-                sh 'git submodule update --init --recursive'
-                sh 'yarn'
-                sh 'pwsh client_connect/Build-Init.ps1'
-                def parallelArchMap = [:]
-                parallelArchMap["Linux32"] = {
-                    sh 'pwsh client_connect/Build-Arch.ps1 Linux32'
-                    stash includes: ('client_connect/sdk/Linux32/**'), name: 'cc_sdk_Linux32'
+            if (!preloaded["Linux32"] || !preloaded["Linux64"]) {
+                timeout(20) {
+                    checkout(poll: false, changelog: false, scm: scm)
+                    sh 'git clean -xdf'
+                    sh 'git submodule update --init --recursive'
+                    sh 'git submodule foreach --recursive git clean -xdf'
+                    sh 'yarn'
+                    sh 'pwsh client_connect/Build-Init.ps1'
+                    def parallelArchMap = [:]
+                    parallelArchMap["Linux32"] = {
+                        if (!preloaded["Linux32"]) {
+                            sh 'pwsh client_connect/Build-Arch.ps1 Linux32'
+                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk/Linux32'), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux32/**'
+                            stash includes: ('client_connect/sdk/Linux32/**'), name: 'cc_sdk_Linux32'
+                        }
+                    }
+                    parallelArchMap["Linux64"] = {
+                        if (!preloaded["Linux64"]) {
+                            sh 'pwsh client_connect/Build-Arch.ps1 Linux64'
+                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash + '/sdk/Linux64'), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux64/**'
+                            stash includes: ('client_connect/sdk/Linux64/**'), name: 'cc_sdk_Linux64'
+                        }
+                    }
+                    parallel (parallelArchMap)
                 }
-                parallelArchMap["Linux64"] = {
-                    sh 'pwsh client_connect/Build-Arch.ps1 Linux64'
-                    stash includes: ('client_connect/sdk/Linux64/**'), name: 'cc_sdk_Linux64'
-                }
-                parallel (parallelArchMap)
             }
         }
     };
     parallel (parallelMap)
-    node('windows-hispeed') {
+}
+node('windows-hispeed') {
+    stage("Archive Client Connect") {
         // Archive the SDKs together so we can download them from Jenkins for local development
         ws {
             unstash name: 'cc_sdk_Win32'
@@ -88,26 +156,34 @@ stage("Build Client Connect") {
             archiveArtifacts 'client_connect/sdk/**'
         }
     }
-}
-node('windows-hispeed') {
     stage("Generate") {
+        checkout(poll: false, changelog: false, scm: scm)
+        bat 'git clean -xdf'
+        bat 'git submodule update --init --recursive'
+        bat 'git submodule foreach --recursive git clean -xdf'
+        bat 'yarn'
+        unstash name: 'cc_sdk_Win32'
+        unstash name: 'cc_sdk_Win64'
+        unstash name: 'cc_sdk_Mac64'
+        unstash name: 'cc_sdk_Linux32'
+        unstash name: 'cc_sdk_Linux64'
         def parallelMap = [:]
         parallelMap["CSharp-4.5"] = {
             timeout(15) {
-                bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c CSharp-4.5 dist/CSharp-4.5'
+                bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c CSharp-4.5 dist/CSharp-4.5'
                 bat 'cd dist/CSharp-4.5 && dotnet restore HiveMP.sln && dotnet build -c Release HiveMP.sln'
             }
         };
         parallelMap["CSharp-3.5"] = {
             timeout(15) {
-                bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c CSharp-3.5 dist/CSharp-3.5'
+                bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c CSharp-3.5 dist/CSharp-3.5'
                 bat 'pwsh util/Fetch-NuGet.ps1'
                 bat 'cd dist/CSharp-3.5 && nuget restore && %windir%\\Microsoft.NET\\Framework64\\v4.0.30319\\msbuild /p:Configuration=Release /m HiveMP.sln'
             }
         };
         parallelMap["Unity"] = {
             timeout(5) {
-                bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c Unity dist/Unity'
+                bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c Unity dist/Unity'
             }
         };
         supportedUnrealVersions.each { v ->
@@ -115,7 +191,7 @@ node('windows-hispeed') {
             parallelMap["UnrealEngine-" + version] =
             {
                 timeout(5) {
-                    bat 'yarn run generator generate --client-connect-sdk-path deps/HiveMP.ClientConnect/sdk -c UnrealEngine-' + version + ' dist/UnrealEngine-' + version
+                    bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c UnrealEngine-' + version + ' dist/UnrealEngine-' + version
                 }
             };
         }
