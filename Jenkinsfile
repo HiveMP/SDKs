@@ -60,8 +60,8 @@ stage("Load Caches") {
 }
 stage("Build Client Connect") {
     def parallelMap = [:]
-    parallelMap["Windows"] = {
-        if (!preloaded["Win32"] || !preloaded["Win64"]) {
+    parallelMap["Win32"] = {
+        if (!preloaded["Win32"]) {
             node('windows-hispeed') {
                 timeout(20) {
                     checkout(poll: false, changelog: false, scm: scm)
@@ -70,29 +70,34 @@ stage("Build Client Connect") {
                     bat 'git submodule foreach --recursive git clean -xdf'
                     bat 'yarn'
                     bat 'pwsh client_connect\\Build-Init.ps1'
-                    def parallelArchMap = [:]
-                    parallelArchMap["Win32"] = {
-                        if (!preloaded["Win32"]) {
-                            bat 'pwsh client_connect\\Build-Arch.ps1 Win32'
-                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win32/**'
-                            stash includes: ('client_connect/sdk/Win32/**'), name: 'cc_sdk_Win32'
-                        }
-                    }
-                    parallelArchMap["Win64"] = {
-                        if (!preloaded["Win64"]) {
-                            bat 'pwsh client_connect\\Build-Arch.ps1 Win64'
-                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win64/**'
-                            stash includes: ('client_connect/sdk/Win64/**'), name: 'cc_sdk_Win64'
-                        }
-                    }
+                    bat 'pwsh client_connect\\Build-Arch.ps1 Win32'
+                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win32/**'
+                    stash includes: ('client_connect/sdk/Win32/**'), name: 'cc_sdk_Win32'
+                }
+            }
+        }
+    };
+    parallelMap["Win64"] = {
+        if (!preloaded["Win64"]) {
+            node('windows-hispeed') {
+                timeout(20) {
+                    checkout(poll: false, changelog: false, scm: scm)
+                    bat 'git clean -xdf'
+                    bat 'git submodule update --init --recursive'
+                    bat 'git submodule foreach --recursive git clean -xdf'
+                    bat 'yarn'
+                    bat 'pwsh client_connect\\Build-Init.ps1'
+                    bat 'pwsh client_connect\\Build-Arch.ps1 Win64'
+                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win64/**'
+                    stash includes: ('client_connect/sdk/Win64/**'), name: 'cc_sdk_Win64'
                     parallel (parallelArchMap)
                 }
             }
         }
     };
-    parallelMap["macOS"] = {
-        node('mac') {
-            if (!preloaded["Mac64"]) {
+    parallelMap["Mac64"] = {
+        if (!preloaded["Mac64"]) {
+            node('mac') {
                 timeout(20) {
                     checkout(poll: false, changelog: false, scm: scm)
                     sh 'git clean -xdf'
@@ -107,9 +112,9 @@ stage("Build Client Connect") {
             }
         }
     };
-    parallelMap["Linux"] = {
-        node('linux') {
-            if (!preloaded["Linux32"] || !preloaded["Linux64"]) {
+    parallelMap["Linux32"] = {
+        if (!preloaded["Linux32"]) {
+            node('linux') {
                 timeout(20) {
                     checkout(poll: false, changelog: false, scm: scm)
                     sh 'git clean -xdf'
@@ -117,22 +122,26 @@ stage("Build Client Connect") {
                     sh 'git submodule foreach --recursive git clean -xdf'
                     sh 'yarn'
                     sh 'pwsh client_connect/Build-Init.ps1'
-                    def parallelArchMap = [:]
-                    parallelArchMap["Linux32"] = {
-                        if (!preloaded["Linux32"]) {
-                            sh 'pwsh client_connect/Build-Arch.ps1 Linux32'
-                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux32/**'
-                            stash includes: ('client_connect/sdk/Linux32/**'), name: 'cc_sdk_Linux32'
-                        }
-                    }
-                    parallelArchMap["Linux64"] = {
-                        if (!preloaded["Linux64"]) {
-                            sh 'pwsh client_connect/Build-Arch.ps1 Linux64'
-                            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux64/**'
-                            stash includes: ('client_connect/sdk/Linux64/**'), name: 'cc_sdk_Linux64'
-                        }
-                    }
-                    parallel (parallelArchMap)
+                    sh 'pwsh client_connect/Build-Arch.ps1 Linux32'
+                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux32/**'
+                    stash includes: ('client_connect/sdk/Linux32/**'), name: 'cc_sdk_Linux32'
+                }
+            }
+        }
+    };
+    parallelMap["Linux64"] = {
+        if (!preloaded["Linux64"]) {
+            node('linux') {
+                timeout(20) {
+                    checkout(poll: false, changelog: false, scm: scm)
+                    sh 'git clean -xdf'
+                    sh 'git submodule update --init --recursive'
+                    sh 'git submodule foreach --recursive git clean -xdf'
+                    sh 'yarn'
+                    sh 'pwsh client_connect/Build-Init.ps1'
+                    sh 'pwsh client_connect/Build-Arch.ps1 Linux64'
+                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux64/**'
+                    stash includes: ('client_connect/sdk/Linux64/**'), name: 'cc_sdk_Linux64'
                 }
             }
         }
