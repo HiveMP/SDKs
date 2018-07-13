@@ -3,7 +3,8 @@ def supportedUnityVersions = [
     "5.4.1f",
     "2017.1.1f1",
     "2017.2.0f3",
-    "2017.3.0f3"
+    "2017.3.0f3",
+    "2018.1.7f1"
 ]
 def gitCommit = ""
 def supportedUnrealVersions = [
