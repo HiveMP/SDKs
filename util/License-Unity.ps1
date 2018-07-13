@@ -16,3 +16,7 @@ if (!(Test-Path "C:\UAL")) {
 
 Write-Output "Running Unity licensing application..."
 & C:\UAL\UnityAutomaticLicensor.exe --username "$env:UNITY_LICENSE_USERNAME" --password "$env:UNITY_LICENSE_PASSWORD" --unity-path "C:\Program Files\Unity_5.4.1f\Editor\Unity.exe"
+if ($LastExitCode -ne 0) {
+  Write-Error "Licensing didn't complete successfully."
+  exit 1
+}

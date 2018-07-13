@@ -28,7 +28,7 @@ public class RunTestsComponent : MonoBehaviour
         }, Bail);
     }
 
-    private void Bail(HiveMPException ex)
+    private void Bail(System.Exception ex)
     {
         Debug.LogException(ex);
         Application.Quit();
