@@ -8,8 +8,9 @@ def supportedUnityVersions = [
 ]
 def gitCommit = ""
 def supportedUnrealVersions = [
-    "4.17",
-    "4.18",
+    // TODO: Re-enable these when they're installed on the Build Agents
+    // "4.17",
+    // "4.18",
     "4.19"
 ]
 def clientConnectHash = ""
@@ -279,7 +280,6 @@ node('windows-hispeed') {
                     }
                 }
                 timeout(10) {
-                    stash includes: 'tests/UnrealBuilds-' + version + '/Win32/**', name: 'unreal-' + version + '-test-win32'
                     stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
                     stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
                 }
@@ -342,28 +342,16 @@ node('windows-hispeed') {
         }
         supportedUnrealVersions.each { v ->
             def version = v
-            parallelMap["UnrealEngine-" + version + "-Win32"] =
+            parallelMap["UnrealEngine-" + version + "-Win64"] =
             {
                 node('windows') {
                     timeout(30) {
-                        unstash 'unreal-' + version + '-test-win32'
+                        unstash 'unreal-' + version + '-test-win64'
                         unstash 'unreal-' + version + '-test-script'
-                        bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win32'
+                        bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
                     }
                 }
             };
-            if (version == "4.18") {
-                parallelMap["UnrealEngine-" + version + "-Win64"] =
-                {
-                    node('windows') {
-                        timeout(30) {
-                            unstash 'unreal-' + version + '-test-win64'
-                            unstash 'unreal-' + version + '-test-script'
-                            bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
-                        }
-                    }
-                };
-            }
         }
         parallel (parallelMap)
     }
