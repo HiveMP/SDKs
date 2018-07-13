@@ -144,9 +144,18 @@ function Do-Unity-Build($uPlatform, $platform) {
     if ($platform.Contains("Win")) {
       $suffix = ".exe";
     }
+    $authArgs = @()
+    if ($env:UNITY_LICENSE_PASSWORD -ne $null) {
+      $authArgs = @(
+        "-username",
+        $env:UNITY_LICENSE_USERNAME,
+        "-password",
+        $env:UNITY_LICENSE_PASSWORD
+      )
+    }
     $process = Start-Process `
       -FilePath $unity `
-      -ArgumentList @(
+      -ArgumentList ($authArgs + @(
         "-quit",
         "-batchmode",
         "-force-d3d9",
@@ -157,7 +166,7 @@ function Do-Unity-Build($uPlatform, $platform) {
         "$PSScriptRoot\..\tests\UnityBuilds-$Version\$platform\HiveMPTest$suffix",
         "-logFile",
         "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log"
-      ) `
+      )) `
       -PassThru
     if ($process -eq $null) {
       Write-Error "Unity didn't start correctly!"

@@ -140,9 +140,18 @@ function Do-Unity-Package() {
     if (Test-Path "C:\Program Files\Unity_$Version\Editor\Unity.exe") {
       $unity = "C:\Program Files\Unity_$Version\Editor\Unity.exe"
     }
+    $authArgs = @()
+    if ($env:UNITY_LICENSE_PASSWORD -ne $null) {
+      $authArgs = @(
+        "-username",
+        $env:UNITY_LICENSE_USERNAME,
+        "-password",
+        $env:UNITY_LICENSE_PASSWORD
+      )
+    }
     $process = Start-Process `
       -FilePath $unity `
-      -ArgumentList @(
+      -ArgumentList ($authArgs + @(
         "-quit",
         "-batchmode",
         "-exportPackage",
@@ -152,7 +161,7 @@ function Do-Unity-Package() {
         "$PSScriptRoot\..\tests\UnityTest-$Version",
         "-logFile",
         "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log"
-      ) `
+      )) `
       -PassThru
     if ($process -eq $null) {
       Write-Error "Unity didn't start correctly!"

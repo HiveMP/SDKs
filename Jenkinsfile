@@ -213,7 +213,9 @@ node('windows-hispeed') {
             timeout(10) {
                 bat ('pwsh util/Unity-PrePackage.ps1 -SdkVersion ' + sdkVersion)
                 stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'unitysdk'
-                bat ('pwsh util/Unity-PostPackage.ps1 -SdkVersion ' + sdkVersion)
+                withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
+                    bat ('pwsh util/Unity-PostPackage.ps1 -SdkVersion ' + sdkVersion)
+                }
                 stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage'), name: 'unitypackage'
             }
         };
@@ -236,7 +238,9 @@ node('windows-hispeed') {
             parallelMap["Unity-" + version] =
             {
                 timeout(60) {
-                    bat 'pwsh tests/Build-UnityTests.ps1 -Version ' + version
+                    withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
+                        bat 'pwsh tests/Build-UnityTests.ps1 -Version ' + version
+                    }
                 }
                 timeout(10) {
                     if (version == "5.4.1f" || version == "2017.1.1f1" || version == "2017.2.0f3") {
