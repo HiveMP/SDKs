@@ -207,6 +207,11 @@ node('windows-hispeed') {
         }
         parallel (parallelMap)
     }
+    stage("Licensing") {
+        withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
+            bat 'pwsh util/License-Unity.ps1'
+        }
+    }
     stage("Package") {
         def parallelMap = [:]
         parallelMap["CSharp"] = {
@@ -216,7 +221,7 @@ node('windows-hispeed') {
             }
         };
         parallelMap["Unity"] = {
-            timeout(10) {
+            timeout(20) {
                 bat ('pwsh util/Unity-PrePackage.ps1 -SdkVersion ' + sdkVersion)
                 stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'unitysdk'
                 withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {

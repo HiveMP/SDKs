@@ -155,7 +155,8 @@ function Do-Unity-Package() {
         "-username",
         $env:UNITY_LICENSE_USERNAME,
         "-password",
-        $env:UNITY_LICENSE_PASSWORD
+        $env:UNITY_LICENSE_PASSWORD,
+        "-force-free"
       )
     }
     $process = Start-Process `
