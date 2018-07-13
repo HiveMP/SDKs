@@ -443,7 +443,7 @@ export function implementationMethodDeclarations(values: {
       /// <param name="reject">The callback to run when the API call failed. This is always executed on the main thread.</param>
       public void ${values.methodName}Promise(${values.methodName}Request arguments, ${values.returnTypes.promiseType} resolve, System.Action<System.Exception> reject)
       {
-          HiveMP.Api.HiveMPPromiseScheduler.Execute(new ${values.promiseReturnType}((resolve_, reject_) =>
+          HiveMP.Api.HiveMPPromiseScheduler.ExecuteWithMainThreadCallbacks(new ${values.promiseReturnType}((resolve_, reject_) =>
           {
               try
               {
