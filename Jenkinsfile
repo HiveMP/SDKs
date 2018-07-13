@@ -43,19 +43,23 @@ def preloaded = [:]
 stage("Load Caches") {
     def sdkPrefix = ('gs://redpoint-build-cache/' + clientConnectHash)
     node('linux') {
-        if (clientConnectHash != "") {
-            clientConnectCaches.each {
-                try {
-                    googleStorageDownload bucketUri: (sdkPrefix + '/client_connect/sdk/' + it + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('client_connect/sdk/' + it + '/'), pathPrefix: (clientConnectHash + '/client_connect/sdk/' + it + '/')
-                    stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cc_sdk_' + it)
-                    preloaded[it] = true;
-                    echo ('Successfully preloaded Client Connect for target "' + it + '" from Google Cloud')
-                } catch (all) {
-                    preloaded[it] = false;
-                    echo ('Unable to preload Client Connect for target "' + it + '" from Google Cloud, will build this run...')
+        def parallelMap = [:]
+        clientConnectCaches.each {
+            parallelMap[it] = {
+                if (clientConnectHash != "") {
+                    try {
+                        googleStorageDownload bucketUri: (sdkPrefix + '/client_connect/sdk/' + it + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('client_connect/sdk/' + it + '/'), pathPrefix: (clientConnectHash + '/client_connect/sdk/' + it + '/')
+                        stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cc_sdk_' + it)
+                        preloaded[it] = true;
+                        echo ('Successfully preloaded Client Connect for target "' + it + '" from Google Cloud')
+                    } catch (all) {
+                        preloaded[it] = false;
+                        echo ('Unable to preload Client Connect for target "' + it + '" from Google Cloud, will build this run...')
+                    }
                 }
             }
         }
+        parallel (parallelMap)
     }
 }
 stage("Build Client Connect") {
