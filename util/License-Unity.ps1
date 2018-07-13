@@ -6,6 +6,9 @@ Write-Output "Downloading Unity licensing application..."
 Invoke-WebRequest -UseBasicParsing -Uri https://github.com/RedpointGames/UnityAutomaticLicensor/releases/download/0.1/UnityAutomaticLicensor.zip -OutFile C:\UnityAutomaticLicensor.zip
 
 Write-Output "Extracting Unity licensing application..."
+if (Test-Path "C:\UAL") {
+  Remove-Item -Force -Recurse "C:\UAL"
+}
 if (!(Test-Path "C:\UAL")) {
   New-Item -Path "C:\UAL" -ItemType Directory
 }
