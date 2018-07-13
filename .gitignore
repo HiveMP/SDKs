@@ -38,3 +38,5 @@ UnrealEngine-*.zip
 
 build/
 .DS_Store
+
+/client_connect/sdk/
