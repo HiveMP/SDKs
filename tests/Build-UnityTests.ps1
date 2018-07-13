@@ -104,7 +104,7 @@ function Wait-For-Unity-Exit($path, $processId) {
       $outcome = "retry";
       $running = $false;
       break;
-    } elseif ($l.Contains("Exiting batchmode") -or $l.Contains("Aborting batchmode")) {
+    } elseif ($l.Contains("Exiting batchmode") -or $l.Contains("Aborting batchmode") -or $l.Contains("Plugins colliding with each other") -or $l.Contains("target is not supported in this Unity build")) {
       $outcome = "failure";
       $running = $false;
       break;
