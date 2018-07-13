@@ -326,7 +326,7 @@ export function implementationMethodDeclarations(values: {
                       
                       var request_ = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(url_);
                       request_.Method = "${values.methodHttpMethod}";
-                      request_.ContentLength = content.Length;
+                      request_.ContentLength = content_ == null ? 0 : content_.Length;
                       request_.Accept = "application/json";
                       client_.UpdateRequest(request_);
 
@@ -558,7 +558,7 @@ export function implementationMethodDeclarations(values: {
               
               var request_ = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(url_);
               request_.Method = "${values.methodHttpMethod}";
-              request_.ContentLength = content_.Length;
+              request_.ContentLength = content_ == null ? 0 : content_.Length;
               request_.Accept = "application/json";
               client_.UpdateRequest(request_);
 
