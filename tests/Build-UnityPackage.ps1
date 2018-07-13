@@ -86,6 +86,15 @@ function Wait-For-Unity-Exit($path, $processId) {
       }
       return "retry";
     }
+    if ($l.Contains("Canceling DisplayDialog: Updating license failed Failed to update license within 60 seconds")) {
+      Write-Host "Licensing timeout - Unity has stalled!";
+      try { Stop-Process -Force -Id $processId; } catch { }
+      while ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -gt 0) {
+        Write-Host "Waiting for Unity to exit...";
+        sleep -Seconds 1;
+      }
+      return "retry";
+    }
     if ($l.Contains("Exiting batchmode successfully")) {
       $outcome = "success";
       $running = $false;
