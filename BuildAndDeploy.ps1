@@ -20,11 +20,8 @@ try {
     exit 1
   }
 
-  Push-Location $PSScriptRoot\client_connect
-  .\Build.ps1
-
   Write-Output "Generating target SDK into target folder..."
-  yarn generator generate $TargetLang "$TargetDir"
+  yarn generator generate --client-connect-sdk-path client_connect/sdk -c $TargetLang "$TargetDir"
   if ($LASTEXITCODE -ne 0) {
     exit 1
   }
