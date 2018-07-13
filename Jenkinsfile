@@ -42,7 +42,7 @@ def clientConnectCaches = [
 def preloaded = [:]
 stage("Load Caches") {
     def sdkPrefix = ('gs://redpoint-build-cache/' + clientConnectHash)
-    node('windows-hispeed') {
+    node('linux') {
         if (clientConnectHash != "") {
             clientConnectCaches.each {
                 try {
@@ -148,7 +148,7 @@ stage("Build Client Connect") {
     };
     parallel (parallelMap)
 }
-node('windows-hispeed') {
+node('linux') {
     stage("Archive Client Connect") {
         // Archive the SDKs together so we can download them from Jenkins for local development
         ws {
@@ -160,6 +160,8 @@ node('windows-hispeed') {
             archiveArtifacts 'client_connect/sdk/**'
         }
     }
+}
+node('windows-hispeed') {
     stage("Generate") {
         checkout(poll: false, changelog: false, scm: scm)
         bat 'git clean -xdf'
