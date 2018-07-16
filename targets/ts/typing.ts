@@ -30,6 +30,8 @@ export interface ITypeScriptType {
   getTypeScriptType(spec: ITypeSpec): string;
 
   emitInterfaceDefinition(spec: IDefinitionSpec): string | null;
+
+  pushOntoQueryStringArray(spec: IParameterSpec): string | null;
 }
 
 export function resolveType(spec: ITypeSpec): ITypeScriptType {

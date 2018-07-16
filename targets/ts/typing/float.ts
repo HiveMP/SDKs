@@ -15,4 +15,14 @@ export class FloatType implements ITypeScriptType {
   public emitInterfaceDefinition(spec: IDefinitionSpec): string {
     return null;
   }
+
+  public pushOntoQueryStringArray(spec: IParameterSpec): string | null {
+    if (spec.required) {
+      return `qs["${spec.name}"] = req.${spec.name}.toString();`;
+    } else {
+      return `if (req.${spec.name} !== undefined) {
+        qs["${spec.name}"] = req.${spec.name}.toString();
+      }`;
+    }
+  }
 }

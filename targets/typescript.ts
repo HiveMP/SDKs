@@ -9,7 +9,7 @@ import { IApiSpec, loadApi } from './common/apiSpec';
 import { emitCommonErrorStructures, isErrorStructure } from './ts/error';
 import { resolveType } from './ts/typing';
 import { generateTypeScriptNamespace } from './ts/namespace';
-// import { emitControllerAndImplementation } from './ts/controllers';
+import { emitClient } from './ts/clients';
 
 export class TypeScriptGenerator implements TargetGenerator {
   get name(): string {
@@ -48,14 +48,12 @@ export class TypeScriptGenerator implements TargetGenerator {
         }
       }
 
-      /*
       for (const tag of api.tags.values()) {
-        code += emitControllerAndImplementation(
+        code += emitClient(
           api,
           tag,
           opts);
       }
-      */
      
       code += fragments.namespaceEnd;
     }

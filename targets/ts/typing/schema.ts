@@ -1,5 +1,5 @@
 import { ITypeScriptType, resolveType } from "../typing";
-import { ITypeSpec, IDefinitionSpec } from '../../common/typeSpec';
+import { ITypeSpec, IDefinitionSpec, IParameterSpec } from '../../common/typeSpec';
 import { normalizeTypeName } from "../../common/normalize";
 
 export class SchemaType implements ITypeScriptType {
@@ -27,5 +27,9 @@ export interface ${className} {
 }`;
 
     return code;
+  }
+
+  public pushOntoQueryStringArray(spec: IParameterSpec): string | null {
+    return null;
   }
 }
