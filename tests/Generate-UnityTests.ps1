@@ -30,10 +30,10 @@ function Generate-Unity-Build() {
   [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnityTest-$Version\Assets\HiveMP");
 
   echo "Copying build script..."
-  Copy-Item -Force $PSScriptRoot\Build-UnityTest.ps1 "$TestPath\Build-UnityTest.ps1"
+  Copy-Item -Force $PSScriptRoot\Build-UnityTest.ps1 "$PSScriptRoot\..\tests\UnityTest-$Version\Build-UnityTest.ps1"
 
   echo "Copying licensing script..."
-  Copy-Item -Force $PSScriptRoot\..\util\License-Unity.ps1 "$TestPath\License-Unity.ps1"
+  Copy-Item -Force $PSScriptRoot\..\util\License-Unity.ps1 "$PSScriptRoot\..\tests\UnityTest-$Version\License-Unity.ps1"
 }
 
 cd $PSScriptRoot\..
