@@ -8,7 +8,7 @@ trap {
   exit 1
 }
 
-function Generate-Unity-Build($platform) {
+function Generate-Unity-Build() {
   echo "Cleaning tests/UnityTest-$Version..."
   for ($i=0; $i -lt 30; $i++) {
     try {
@@ -35,15 +35,4 @@ function Generate-Unity-Build($platform) {
 
 cd $PSScriptRoot\..
 
-if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2.0f3") {
-  Generate-Unity-Build "Linux32"
-}
-Generate-Unity-Build "Linux64"
-if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2.0f3") {
-  Generate-Unity-Build "Mac32"
-  Generate-Unity-Build "Mac64"
-} else {
-  Generate-Unity-Build "Mac64"
-}
-Generate-Unity-Build "Win32"
-Generate-Unity-Build "Win64"
+Generate-Unity-Build

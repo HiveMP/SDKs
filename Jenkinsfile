@@ -265,7 +265,7 @@ node('windows-hispeed') {
                     bat 'pwsh tests/Generate-UnityTests.ps1 -Version ' + version
                 }
                 timeout(10) {
-                    stash includes: 'tests/UnityTest-' + version, name: 'unity-' + version + '-test-uncompiled'
+                    stash includes: 'tests/UnityTest-' + version + '/**', name: 'unity-' + version + '-test-uncompiled'
                 }
             };
         }
