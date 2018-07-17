@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-param([string] $Version = "4.16", [switch] $NoCleanAndSdkUnpack)
+param([string] $Version = "4.16", [switch] $Target = "")
 
 $global:ErrorActionPreference = "Stop"
 
@@ -34,34 +34,14 @@ function Do-Unreal-Build($Platform) {
 
 cd $PSScriptRoot\..
 
-if (!$NoCleanAndSdkUnpack) {
-  echo "Cleaning tests/UnrealBuilds-$Version..."
-  for ($i=0; $i -lt 30; $i++) {
-    try {
-      git clean -xdff "$TestPath";
-      break;
-    } catch {}
-  }
-  for ($i=0; $i -lt 30; $i++) {
-    try {
-      git checkout HEAD -- "$TestPath";
-      break;
-    } catch {}
-  }
-  
-  echo "Unpacking SDK package..."
-  Add-Type -AssemblyName System.IO.Compression.FileSystem;
-  $sdkName = (Get-Item $PSScriptRoot\..\UnrealEngine-$Version-SDK*.zip).FullName;
-  echo $sdkName
-  [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$TestPath\Plugins\HiveMPSDK");
-}
-
 cd $TestPath
 & $UnrealBuildTool $ProjectNameNoExt Development Win64 -project="$TestPath\$ProjectName" -editorrecompile -NoHotReloadFromIDE
 if ($LASTEXITCODE -ne 0) {
   throw "Unreal Engine failed to build!"
 }
 
-Do-Unreal-Build "Win64"
+if ($Target -eq "Win64") {
+  Do-Unreal-Build "Win64"
+}
 
 cd $OriginalLocation

@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-param($Version = "5.4.1f")
+param($Version = "5.4.1f", $Target = "")
 
 $global:ErrorActionPreference = "Stop"
 
@@ -7,6 +7,8 @@ trap {
   Write-Output $_
   exit 1
 }
+
+Set-Location $PSScriptRoot
 
 function Wait-For-Unity-Exit($path, $processId) {
   $offset = 0
@@ -118,32 +120,11 @@ function Wait-For-Unity-Exit($path, $processId) {
   }
   return $outcome;
 }
-
 function Do-Unity-Build($uPlatform, $platform) {
   while ($true) {
-    echo "Cleaning tests/UnityTest-$Version..."
-    for ($i=0; $i -lt 30; $i++) {
-      try {
-        git clean -xdff "$PSScriptRoot\..\tests\UnityTest-$Version";
-        break;
-      } catch {}
-    }
-    for ($i=0; $i -lt 30; $i++) {
-      try {
-        git checkout HEAD -- "$PSScriptRoot\..\tests\UnityTest-$Version";
-        break;
-      } catch {}
-    }
-    
-    echo "Unpacking SDK package..."
-    Add-Type -AssemblyName System.IO.Compression.FileSystem;
-    $sdkName = (Get-Item $PSScriptRoot\..\Unity-SDK*.zip).FullName;
-    echo $sdkName
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnityTest-$Version\Assets\HiveMP");
-
     echo "Building project for $platform..."
-    if (Test-Path "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log") {
-      rm -Force "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log"
+    if (Test-Path "$PSScriptRoot\Unity.log") {
+      rm -Force "$PSScriptRoot\Unity.log"
     }
     $unity = "C:\Program Files\Unity\Editor\Unity.exe"
     if (Test-Path "C:\Program Files\Unity_$Version\Editor\Unity.exe") {
@@ -171,18 +152,18 @@ function Do-Unity-Build($uPlatform, $platform) {
         "-force-d3d9",
         "-nographics",
         "-projectPath",
-        "$PSScriptRoot\..\tests\UnityTest-$Version",
+        "$PSScriptRoot",
         $uPlatform,
-        "$PSScriptRoot\..\tests\UnityBuilds-$Version\$platform\HiveMPTest$suffix",
+        "$PSScriptRoot\$platform\HiveMPTest$suffix",
         "-logFile",
-        "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log"
+        "$PSScriptRoot\Unity.log"
       )) `
       -PassThru
     if ($process -eq $null) {
       Write-Error "Unity didn't start correctly!"
       exit 1;
     }
-    $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\..\tests\UnityTest-$Version\Unity.log" $process.Id);
+    $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\Unity.log" $process.Id);
     Write-Host "Outcome is $outcome!";
     if ($outcome -eq "retry") {
       Sleep -Seconds 30
@@ -198,17 +179,29 @@ function Do-Unity-Build($uPlatform, $platform) {
   }
 }
 
-cd $PSScriptRoot\..
-
-if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2.0f3") {
-  Do-Unity-Build "-buildLinux32Player" "Linux32"
+if ($Target -eq "Linux32") {
+  if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2.0f3") {
+    Do-Unity-Build "-buildLinux32Player" "Linux32"
+  }
 }
-Do-Unity-Build "-buildLinux64Player" "Linux64"
+if ($Target -eq "Linux64") {
+  Do-Unity-Build "-buildLinux64Player" "Linux64"
+}
 if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2.0f3") {
-  Do-Unity-Build "-buildOSXPlayer" "Mac32"
-  Do-Unity-Build "-buildOSX64Player" "Mac64"
+  if ($Target -eq "Mac32") {
+    Do-Unity-Build "-buildOSXPlayer" "Mac32"
+  }
+  if ($Target -eq "Mac64") {
+    Do-Unity-Build "-buildOSX64Player" "Mac64"
+  }
 } else {
-  Do-Unity-Build "-buildOSXUniversalPlayer" "Mac64"
+  if ($Target -eq "Mac64") {
+    Do-Unity-Build "-buildOSXUniversalPlayer" "Mac64"
+  }
 }
-Do-Unity-Build "-buildWindowsPlayer" "Win32"
-Do-Unity-Build "-buildWindows64Player" "Win64"
+if ($Target -eq "Win32") {
+  Do-Unity-Build "-buildWindowsPlayer" "Win32"
+}
+if ($Target -eq "Win64") {
+  Do-Unity-Build "-buildWindows64Player" "Win64"
+}

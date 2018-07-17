@@ -41,6 +41,17 @@ def clientConnectCaches = [
     "Linux32",
     "Linux64"
 ]
+def unityPlatforms = [
+    "Win32",
+    "Win64",
+    "Mac32",
+    "Mac64",
+    "Linux32",
+    "Linux64"
+]
+def unrealPlatforms = [
+    "Win64"
+]
 def preloaded = [:]
 stage("Load Caches") {
     def sdkPrefix = ('gs://redpoint-build-cache/' + clientConnectHash)
@@ -244,32 +255,21 @@ node('windows-hispeed') {
         }
         parallel (parallelMap)
     }
-    stage("Build Tests") {
+    stage("Generate Tests") {
         def parallelMap = [:]
         supportedUnityVersions.each { v ->
             def version = v
             parallelMap["Unity-" + version] =
             {
                 timeout(60) {
-                    withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
-                        bat 'pwsh tests/Build-UnityTests.ps1 -Version ' + version
-                    }
+                    bat 'pwsh tests/Generate-UnityTests.ps1 -Version ' + version
                 }
                 timeout(10) {
-                    if (version == "5.4.1f" || version == "2017.1.1f1" || version == "2017.2.0f3") {
-                        stash includes: 'tests/UnityBuilds-' + version + '/Linux32/**', name: 'unity-' + version + '-test-linux32'
-                    }
-                    stash includes: 'tests/UnityBuilds-' + version + '/Linux64/**', name: 'unity-' + version + '-test-linux64'
-                    if (version == "5.4.1f" || version == "2017.1.1f1" || version == "2017.2.0f3") {
-                        stash includes: 'tests/UnityBuilds-' + version + '/Mac32/**', name: 'unity-' + version + '-test-mac32'
-                    }
-                    stash includes: 'tests/UnityBuilds-' + version + '/Mac64/**', name: 'unity-' + version + '-test-mac64'
-                    stash includes: 'tests/UnityBuilds-' + version + '/Win32/**', name: 'unity-' + version + '-test-win32'
-                    stash includes: 'tests/UnityBuilds-' + version + '/Win64/**', name: 'unity-' + version + '-test-win64'
-                    stash includes: 'tests/*.ps1', name: 'unity-' + version + '-test-script'
+                    stash includes: 'tests/UnityBuilds-' + version, name: 'unity-' + version + '-test-uncompiled'
                 }
             };
         }
+        /*
         supportedUnrealVersions.each { v ->
             def version = v
             parallelMap["UnrealEngine-" + version] =
@@ -285,132 +285,154 @@ node('windows-hispeed') {
                 }
             };
         }
+        */
         parallel (parallelMap)
     }
-    stage("Run Tests") {
-        def parallelMap = [:]
-        supportedUnityVersions.each { v ->
-            def version = v
-            if (version == "5.4.1f" || version == "2017.1.1f1" || version == "2017.2.0f3") {
-                parallelMap["Unity-" + version + "-Mac32"] =
-                {
-                    node('mac') {
-                        timeout(30) {
-                            unstash 'unity-' + version + '-test-mac32'
-                            unstash 'unity-' + version + '-test-script'
-                            sh 'chmod a+x tests/Run-UnityTest.ps1'
-                            sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
-                            sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                            sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac32'
+}
+stage("Build Tests") {
+    def parallelMap = [:]
+    supportedUnityVersions.each { v -> 
+        def version = v
+        unityPlatforms.each { p ->
+            parallelMap["Unity-" + version + "-" + p] =
+            {
+                timeout(30) {
+                node('windows-hispeed') {
+                    dir('_test_env/Unity-' + version + '-' + p) {
+                        unstash name: 'unity-' + version + '-test-uncompiled'
+                        withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
+                            bat('pwsh tests/UnityTest-' + version + '/Build-UE4Test.ps1 -Version ' + version + ' -Target ' + p)
                         }
                     }
-                };
+                }
             }
-            parallelMap["Unity-" + version + "-Mac64"] =
+        }         
+    }
+    parallel (parallelMap)
+}
+stage("Run Tests") {
+    def parallelMap = [:]
+    supportedUnityVersions.each { v ->
+        def version = v
+        if (version == "5.4.1f" || version == "2017.1.1f1" || version == "2017.2.0f3") {
+            parallelMap["Unity-" + version + "-Mac32"] =
             {
                 node('mac') {
                     timeout(30) {
-                        unstash 'unity-' + version + '-test-mac64'
+                        unstash 'unity-' + version + '-test-mac32'
                         unstash 'unity-' + version + '-test-script'
                         sh 'chmod a+x tests/Run-UnityTest.ps1'
                         sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
                         sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                        sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac64'
-                    }
-                }
-            };
-            parallelMap["Unity-" + version + "-Win32"] =
-            {
-                node('windows') {
-                    timeout(30) {
-                        unstash 'unity-' + version + '-test-win32'
-                        unstash 'unity-' + version + '-test-script'
-                        bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win32'
-                    }
-                }
-            };
-            parallelMap["Unity-" + version + "-Win64"] =
-            {
-                node('windows') {
-                    timeout(30) {
-                        unstash 'unity-' + version + '-test-win64'
-                        unstash 'unity-' + version + '-test-script'
-                        bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win64'
+                        sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac32'
                     }
                 }
             };
         }
+        parallelMap["Unity-" + version + "-Mac64"] =
+        {
+            node('mac') {
+                timeout(30) {
+                    unstash 'unity-' + version + '-test-mac64'
+                    unstash 'unity-' + version + '-test-script'
+                    sh 'chmod a+x tests/Run-UnityTest.ps1'
+                    sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
+                    sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
+                    sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac64'
+                }
+            }
+        };
+        parallelMap["Unity-" + version + "-Win32"] =
+        {
+            node('windows') {
+                timeout(30) {
+                    unstash 'unity-' + version + '-test-win32'
+                    unstash 'unity-' + version + '-test-script'
+                    bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win32'
+                }
+            }
+        };
+        parallelMap["Unity-" + version + "-Win64"] =
+        {
+            node('windows') {
+                timeout(30) {
+                    unstash 'unity-' + version + '-test-win64'
+                    unstash 'unity-' + version + '-test-script'
+                    bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win64'
+                }
+            }
+        };
+    }
+    supportedUnrealVersions.each { v ->
+        def version = v
+        parallelMap["UnrealEngine-" + version + "-Win64"] =
+        {
+            node('windows') {
+                timeout(30) {
+                    unstash 'unreal-' + version + '-test-win64'
+                    unstash 'unreal-' + version + '-test-script'
+                    bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
+                }
+            }
+        };
+    }
+    parallel (parallelMap)
+}
+if (env.BRANCH_NAME == 'master') {
+    stage("Push") {
+        node('linux') {
+            withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
+                timeout(3) {
+                    sh('\$GITHUB_RELEASE release --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -c ' + gitCommit + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This release is being created by the build server." -p')
+                }
+            }
+        }
+        def parallelMap = [:]
+        parallelMap["CSharp"] = {
+            timeout(15) {
+                withCredentials([string(credentialsId: 'nuget-api-key', variable: 'NUGET_API_KEY')]) {
+                    bat ('cd dist/CSharp-4.5 && nuget push -ApiKey %NUGET_API_KEY% -Source nuget.org -NonInteractive HiveMP.' + sdkVersion + '.%BUILD_NUMBER%.nupkg')
+                }
+                stash includes: 'dist/CSharp-4.5/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg', name: 'csharpsdk'
+                node('linux') {
+                    unstash 'csharpsdk'
+                    withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
+                        sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n CSharp-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -f dist/CSharp-4.5/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -l "HiveMP SDK for C# / .NET 3.5 or 4.5 and above"')
+                    }
+                }
+            }
+        };
+        parallelMap["Unity"] = {
+            node('linux') {
+                timeout(15) {
+                    unstash 'unitysdk'
+                    unstash 'unitypackage'
+                    withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
+                        sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage -f Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage -l "HiveMP SDK as a Unity package"')
+                        sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unity as a ZIP archive"')
+                    }
+                }
+            }
+        };
         supportedUnrealVersions.each { v ->
             def version = v
-            parallelMap["UnrealEngine-" + version + "-Win64"] =
+            parallelMap["UnrealEngine-" + version] =
             {
-                node('windows') {
-                    timeout(30) {
-                        unstash 'unreal-' + version + '-test-win64'
-                        unstash 'unreal-' + version + '-test-script'
-                        bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
+                node('linux') {
+                    timeout(15) {
+                        unstash 'ue' + version.replace(/\./, '') + 'sdk'
+                        withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
+                            sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unreal Engine ' + version + '"')
+                        }
                     }
                 }
             };
         }
         parallel (parallelMap)
-    }
-    if (env.BRANCH_NAME == 'master') {
-        stage("Push") {
-            node('linux') {
-                withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
-                    timeout(3) {
-                        sh('\$GITHUB_RELEASE release --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -c ' + gitCommit + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This release is being created by the build server." -p')
-                    }
-                }
-            }
-            def parallelMap = [:]
-            parallelMap["CSharp"] = {
-                timeout(15) {
-                    withCredentials([string(credentialsId: 'nuget-api-key', variable: 'NUGET_API_KEY')]) {
-                        bat ('cd dist/CSharp-4.5 && nuget push -ApiKey %NUGET_API_KEY% -Source nuget.org -NonInteractive HiveMP.' + sdkVersion + '.%BUILD_NUMBER%.nupkg')
-                    }
-                    stash includes: 'dist/CSharp-4.5/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg', name: 'csharpsdk'
-                    node('linux') {
-                        unstash 'csharpsdk'
-                        withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
-                            sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n CSharp-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -f dist/CSharp-4.5/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -l "HiveMP SDK for C# / .NET 3.5 or 4.5 and above"')
-                        }
-                    }
-                }
-            };
-            parallelMap["Unity"] = {
-                node('linux') {
-                    timeout(15) {
-                        unstash 'unitysdk'
-                        unstash 'unitypackage'
-                        withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
-                            sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage -f Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage -l "HiveMP SDK as a Unity package"')
-                            sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unity as a ZIP archive"')
-                        }
-                    }
-                }
-            };
-            supportedUnrealVersions.each { v ->
-                def version = v
-                parallelMap["UnrealEngine-" + version] =
-                {
-                    node('linux') {
-                        timeout(15) {
-                            unstash 'ue' + version.replace(/\./, '') + 'sdk'
-                            withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
-                                sh('\$GITHUB_RELEASE upload --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unreal Engine ' + version + '"')
-                            }
-                        }
-                    }
-                };
-            }
-            parallel (parallelMap)
-            node('linux') {
-                withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
-                    timeout(10) {
-                        sh('\$GITHUB_RELEASE edit --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This is an automated release of the HiveMP SDKs. Refer to the [HiveMP documentation](https://hivemp.com/documentation/) for information on how to use these SDKs."')
-                    }
+        node('linux') {
+            withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
+                timeout(10) {
+                    sh('\$GITHUB_RELEASE edit --user HiveMP --repo SDKs --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This is an automated release of the HiveMP SDKs. Refer to the [HiveMP documentation](https://hivemp.com/documentation/) for information on how to use these SDKs."')
                 }
             }
         }
