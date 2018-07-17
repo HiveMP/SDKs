@@ -297,11 +297,12 @@ stage("Build Tests") {
             parallelMap["Unity-" + version + "-" + p] =
             {
                 timeout(30) {
-                node('windows-hispeed') {
-                    dir('_test_env/Unity-' + version + '-' + p) {
-                        unstash name: 'unity-' + version + '-test-uncompiled'
-                        withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
-                            bat('pwsh tests/UnityTest-' + version + '/Build-UE4Test.ps1 -Version ' + version + ' -Target ' + p)
+                    node('windows-hispeed') {
+                        dir('_test_env/Unity-' + version + '-' + p) {
+                            unstash name: 'unity-' + version + '-test-uncompiled'
+                            withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
+                                bat('pwsh tests/UnityTest-' + version + '/Build-UE4Test.ps1 -Version ' + version + ' -Target ' + p)
+                            }
                         }
                     }
                 }
