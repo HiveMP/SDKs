@@ -223,7 +223,7 @@ node('windows-hispeed') {
     stage("Build UAL") {
         dir('ual_build') {
             git changelog: false, poll: false, url: 'https://github.com/RedpointGames/UnityAutomaticLicensor'
-            bat 'pwsh util/Build-UAL.ps1'
+            bat 'pwsh ../util/Build-UAL.ps1'
         }
         stash includes: ('ual/**'), name: 'ual'
     }
