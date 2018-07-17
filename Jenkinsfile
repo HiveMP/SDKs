@@ -220,8 +220,16 @@ node('windows-hispeed') {
         }
         parallel (parallelMap)
     }
+    stage("Build UAL") {
+        dir('ual_build') {
+            git changelog: false, poll: false, url: 'https://github.com/RedpointGames/UnityAutomaticLicensor'
+            bat 'pwsh util/Build-UAL.ps1'
+        }
+        stash includes: ('ual/**'), name: 'ual'
+    }
     stage("Licensing") {
         withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
+            unstash 'ual'
             bat 'pwsh util/License-Unity.ps1'
         }
     }
@@ -299,9 +307,8 @@ stage("Build Tests") {
                 timeout(30) {
                     node('windows-hispeed') {
                         dir('_test_env/Unity-' + version + '-' + p) {
+                            unstash 'ual'
                             unstash name: 'unity-' + version + '-test-uncompiled'
-                            bat('dir')
-                            bat('dir tests\\UnityTest-' + version + '')
                             withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
                                 bat('pwsh tests/UnityTest-' + version + '/License-Unity.ps1')
                                 bat('pwsh tests/UnityTest-' + version + '/Build-UnityTest.ps1 -Version ' + version + ' -Target ' + p)
