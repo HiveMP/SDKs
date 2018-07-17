@@ -40,3 +40,5 @@ build/
 .DS_Store
 
 /client_connect/sdk/
+/tests/*/Assets/HiveMP-Unity/
+/tests/*/Assets/HiveMP-Unity.meta
