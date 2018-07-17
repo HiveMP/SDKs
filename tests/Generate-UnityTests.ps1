@@ -31,6 +31,9 @@ function Generate-Unity-Build() {
 
   echo "Copying build script..."
   Copy-Item -Force $PSScriptRoot\Build-UnityTest.ps1 "$TestPath\Build-UnityTest.ps1"
+
+  echo "Copying licensing script..."
+  Copy-Item -Force $PSScriptRoot\..\util\License-Unity.ps1 "$TestPath\License-Unity.ps1"
 }
 
 cd $PSScriptRoot\..
