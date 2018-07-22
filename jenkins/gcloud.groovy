@@ -5,9 +5,9 @@ import groovy.transform.Field
 def installGCloudKvIfNeeded() {
     if (!this.gcloudKvInstalled.containsKey(env.NODE_NAME)) {
         if (isUnix()) {
-            sh 'npm i -g @redpointgames/gcloud-kv@0.3.3'
+            sh 'yarn global add @redpointgames/gcloud-kv@0.3.4'
         } else {
-            bat 'npm i -g @redpointgames/gcloud-kv@0.3.3'
+            bat 'npm i -g @redpointgames/gcloud-kv@0.3.4'
         }
         this.gcloudKvInstalled[env.NODE_NAME] = true
     }
