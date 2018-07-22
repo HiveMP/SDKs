@@ -280,7 +280,7 @@ stage("Build UAL") {
             dir('ual_build') {
                 git changelog: false, poll: false, url: 'https://github.com/RedpointGames/UnityAutomaticLicensor'
                 bat 'dotnet publish -c Release -r win10-x64'
-                powerShell 'Move-Item -Force UnityAutomaticLicensor\\bin\\Release\\netcoreapp2.1\\win10-x64\\publish ..\\ual'
+                powershell 'Move-Item -Force UnityAutomaticLicensor\\bin\\Release\\netcoreapp2.1\\win10-x64\\publish ..\\ual'
             }
             googleStorageUpload bucket: ('gs://redpoint-build-cache/' + ualBuildHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'ual/**'
             stash includes: ('ual/**'), name: 'ual'
