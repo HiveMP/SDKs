@@ -110,7 +110,7 @@ stage("Setup") {
 }
 stage("Detect Caches") {
     node('linux') {
-        caching.installGCloudKvIfNeeded()
+        gcloud.installGCloudKvIfNeeded()
 
         def parallelMap = [:]
         clientConnectPlatformCaches.each {
