@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 
 . ./util/Make-Zip.ps1;
 
-if (Test-Path UnrealEngine-$UeVersion-SDK.$SdkVersion.$ENV:BUILD_NUMBER.zip) { 
-  Remove-Item UnrealEngine-$UeVersion-SDK.$SdkVersion.$ENV:BUILD_NUMBER.zip 
+if (Test-Path UnrealEngine-$UeVersion-SDK.$SdkVersion.zip) { 
+  Remove-Item UnrealEngine-$UeVersion-SDK.$SdkVersion.zip 
 } 
-ZipFiles UnrealEngine-$UeVersion-SDK.$SdkVersion.$ENV:BUILD_NUMBER.zip dist/UnrealEngine-$UeVersion
+ZipFiles ./assets/UnrealEngine-$UeVersion-SDK.$SdkVersion.zip dist/UnrealEngine-$UeVersion

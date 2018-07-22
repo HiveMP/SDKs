@@ -56,33 +56,33 @@ function Wait-For-Unity-Exit($path, $processId) {
 }
 
 while ($true) {
-  if (Test-Path "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log") {
-    rm -Force "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log"
+  if (Test-Path "$PSScriptRoot\UnityTest-$Version\$Platform\Unity.log") {
+    rm -Force "$PSScriptRoot\UnityTest-$Version\$Platform\Unity.log"
   }
   $suffix = ""
   $outcome = "failure"
   if ($Platform.Contains("Win")) {
     $suffix = ".exe"
-    $game = "$PSScriptRoot\UnityBuilds-$Version\$Platform\HiveMPTest$suffix"
-    cd "$PSScriptRoot\UnityBuilds-$Version\$Platform"
-    Write-Output "Running in $PSScriptRoot\UnityBuilds-$Version\$Platform"
-    Write-Output "Executing $PSScriptRoot\UnityBuilds-$Version\$Platform\HiveMPTest$suffix"
+    $game = "$PSScriptRoot\UnityTest-$Version\$Platform\HiveMPTest$suffix"
+    cd "$PSScriptRoot\UnityTest-$Version\$Platform"
+    Write-Output "Running in $PSScriptRoot\UnityTest-$Version\$Platform"
+    Write-Output "Executing $PSScriptRoot\UnityTest-$Version\$Platform\HiveMPTest$suffix"
     $process = Start-Process `
       -FilePath $game `
       -ArgumentList @(
         "-batchmode",
         "-nographics",
         "-logFile",
-        "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log"
+        "$PSScriptRoot\UnityTest-$Version\$Platform\Unity.log"
       ) `
       -PassThru
     if ($process -eq $null) {
       Write-Error "Test game didn't start correctly!"
       exit 1;
     }
-    $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityBuilds-$Version\$Platform\Unity.log" $process.Id);
+    $outcome = (Wait-For-Unity-Exit "$PSScriptRoot\UnityTest-$Version\$Platform\Unity.log" $process.Id);
   } elseif ($Platform.Contains("Mac")) {
-    cd "$PSScriptRoot\UnityBuilds-$Version\$Platform\HiveMPTest.app"
+    cd "$PSScriptRoot\UnityTest-$Version\$Platform\HiveMPTest.app"
     Write-Host "Running macOS game..."
     Contents/MacOS/HiveMPTest -batchmode -nographics -logFile "$(Get-Location)/../log.txt"
     Write-Host "Reading log file..."

@@ -3,7 +3,7 @@ param($SdkVersion)
 $ErrorActionPreference = 'Stop'
 
 . ./util/Make-Zip.ps1; 
-if (Test-Path Unity-SDK.$SdkVersion.$ENV:BUILD_NUMBER.zip) { 
-  Remove-Item Unity-SDK.$SdkVersion.$ENV:BUILD_NUMBER.zip 
+if (Test-Path ./assets/Unity-SDK.$SdkVersion.zip) { 
+  Remove-Item ./assets/Unity-SDK.$SdkVersion.zip 
 }
-ZipFiles Unity-SDK.$SdkVersion.$ENV:BUILD_NUMBER.zip dist/Unity
+ZipFiles ./assets/Unity-SDK.$SdkVersion.zip dist/Unity

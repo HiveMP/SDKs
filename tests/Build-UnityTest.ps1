@@ -180,24 +180,19 @@ function Do-Unity-Build($uPlatform, $platform) {
 }
 
 if ($Target -eq "Linux32") {
-  if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2.0f3") {
-    Do-Unity-Build "-buildLinux32Player" "Linux32"
-  }
+  Do-Unity-Build "-buildLinux32Player" "Linux32"
 }
 if ($Target -eq "Linux64") {
   Do-Unity-Build "-buildLinux64Player" "Linux64"
 }
-if ($Version -eq "5.4.1f" -or $Version -eq "2017.1.1f1" -or $Version -eq "2017.2.0f3") {
-  if ($Target -eq "Mac32") {
-    Do-Unity-Build "-buildOSXPlayer" "Mac32"
-  }
-  if ($Target -eq "Mac64") {
-    Do-Unity-Build "-buildOSX64Player" "Mac64"
-  }
-} else {
-  if ($Target -eq "Mac64") {
-    Do-Unity-Build "-buildOSXUniversalPlayer" "Mac64"
-  }
+if ($Target -eq "Mac32") {
+  Do-Unity-Build "-buildOSXPlayer" "Mac32"
+}
+if ($Target -eq "Mac64") {
+  Do-Unity-Build "-buildOSX64Player" "Mac64"
+}
+if ($Target -eq "MacUniversal") {
+  Do-Unity-Build "-buildOSXUniversalPlayer" "MacUniversal"
 }
 if ($Target -eq "Win32") {
   Do-Unity-Build "-buildWindowsPlayer" "Win32"

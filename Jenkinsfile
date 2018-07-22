@@ -1,21 +1,74 @@
 def sdkVersion = "";
 def supportedUnityVersions = [
-    "5.4.1f",
-    "2017.1.1f1",
-    "2017.2.0f3",
-    "2017.3.0f3",
-    "2018.1.7f1"
-]
-def gitCommit = ""
+    "5.4.1f": [
+        "Linux32",
+        "Linux64",
+        "Mac32",
+        "Mac64",
+        "Win32",
+        "Win64",
+    ],
+    "2017.1.1f1": [
+        "Linux32",
+        "Linux64",
+        "Mac32",
+        "Mac64",
+        "Win32",
+        "Win64",
+    ],
+    "2017.2.0f3": [
+        "Linux32",
+        "Linux64",
+        "Mac32",
+        "Mac64",
+        "Win32",
+        "Win64",
+    ],
+    "2017.3.0f3": [
+        "Linux64",
+        "MacUniversal",
+        "Win32",
+        "Win64",
+    ],
+    "2018.1.7f1": [
+        "Linux64",
+        "MacUniversal",
+        "Win32",
+        "Win64",
+    ],
+];
 def supportedUnrealVersions = [
-    // TODO: Re-enable these when they're installed on the Build Agents
-    // "4.17",
-    // "4.18",
-    "4.19"
+    "4.17": [
+        "Win64"
+    ],
+    "4.18": [
+        "Win64"
+    ],
+    "4.19": [
+        "Win64"
+    ],
+    // TODO: Add this when it's added to the build agents.
+    // "4.20": [
+    //     "Win64"
+    // ],
+];
+def clientConnectPlatformCaches = [
+    "Win32",
+    "Win64",
+    "Mac64",
+    "Linux32",
+    "Linux64"
 ]
+def preloaded = [:]
+def gitCommit = ""
 def clientConnectHash = ""
 // If changing the steps related to Client Connect build, increase this number.
 def clientConnectBuildConfigVersion = "1"
+def mainBuildHash = ""
+// If changing the steps related to the main build, increase this number.
+def mainBuildConfigVersion = "1"
+def ualBuildHash = ""
+def ualBuildConfigVersion = "1"
 if (env.CHANGE_TARGET != null) {
     stage("Confirm") {
         input "Approve this PR build to run? Check the PR first!"
@@ -31,43 +84,86 @@ stage("Setup") {
         sdkVersion = readFile 'SdkVersion.txt'
         sdkVersion = sdkVersion.trim()
         sh 'echo "$(git log --format="format:%H" -1 --follow client_connect/)-' + clientConnectBuildConfigVersion + '-$BRANCH_NAME" > cchash'
+        sh 'echo "$(git log --format="format:%H" -1 --follow targets/)-' + mainBuildConfigVersion + '-$BRANCH_NAME" > mainhash'
+        sh 'echo "$(git log --format="format:%H" -1 --follow sdks/)-' + mainBuildConfigVersion + '-$BRANCH_NAME" >> mainhash'
+        sh 'echo "$(git log --format="format:%H" -1 --follow index.ts)-' + mainBuildConfigVersion + '-$BRANCH_NAME" >> mainhash'
+        sh 'echo "$(git log --format="format:%H" -1 --follow SdkVersion.txt)-' + mainBuildConfigVersion + '-$BRANCH_NAME" >> mainhash'
+        sh 'echo "' + ualBuildConfigVersion + '-$BRANCH_NAME" > ualhash'
         clientConnectHash = sha1 ('cchash')
+        mainBuildHash = sha1 ('mainhash')
+        ualBuildHash = sha1 ('ualhash')
     }
 }
-def clientConnectCaches = [
-    "Win32",
-    "Win64",
-    "Mac64",
-    "Linux32",
-    "Linux64"
-]
-def unityPlatforms = [
-    "Win32",
-    "Win64",
-    "Mac32",
-    "Mac64",
-    "Linux32",
-    "Linux64"
-]
-def unrealPlatforms = [
-    "Win64"
-]
-def preloaded = [:]
 stage("Load Caches") {
-    def sdkPrefix = ('gs://redpoint-build-cache/' + clientConnectHash)
+    def ccSdkPrefix = ('gs://redpoint-build-cache/' + clientConnectHash)
+    def mainSdkPrefix = ('gs://redpoint-build-cache/' + mainBuildHash)
+    def ualSdkPrefix = ('gs://redpoint-build-cache/' + ualBuildHash)
     node('linux') {
         def parallelMap = [:]
-        clientConnectCaches.each {
-            parallelMap[it] = {
+        clientConnectPlatformCaches.each {
+            parallelMap["ClientConnect-" + it] = {
                 if (clientConnectHash != "") {
                     try {
-                        googleStorageDownload bucketUri: (sdkPrefix + '/client_connect/sdk/' + it + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('client_connect/sdk/' + it + '/'), pathPrefix: (clientConnectHash + '/client_connect/sdk/' + it + '/')
+                        googleStorageDownload bucketUri: (ccSdkPrefix + '/client_connect/sdk/' + it + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('client_connect/sdk/' + it + '/'), pathPrefix: (clientConnectHash + '/client_connect/sdk/' + it + '/')
                         stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cc_sdk_' + it)
                         preloaded[it] = true;
                         echo ('Successfully preloaded Client Connect for target "' + it + '" from Google Cloud')
                     } catch (all) {
                         preloaded[it] = false;
                         echo ('Unable to preload Client Connect for target "' + it + '" from Google Cloud, will build this run...')
+                    }
+                }
+            }
+        }
+        parallelMap["UAL"] = {
+            if (ualSdkPrefix != "") {
+                try {
+                    googleStorageDownload bucketUri: (ualSdkPrefix + '/ual/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('ual/'), pathPrefix: (ualSdkPrefix + '/ual/')
+                    stash includes: ('ual/**'), name: ('ual')
+                    preloaded["UAL"] = true;
+                    echo ('Successfully preloaded UAL from Google Cloud')
+                } catch (all) {
+                    preloaded["UAL"] = false;
+                    echo ('Unable to preload UAL, will build this run...')
+                }
+            }
+        }
+        parallelMap["SDKs"] = {
+            if (mainSdkPrefix != "") {
+                try {
+                    googleStorageDownload bucketUri: (mainSdkPrefix + '/assets/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('assets/'), pathPrefix: (mainSdkPrefix + '/assets/')
+                    googleStorageDownload bucketUri: (mainSdkPrefix + '/tests/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('tests/'), pathPrefix: (mainSdkPrefix + '/tests/')
+                    stash includes: ('assets/Unity-SDK.' + sdkVersion + '.zip'), name: 'unitysdk'
+                    stash includes: ('assets/Unity-SDK.' + sdkVersion + '.unitypackage'), name: 'unitypackage'
+                    supportedUnityVersions.keySet().each { version ->
+                        stash includes: 'tests/UnityTest-' + version + '/**', name: 'unity-' + version + '-test-uncompiled'
+                    }
+                    supportedUnrealVersions.keySet().each { version ->
+                        stash includes: ('assets/UnrealEngine-' + version + '-SDK.' + sdkVersion + '.zip'), name: 'ue' + version.replace(/\./, '') + 'sdk'
+                        // TODO: Stash the tests once we're generating them
+                    }
+                    preloaded["SDKs"] = true;
+                    echo ('Successfully preloaded Generated SDKs and Tests from Google Cloud')
+                } catch (all) {
+                    preloaded["SDKs"] = false;
+                    echo ('Unable to preload Generated SDKs and Tests, will build this run...')
+                }
+            }
+        }
+        supportedUnityVersions.each { version, platforms -> 
+            platforms.each { platform ->
+                parallelMap["Unity-" + version + "-" + platform] =
+                {
+                    if (mainSdkPrefix != "") {
+                        try {
+                            googleStorageDownload bucketUri: (mainSdkPrefix + '/compiled_tests/tests/UnityTest-' + version + '/' + platform + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('tests/UnityTest-' + version + '/' + platform + '/'), pathPrefix: (mainSdkPrefix + '/compiled_tests/tests/UnityTest-' + version + '/' + platform)
+                            stash includes: ('tests/UnityTest-' + version + '/' + platform + '/**'), name: ('unity-' + version + '-test-' + platform)
+                            preloaded['Test-Unity-' + version + '-' + platform] = true;
+                            echo ('Successfully preloaded compiled Unity ' + version + ' test for ' + platform + ' from Google Cloud')
+                        } catch (all) {
+                            preloaded['Test-Unity-' + version + '-' + platform] = false;
+                            echo ('Unable to preload compiled Unity ' + version + ' test for ' + platform + ', will build this run...')
+                        }
                     }
                 }
             }
@@ -178,140 +274,187 @@ node('linux') {
         }
     }
 }
-node('windows-hispeed') {
-    stage("Generate") {
-        checkout(poll: false, changelog: false, scm: scm)
-        bat 'git clean -xdf'
-        bat 'git submodule update --init --recursive'
-        bat 'git submodule foreach --recursive git clean -xdf'
-        bat 'yarn'
-        unstash name: 'cc_sdk_Win32'
-        unstash name: 'cc_sdk_Win64'
-        unstash name: 'cc_sdk_Mac64'
-        unstash name: 'cc_sdk_Linux32'
-        unstash name: 'cc_sdk_Linux64'
+stage("Build UAL") {
+    if (!preloaded["UAL"]) {
+        node('windows-hispeed') {
+            dir('ual_build') {
+                git changelog: false, poll: false, url: 'https://github.com/RedpointGames/UnityAutomaticLicensor'
+                bat 'pwsh ../util/Build-UAL.ps1'
+            }
+            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + ualBuildHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'ual/**'
+            stash includes: ('ual/**'), name: 'ual'
+        }
+    }
+}
+if (preloaded["SDKs"]) {
+    // Just emit all the stages, we don't have any steps for them because it's all preloaded.
+    stage("Generate") { 
         def parallelMap = [:]
-        parallelMap["CSharp-4.5"] = {
-            timeout(15) {
-                bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c CSharp-4.5 dist/CSharp-4.5'
-                bat 'cd dist/CSharp-4.5 && dotnet restore HiveMP.sln && dotnet build -c Release HiveMP.sln'
-            }
-        };
-        parallelMap["CSharp-3.5"] = {
-            timeout(15) {
-                bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c CSharp-3.5 dist/CSharp-3.5'
-                bat 'pwsh util/Fetch-NuGet.ps1'
-                bat 'cd dist/CSharp-3.5 && nuget restore && %windir%\\Microsoft.NET\\Framework64\\v4.0.30319\\msbuild /p:Configuration=Release /m HiveMP.sln'
-            }
-        };
-        parallelMap["Unity"] = {
-            timeout(5) {
-                bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c Unity dist/Unity'
-            }
-        };
-        supportedUnrealVersions.each { v ->
-            def version = v
-            parallelMap["UnrealEngine-" + version] =
-            {
-                timeout(5) {
-                    bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c UnrealEngine-' + version + ' dist/UnrealEngine-' + version
-                }
-            };
+        parallelMap["CSharp-4.5"] = { };
+        parallelMap["CSharp-3.5"] = { };
+        parallelMap["Unity"] = { };
+        supportedUnrealVersions.each { version, platforms ->
+            parallelMap["UnrealEngine-" + version] = { };
         }
         parallel (parallelMap)
     }
-    stage("Build UAL") {
-        dir('ual_build') {
-            git changelog: false, poll: false, url: 'https://github.com/RedpointGames/UnityAutomaticLicensor'
-            bat 'pwsh ../util/Build-UAL.ps1'
-        }
-        stash includes: ('ual/**'), name: 'ual'
-    }
-    stage("Licensing") {
-        withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
-            unstash 'ual'
-            bat 'pwsh util/License-Unity.ps1'
-        }
-    }
-    stage("Package") {
-        def parallelMap = [:]
-        parallelMap["CSharp"] = {
-            timeout(10) {
-                bat 'pwsh util/Fetch-NuGet-4.5.ps1'
-                bat ('cd dist/CSharp-4.5 && nuget pack -Version ' + sdkVersion + '.%BUILD_NUMBER% -NonInteractive HiveMP.nuspec')
-            }
-        };
-        parallelMap["Unity"] = {
-            timeout(20) {
-                bat ('pwsh util/Unity-PrePackage.ps1 -SdkVersion ' + sdkVersion)
-                stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'unitysdk'
-                withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
-                    bat ('pwsh util/Unity-PostPackage.ps1 -SdkVersion ' + sdkVersion)
-                }
-                stash includes: ('Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage'), name: 'unitypackage'
-            }
-        };
-        supportedUnrealVersions.each { v ->
-            def version = v
-            parallelMap["UnrealEngine-" + version] =
-            {
-                timeout(10) {
-                    bat ('pwsh util/UE4-Package.ps1 -UeVersion ' + version + ' -SdkVersion ' + sdkVersion)
-                    stash includes: ('UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip'), name: 'ue' + version.replace(/\./, '') + 'sdk'
-                }
-            };
-        }
-        parallel (parallelMap)
-    }
+    stage("Licensing") { }
+    stage("Package") { }
+    stage("Stash Assets") { }
     stage("Generate Tests") {
         def parallelMap = [:]
-        supportedUnityVersions.each { v ->
-            def version = v
-            parallelMap["Unity-" + version] =
-            {
-                timeout(60) {
-                    bat 'pwsh tests/Generate-UnityTests.ps1 -Version ' + version
-                }
-                timeout(10) {
-                    stash includes: 'tests/UnityTest-' + version + '/**', name: 'unity-' + version + '-test-uncompiled'
+        parallelMap["Stash-Test-Scripts"] = { };
+        supportedUnityVersions.keySet().each { version ->
+            parallelMap["Unity-" + version] = { };
+        }
+        supportedUnrealVersions.each { version, platforms ->
+            parallelMap["UnrealEngine-" + version] = { };
+        }
+        parallel (parallelMap)
+    }
+} else {
+    node('windows-hispeed') {
+        stage("Generate") {
+            checkout(poll: false, changelog: false, scm: scm)
+            bat 'git clean -xdf'
+            bat 'git submodule update --init --recursive'
+            bat 'git submodule foreach --recursive git clean -xdf'
+            bat 'yarn'
+            unstash name: 'cc_sdk_Win32'
+            unstash name: 'cc_sdk_Win64'
+            unstash name: 'cc_sdk_Mac64'
+            unstash name: 'cc_sdk_Linux32'
+            unstash name: 'cc_sdk_Linux64'
+            def parallelMap = [:]
+            parallelMap["CSharp-4.5"] = {
+                timeout(15) {
+                    bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c CSharp-4.5 dist/CSharp-4.5'
+                    bat 'cd dist/CSharp-4.5 && dotnet restore HiveMP.sln && dotnet build -c Release HiveMP.sln'
                 }
             };
+            parallelMap["CSharp-3.5"] = {
+                timeout(15) {
+                    bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c CSharp-3.5 dist/CSharp-3.5'
+                    bat 'pwsh util/Fetch-NuGet.ps1'
+                    bat 'cd dist/CSharp-3.5 && nuget restore && %windir%\\Microsoft.NET\\Framework64\\v4.0.30319\\msbuild /p:Configuration=Release /m HiveMP.sln'
+                }
+            };
+            parallelMap["Unity"] = {
+                timeout(5) {
+                    bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c Unity dist/Unity'
+                }
+            };
+            supportedUnrealVersions.each { version, platforms ->
+                parallelMap["UnrealEngine-" + version] =
+                {
+                    timeout(5) {
+                        bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c UnrealEngine-' + version + ' dist/UnrealEngine-' + version
+                    }
+                };
+            }
+            parallel (parallelMap)
         }
-        /*
-        supportedUnrealVersions.each { v ->
-            def version = v
-            parallelMap["UnrealEngine-" + version] =
-            {
-                lock(resource: "SDK_" + env.NODE_NAME, inversePrecedence: true) {
-                    timeout(120) {
-                        bat 'pwsh tests/Build-UE4Tests.ps1 -Version ' + version
+        stage("Licensing") {
+            withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
+                unstash 'ual'
+                bat 'pwsh util/License-Unity.ps1'
+            }
+        }
+        stage("Package") {
+            def parallelMap = [:]
+            parallelMap["CSharp"] = {
+                timeout(10) {
+                    bat 'pwsh util/Fetch-NuGet-4.5.ps1'
+                    bat ('cd dist/CSharp-4.5 && nuget pack -Version ' + sdkVersion + ' -NonInteractive HiveMP.nuspec')
+                }
+            };
+            parallelMap["Unity"] = {
+                timeout(20) {
+                    bat ('pwsh util/Unity-PrePackage.ps1 -SdkVersion ' + sdkVersion)
+                    withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
+                        bat ('pwsh util/Unity-PostPackage.ps1 -SdkVersion ' + sdkVersion)
                     }
                 }
-                timeout(10) {
-                    stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
-                    stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
-                }
             };
+            supportedUnrealVersions.keySet().each { version ->
+                parallelMap["UnrealEngine-" + version] =
+                {
+                    timeout(10) {
+                        bat ('pwsh util/UE4-Package.ps1 -UeVersion ' + version + ' -SdkVersion ' + sdkVersion)
+                    }
+                };
+            }
+            parallel (parallelMap)
         }
-        */
-        parallel (parallelMap)
+        stage("Stash Assets") {
+            stash includes: ('assets/Unity-SDK.' + sdkVersion + '.zip'), name: 'unitysdk'
+            stash includes: ('assets/Unity-SDK.' + sdkVersion + '.unitypackage'), name: 'unitypackage'
+            supportedUnrealVersions.keySet().each { version ->
+                stash includes: ('assets/UnrealEngine-' + version + '-SDK.' + sdkVersion + '.zip'), name: 'ue' + version.replace(/\./, '') + 'sdk'
+            }
+            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + mainBuildHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'assets/**'
+        }
+        stage("Generate Tests") {
+            def parallelMap = [:]
+            parallelMap["Stash-Test-Scripts"] =
+            {
+                stash includes: ('tests/Run-UnityTest.ps1'), name: 'run-unity-test'
+                stash includes: ('tests/Run-UE4Test.ps1'), name: 'run-ue4-test'
+                googleStorageUpload bucket: ('gs://redpoint-build-cache/' + mainBuildHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'tests/Run-UnityTest.ps1'
+                googleStorageUpload bucket: ('gs://redpoint-build-cache/' + mainBuildHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'tests/Run-UE4Test.ps1'
+            };
+            supportedUnityVersions.keySet().each { v ->
+                def version = v
+                parallelMap["Unity-" + version] =
+                {
+                    timeout(60) {
+                        bat 'pwsh tests/Generate-UnityTests.ps1 -Version ' + version
+                    }
+                    timeout(10) {
+                        stash includes: 'tests/UnityTest-' + version + '/**', name: 'unity-' + version + '-test-uncompiled'
+                        googleStorageUpload bucket: ('gs://redpoint-build-cache/' + mainBuildHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'tests/UnityTest-' + version + '/**'
+                    }
+                };
+            }
+            supportedUnrealVersions.keySet().each { version ->
+                parallelMap["UnrealEngine-" + version] =
+                {
+                    /*
+                    lock(resource: "SDK_" + env.NODE_NAME, inversePrecedence: true) {
+                        timeout(120) {
+                            bat 'pwsh tests/Build-UE4Tests.ps1 -Version ' + version
+                        }
+                    }
+                    timeout(10) {
+                        stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
+                        stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
+                        googleStorageUpload bucket: ('gs://redpoint-build-cache/' + mainBuildHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'tests/UnityTest-' + version + '/**'
+                    }
+                    */
+                };
+            }
+            parallel (parallelMap)
+        }
     }
 }
 stage("Build Tests") {
     def parallelMap = [:]
-    supportedUnityVersions.each { v -> 
-        def version = v
-        unityPlatforms.each { p ->
-            parallelMap["Unity-" + version + "-" + p] =
+    supportedUnityVersions.each { version, platforms -> 
+        platforms.each { platform ->
+            parallelMap["Unity-" + version + "-" + platform] =
             {
-                timeout(30) {
-                    node('windows-hispeed') {
-                        dir('_test_env/Unity-' + version + '-' + p) {
-                            unstash 'ual'
-                            unstash name: 'unity-' + version + '-test-uncompiled'
-                            withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
-                                bat('pwsh tests/UnityTest-' + version + '/License-Unity.ps1')
-                                bat('pwsh tests/UnityTest-' + version + '/Build-UnityTest.ps1 -Version ' + version + ' -Target ' + p)
+                if (!preloaded['Test-Unity-' + version + '-' + platform]) {
+                    timeout(30) {
+                        node('windows-hispeed') {
+                            dir('_test_env/Unity-' + version + '-' + platform) {
+                                unstash 'ual'
+                                unstash name: 'unity-' + version + '-test-uncompiled'
+                                withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
+                                    bat('pwsh tests/UnityTest-' + version + '/License-Unity.ps1')
+                                    bat('pwsh tests/UnityTest-' + version + '/Build-UnityTest.ps1 -Version ' + version + ' -Target ' + platform)
+                                }
+                                stash includes: ('tests/UnityTest-' + version + '/' + platform + '/**'), name: ('unity-' + version + '-test-' + platform)
+                                googleStorageUpload bucket: ('gs://redpoint-build-cache/' + mainBuildHash + '/compiled_tests'), credentialsId: 'redpoint-games-build-cluster', pattern: 'tests/UnityTest-' + version + '/' + platform + '/**'
                             }
                         }
                     }
@@ -323,70 +466,54 @@ stage("Build Tests") {
 }
 stage("Run Tests") {
     def parallelMap = [:]
-    supportedUnityVersions.each { v ->
-        def version = v
-        if (version == "5.4.1f" || version == "2017.1.1f1" || version == "2017.2.0f3") {
-            parallelMap["Unity-" + version + "-Mac32"] =
-            {
-                node('mac') {
+    supportedUnityVersions.each { version, platforms ->
+        platforms.each { platform ->
+            if (platform.startsWith("Mac")) {
+                parallelMap["Unity-" + version + "-" + platform] =
+                {
+                    node('mac') {
+                        timeout(30) {
+                            unstash 'unity-' + version + '-test-' + platform
+                            unstash 'run-unity-test'
+                            sh 'chmod a+x tests/Run-UnityTest.ps1'
+                            sh 'chmod -R a+rwx tests/UnityTest-' + version + '/' + platform + '/'
+                            sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
+                            sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform ' + platform
+                        }
+                    }
+                };
+            } else if (platform.startsWith("Linux")) {
+                // TODO: We don't run Linux tests yet (beyond making sure code compiles on Linux in the previous step)
+            } else if (platform.startsWith("Win")) {
+                node('windows') {
                     timeout(30) {
-                        unstash 'unity-' + version + '-test-mac32'
-                        unstash 'unity-' + version + '-test-script'
-                        sh 'chmod a+x tests/Run-UnityTest.ps1'
-                        sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
-                        sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                        sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac32'
+                        unstash 'unity-' + version + '-test-' + platform
+                        unstash 'run-unity-test'
+                        bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform ' + platform
                     }
                 }
-            };
+            }
         }
-        parallelMap["Unity-" + version + "-Mac64"] =
-        {
-            node('mac') {
-                timeout(30) {
-                    unstash 'unity-' + version + '-test-mac64'
-                    unstash 'unity-' + version + '-test-script'
-                    sh 'chmod a+x tests/Run-UnityTest.ps1'
-                    sh 'chmod -R a+rwx tests/UnityBuilds-' + version + '/'
-                    sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                    sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Mac64'
-                }
-            }
-        };
-        parallelMap["Unity-" + version + "-Win32"] =
-        {
-            node('windows') {
-                timeout(30) {
-                    unstash 'unity-' + version + '-test-win32'
-                    unstash 'unity-' + version + '-test-script'
-                    bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win32'
-                }
-            }
-        };
-        parallelMap["Unity-" + version + "-Win64"] =
-        {
-            node('windows') {
-                timeout(30) {
-                    unstash 'unity-' + version + '-test-win64'
-                    unstash 'unity-' + version + '-test-script'
-                    bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform Win64'
-                }
-            }
-        };
     }
-    supportedUnrealVersions.each { v ->
-        def version = v
-        parallelMap["UnrealEngine-" + version + "-Win64"] =
-        {
-            node('windows') {
-                timeout(30) {
-                    unstash 'unreal-' + version + '-test-win64'
-                    unstash 'unreal-' + version + '-test-script'
-                    bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform Win64'
+    /*
+    supportedUnrealVersions.each { version, platforms ->
+        platforms.each { platform ->
+            if (platform.startsWith("Mac")) {
+                // TODO: We don't run macOS tests yet
+            } else if (platform.startsWith("Linux")) {
+                // TODO: We don't run Linux tests yet
+            } else if (platform.startsWith("Win")) {
+                node('windows') {
+                    timeout(30) {
+                        unstash 'unreal-' + version + '-test-' + platform
+                        unstash 'run-ue4-test'
+                        bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform ' + platform
+                    }
                 }
             }
-        };
+        }
     }
+    */
     parallel (parallelMap)
 }
 if (env.BRANCH_NAME == 'master') {
