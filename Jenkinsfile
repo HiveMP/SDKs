@@ -1,3 +1,7 @@
+def gcloud = evaluate readTrusted("jenkins/gcloud.groovy")
+def hashing = evaluate readTrusted("jenkins/hashing.groovy")
+def caching = evaluate readTrusted("jenkins/caching.groovy")
+
 def sdkVersion = "";
 def supportedUnityVersions = [
     "5.4.1f": [
@@ -83,93 +87,49 @@ stage("Setup") {
         sh 'git submodule foreach --recursive git clean -xdf'
         sdkVersion = readFile 'SdkVersion.txt'
         sdkVersion = sdkVersion.trim()
-        sh 'echo "$(git log --format="format:%H" -1 --follow client_connect/)-' + clientConnectBuildConfigVersion + '-$BRANCH_NAME" > cchash'
-        sh 'echo "$(git log --format="format:%H" -1 --follow targets/)-' + mainBuildConfigVersion + '-$BRANCH_NAME" > mainhash'
-        sh 'echo "$(git log --format="format:%H" -1 --follow sdks/)-' + mainBuildConfigVersion + '-$BRANCH_NAME" >> mainhash'
-        sh 'echo "$(git log --format="format:%H" -1 --follow index.ts)-' + mainBuildConfigVersion + '-$BRANCH_NAME" >> mainhash'
-        sh 'echo "$(git log --format="format:%H" -1 --follow SdkVersion.txt)-' + mainBuildConfigVersion + '-$BRANCH_NAME" >> mainhash'
-        sh 'echo "' + ualBuildConfigVersion + '-$BRANCH_NAME" > ualhash'
-        clientConnectHash = sha1 ('cchash')
-        mainBuildHash = sha1 ('mainhash')
-        ualBuildHash = sha1 ('ualhash')
+        clientConnectHash = hashing.hashEntries(
+            clientConnectBuildConfigVersion,
+            [
+                'client_connect/'
+            ]
+        );
+        mainBuildHash = hashing.hashEntries(
+            mainBuildConfigVersion,
+            [
+                'targets/'
+                'sdks/',
+                'index.ts',
+                'SdkVersion.txt'
+            ]
+        );
+        ualBuildHash = hashing.hashEntries(
+            clientConnectBuildConfigVersion,
+            [ ]
+        );
     }
 }
-stage("Load Caches") {
-    def ccSdkPrefix = ('gs://redpoint-build-cache/' + clientConnectHash)
-    def mainSdkPrefix = ('gs://redpoint-build-cache/' + mainBuildHash)
-    def ualSdkPrefix = ('gs://redpoint-build-cache/' + ualBuildHash)
-    node('linux') {
-        def parallelMap = [:]
-        clientConnectPlatformCaches.each {
-            parallelMap["ClientConnect-" + it] = {
-                if (clientConnectHash != "") {
-                    try {
-                        googleStorageDownload bucketUri: (ccSdkPrefix + '/client_connect/sdk/' + it + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('client_connect/sdk/' + it + '/'), pathPrefix: (clientConnectHash + '/client_connect/sdk/' + it + '/')
-                        stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cc_sdk_' + it)
-                        preloaded[it] = true;
-                        echo ('Successfully preloaded Client Connect for target "' + it + '" from Google Cloud')
-                    } catch (all) {
-                        preloaded[it] = false;
-                        echo ('Unable to preload Client Connect for target "' + it + '" from Google Cloud, will build this run...')
-                    }
-                }
-            }
+stage("Detect Caches") {
+    def parallelMap = [:]
+    clientConnectPlatformCaches.each {
+        parallelMap["ClientConnect-" + it] = {
+            caching.checkPreloaded(gcloud, preloaded, clientConnectHash, 'ClientConnect-' + it, 'Cloud Connect for target "' + it + '"')
         }
-        parallelMap["UAL"] = {
-            if (ualSdkPrefix != "") {
-                try {
-                    googleStorageDownload bucketUri: (ualSdkPrefix + '/ual/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('ual/'), pathPrefix: (ualSdkPrefix + '/ual/')
-                    stash includes: ('ual/**'), name: ('ual')
-                    preloaded["UAL"] = true;
-                    echo ('Successfully preloaded UAL from Google Cloud')
-                } catch (all) {
-                    preloaded["UAL"] = false;
-                    echo ('Unable to preload UAL, will build this run...')
-                }
-            }
-        }
-        parallelMap["SDKs"] = {
-            if (mainSdkPrefix != "") {
-                try {
-                    googleStorageDownload bucketUri: (mainSdkPrefix + '/assets/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('assets/'), pathPrefix: (mainSdkPrefix + '/assets/')
-                    googleStorageDownload bucketUri: (mainSdkPrefix + '/tests/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('tests/'), pathPrefix: (mainSdkPrefix + '/tests/')
-                    stash includes: ('assets/Unity-SDK.' + sdkVersion + '.zip'), name: 'unitysdk'
-                    stash includes: ('assets/Unity-SDK.' + sdkVersion + '.unitypackage'), name: 'unitypackage'
-                    supportedUnityVersions.keySet().each { version ->
-                        stash includes: 'tests/UnityTest-' + version + '/**', name: 'unity-' + version + '-test-uncompiled'
-                    }
-                    supportedUnrealVersions.keySet().each { version ->
-                        stash includes: ('assets/UnrealEngine-' + version + '-SDK.' + sdkVersion + '.zip'), name: 'ue' + version.replace(/\./, '') + 'sdk'
-                        // TODO: Stash the tests once we're generating them
-                    }
-                    preloaded["SDKs"] = true;
-                    echo ('Successfully preloaded Generated SDKs and Tests from Google Cloud')
-                } catch (all) {
-                    preloaded["SDKs"] = false;
-                    echo ('Unable to preload Generated SDKs and Tests, will build this run...')
-                }
-            }
-        }
-        supportedUnityVersions.each { version, platforms -> 
-            platforms.each { platform ->
-                parallelMap["Unity-" + version + "-" + platform] =
-                {
-                    if (mainSdkPrefix != "") {
-                        try {
-                            googleStorageDownload bucketUri: (mainSdkPrefix + '/compiled_tests/tests/UnityTest-' + version + '/' + platform + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: ('tests/UnityTest-' + version + '/' + platform + '/'), pathPrefix: (mainSdkPrefix + '/compiled_tests/tests/UnityTest-' + version + '/' + platform)
-                            stash includes: ('tests/UnityTest-' + version + '/' + platform + '/**'), name: ('unity-' + version + '-test-' + platform)
-                            preloaded['Test-Unity-' + version + '-' + platform] = true;
-                            echo ('Successfully preloaded compiled Unity ' + version + ' test for ' + platform + ' from Google Cloud')
-                        } catch (all) {
-                            preloaded['Test-Unity-' + version + '-' + platform] = false;
-                            echo ('Unable to preload compiled Unity ' + version + ' test for ' + platform + ', will build this run...')
-                        }
-                    }
-                }
-            }
-        }
-        parallel (parallelMap)
     }
+    parallelMap["UAL"] = {
+        caching.checkPreloaded(gcloud, preloaded, ualBuildHash, 'UAL', 'UAL')
+    }
+    parallelMap["SDKs"] = {
+        caching.checkMultiplePreloaded(gcloud, preloaded, mainBuildHash, [ 'Assets', 'UncompiledTests' ], 'SDKs')
+    }
+    supportedUnityVersions.each { version, platforms -> 
+        platforms.each { platform ->
+            parallelMap["Unity-" + version + "-" + platform] =
+            {
+                caching.checkPreloaded(gcloud, preloaded, mainBuildHash, 'CompiledTest-Unity-' + versopm + '-' + platform, 'compiled Unity ' + version + ' test for ' + platform)
+            }
+        }
+    }
+    parallel (parallelMap)
 }
 stage("Build Client Connect") {
     def parallelMap = [:]
@@ -184,8 +144,7 @@ stage("Build Client Connect") {
                     bat 'yarn'
                     bat 'pwsh client_connect\\Build-Init.ps1'
                     bat 'pwsh client_connect\\Build-Arch.ps1 Win32'
-                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win32/**'
-                    stash includes: ('client_connect/sdk/Win32/**'), name: 'cc_sdk_Win32'
+                    caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win32', 'client_connect/sdk/Win32')
                 }
             }
         }
@@ -201,9 +160,7 @@ stage("Build Client Connect") {
                     bat 'yarn'
                     bat 'pwsh client_connect\\Build-Init.ps1'
                     bat 'pwsh client_connect\\Build-Arch.ps1 Win64'
-                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Win64/**'
-                    stash includes: ('client_connect/sdk/Win64/**'), name: 'cc_sdk_Win64'
-                    parallel (parallelArchMap)
+                    caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win64', 'client_connect/sdk/Win64')
                 }
             }
         }
@@ -219,8 +176,7 @@ stage("Build Client Connect") {
                     sh 'yarn'
                     sh 'pwsh client_connect/Build-Init.ps1'
                     sh 'pwsh client_connect/Build-Arch.ps1 Mac64'
-                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Mac64/**'
-                    stash includes: ('client_connect/sdk/Mac64/**'), name: 'cc_sdk_Mac64'
+                    caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Mac64', 'client_connect/sdk/Mac64')
                 }
             }
         }
@@ -236,8 +192,7 @@ stage("Build Client Connect") {
                     sh 'yarn'
                     sh 'pwsh client_connect/Build-Init.ps1'
                     sh 'pwsh client_connect/Build-Arch.ps1 Linux32'
-                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux32/**'
-                    stash includes: ('client_connect/sdk/Linux32/**'), name: 'cc_sdk_Linux32'
+                    caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux32', 'client_connect/sdk/Linux32')
                 }
             }
         }
@@ -253,14 +208,14 @@ stage("Build Client Connect") {
                     sh 'yarn'
                     sh 'pwsh client_connect/Build-Init.ps1'
                     sh 'pwsh client_connect/Build-Arch.ps1 Linux64'
-                    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + clientConnectHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'client_connect/sdk/Linux64/**'
-                    stash includes: ('client_connect/sdk/Linux64/**'), name: 'cc_sdk_Linux64'
+                    caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux64', 'client_connect/sdk/Linux64')
                 }
             }
         }
     };
     parallel (parallelMap)
 }
+/*
 node('linux') {
     stage("Archive Client Connect") {
         // Archive the SDKs together so we can download them from Jenkins for local development
@@ -274,6 +229,7 @@ node('linux') {
         }
     }
 }
+*/
 stage("Build UAL") {
     if (!preloaded["UAL"]) {
         node('windows-hispeed') {
@@ -282,11 +238,11 @@ stage("Build UAL") {
                 bat 'dotnet publish -c Release -r win10-x64'
                 powershell 'Move-Item -Force UnityAutomaticLicensor\\bin\\Release\\netcoreapp2.1\\win10-x64\\publish ..\\ual'
             }
-            googleStorageUpload bucket: ('gs://redpoint-build-cache/' + ualBuildHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'ual/**'
-            stash includes: ('ual/**'), name: 'ual'
+            caching.pushCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual')
         }
     }
 }
+/*
 if (preloaded["SDKs"]) {
     // Just emit all the stages, we don't have any steps for them because it's all preloaded.
     stage("Generate") { 
@@ -431,7 +387,7 @@ if (preloaded["SDKs"]) {
                         stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
                         googleStorageUpload bucket: ('gs://redpoint-build-cache/' + mainBuildHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'tests/UnityTest-' + version + '/**'
                     }
-                    */
+                    * /
                 };
             }
             parallel (parallelMap)
@@ -514,7 +470,7 @@ stage("Run Tests") {
             }
         }
     }
-    */
+    * /
     parallel (parallelMap)
 }
 if (env.BRANCH_NAME == 'master') {
@@ -577,3 +533,4 @@ if (env.BRANCH_NAME == 'master') {
         }
     }
 }
+*/
