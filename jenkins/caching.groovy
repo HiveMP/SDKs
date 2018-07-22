@@ -12,7 +12,7 @@ def checkPreloaded(gcloud, preloaded, hash, id, title) {
   }
 }
 
-def checkMultiplePreloaded(gcloud, preloaded, hash, ids, title) {
+def checkMultiplePreloaded(gcloud, preloaded, hash, pid, ids, title) {
   def allInCache = true
   ids.each { id -> 
     if (!this.hasCache(gcloud, hash, id)) {
@@ -20,10 +20,10 @@ def checkMultiplePreloaded(gcloud, preloaded, hash, ids, title) {
     }
   }
   if (allInCache) {
-    preloaded[id] = true;
+    preloaded[pid] = true;
     echo ('Preloadable ' + title + ' is already cached in Google Cloud')
   } else {
-    preloaded[id] = false;
+    preloaded[pid] = false;
     echo ('Preloadable ' + title + ' is NOT cached in Google Cloud, will build this run...')
   }
 }
