@@ -1,12 +1,12 @@
 def gcloudKvInstalled = [:]
 def installGCloudKvIfNeeded() {
-    if (!gcloudKvInstalled.containsKey(env.NODE_NAME)) {
+    if (!this.gcloudKvInstalled.containsKey(env.NODE_NAME)) {
         if (isUnix()) {
             sh 'npm i -g @redpointgames/gcloud-kv@0.3.3'
         } else {
             bat 'npm i -g @redpointgames/gcloud-kv@0.3.3'
         }
-        gcloudKvInstalled[env.NODE_NAME] = true
+        this.gcloudKvInstalled[env.NODE_NAME] = true
     }
 }
 
