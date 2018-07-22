@@ -96,7 +96,7 @@ stage("Setup") {
         mainBuildHash = hashing.hashEntries(
             mainBuildConfigVersion,
             [
-                'targets/'
+                'targets/',
                 'sdks/',
                 'index.ts',
                 'SdkVersion.txt'
