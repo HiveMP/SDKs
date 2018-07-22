@@ -11,7 +11,7 @@ def installGCloudKvIfNeeded() {
 }
 
 def keyExists(key) {
-    installGCloudKvIfNeeded()
+    this.installGCloudKvIfNeeded()
     withCredentials([file(credentialsId: 'jenkins-vm-gcloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
         if (isUnix()) {
             def exitCode = sh(returnStatus: true, script: 'gcloud-kv -p redpoint-games-build-cluster exists "' + key + '"')
@@ -24,7 +24,7 @@ def keyExists(key) {
 }
 
 def keyGet(key) {
-    installGCloudKvIfNeeded()
+    this.installGCloudKvIfNeeded()
     withCredentials([file(credentialsId: 'jenkins-vm-gcloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
         if (isUnix()) {
             return (sh(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster get "' + key + '"')).trim()
@@ -35,7 +35,7 @@ def keyGet(key) {
 }
 
 def keySet(key, value) {
-    installGCloudKvIfNeeded()
+    this.installGCloudKvIfNeeded()
     withCredentials([file(credentialsId: 'jenkins-vm-gcloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
         if (isUnix()) {
             return (sh(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster get "' + key + '" "' + value + '"')).trim()
@@ -46,7 +46,7 @@ def keySet(key, value) {
 }
 
 def keyDelete(key) {
-    installGCloudKvIfNeeded()
+    this.installGCloudKvIfNeeded()
     withCredentials([file(credentialsId: 'jenkins-vm-gcloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
         if (isUnix()) {
             return (sh(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster delete "' + key + '"')).trim()
