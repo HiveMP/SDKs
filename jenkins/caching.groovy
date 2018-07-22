@@ -69,3 +69,5 @@ def pushCacheDirectory(gcloud, hash, id, dir) {
     stash includes: (dir + '/**'), name: ('cache-' + hash + '-' + id)
   }
 }
+
+return this

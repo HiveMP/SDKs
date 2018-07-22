@@ -10,3 +10,5 @@ def hashEntries(version, entries) {
     sh ('rm ' + id + '_hash')
   }
 }
+
+return this
