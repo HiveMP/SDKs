@@ -1,6 +1,6 @@
 import groovy.transform.Field
 
-@Field String gcloudKvInstalled = [:]
+@Field Map<String, Boolean> gcloudKvInstalled = [:]
 
 def installGCloudKvIfNeeded() {
     if (!this.gcloudKvInstalled.containsKey(env.NODE_NAME)) {
