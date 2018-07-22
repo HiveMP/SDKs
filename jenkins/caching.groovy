@@ -40,7 +40,7 @@ def pullCacheDirectory(gcloud, hash, id, dir) {
     try {
       unstash name: ('cache-' + hash + '-' + id)
       wasUnstashSuccessful = true
-    } catch {
+    } catch (e) {
       wasUnstashSuccessful = false
     }
 
