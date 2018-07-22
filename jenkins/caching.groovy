@@ -13,7 +13,7 @@ def checkPreloaded(gcloud, preloaded, hash, id, title) {
 }
 
 def checkMultiplePreloaded(gcloud, preloaded, hash, pid, ids, title) {
-  def allInCache = true
+  def allInCache = true;
   ids.each { id -> 
     if (!this.hasCache(gcloud, hash, id)) {
       allInCache = false;

@@ -122,7 +122,7 @@ stage("Detect Caches") {
             caching.checkPreloaded(gcloud, preloaded, ualBuildHash, 'UAL', 'UAL')
         }
         parallelMap["SDKs"] = {
-            caching.checkMultiplePreloaded(gcloud, preloaded, mainBuildHash, [ 'Assets', 'UncompiledTests' ], 'SDKs')
+            caching.checkMultiplePreloaded(gcloud, preloaded, mainBuildHash, 'SDKs', [ 'Assets', 'UncompiledTests' ], 'SDKs')
         }
         supportedUnityVersions.each { version, platforms -> 
             platforms.each { platform ->
