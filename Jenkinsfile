@@ -109,27 +109,31 @@ stage("Setup") {
     }
 }
 stage("Detect Caches") {
-    def parallelMap = [:]
-    clientConnectPlatformCaches.each {
-        parallelMap["ClientConnect-" + it] = {
-            caching.checkPreloaded(gcloud, preloaded, clientConnectHash, 'ClientConnect-' + it, 'Cloud Connect for target "' + it + '"')
-        }
-    }
-    parallelMap["UAL"] = {
-        caching.checkPreloaded(gcloud, preloaded, ualBuildHash, 'UAL', 'UAL')
-    }
-    parallelMap["SDKs"] = {
-        caching.checkMultiplePreloaded(gcloud, preloaded, mainBuildHash, [ 'Assets', 'UncompiledTests' ], 'SDKs')
-    }
-    supportedUnityVersions.each { version, platforms -> 
-        platforms.each { platform ->
-            parallelMap["Unity-" + version + "-" + platform] =
-            {
-                caching.checkPreloaded(gcloud, preloaded, mainBuildHash, 'CompiledTest-Unity-' + versopm + '-' + platform, 'compiled Unity ' + version + ' test for ' + platform)
+    node('linux') {
+        caching.installGCloudKvIfNeeded()
+
+        def parallelMap = [:]
+        clientConnectPlatformCaches.each {
+            parallelMap["ClientConnect-" + it] = {
+                caching.checkPreloaded(gcloud, preloaded, clientConnectHash, 'ClientConnect-' + it, 'Cloud Connect for target "' + it + '"')
             }
         }
+        parallelMap["UAL"] = {
+            caching.checkPreloaded(gcloud, preloaded, ualBuildHash, 'UAL', 'UAL')
+        }
+        parallelMap["SDKs"] = {
+            caching.checkMultiplePreloaded(gcloud, preloaded, mainBuildHash, [ 'Assets', 'UncompiledTests' ], 'SDKs')
+        }
+        supportedUnityVersions.each { version, platforms -> 
+            platforms.each { platform ->
+                parallelMap["Unity-" + version + "-" + platform] =
+                {
+                    caching.checkPreloaded(gcloud, preloaded, mainBuildHash, 'CompiledTest-Unity-' + versopm + '-' + platform, 'compiled Unity ' + version + ' test for ' + platform)
+                }
+            }
+        }
+        parallel (parallelMap)
     }
-    parallel (parallelMap)
 }
 stage("Build Client Connect") {
     def parallelMap = [:]
