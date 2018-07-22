@@ -29,7 +29,7 @@ def checkMultiplePreloaded(gcloud, preloaded, hash, pid, ids, title) {
 }
 
 def pullCacheDirectory(gcloud, hash, id, dir) {
-  dir = dir.trim('/')
+  dir = dir.replaceAll("^/+", "").replaceAll("/+$", "");
   if (env.NODE_NAME.startsWith("windows-")) {
     // This is running in Google Cloud, so we just pull the cache
     // directly onto the agent without going via Jenkins.
@@ -55,7 +55,7 @@ def pullCacheDirectory(gcloud, hash, id, dir) {
 }
 
 def pushCacheDirectory(gcloud, hash, id, dir) {
-  dir = dir.trim('/')
+  dir = dir.replaceAll("^/+", "").replaceAll("/+$", "");
   if (env.NODE_NAME.startsWith("windows-")) {
     // This is running in Google Cloud, so we just push the cache
     // directly onto the agent without going via Jenkins.
