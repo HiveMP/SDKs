@@ -60,7 +60,9 @@ mkdir "%dirname%"''')
             bat ('mkdir "' + targetDir + '"')
           }
         } catch (e) { }
-        bat ('gsutil -m cp ' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "' + targetDir + '"')
+        bat ('set filename="' + targetDir + '''"
+for %%F in (%filename%) do set dirname=%%~dpF
+gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "%dirname%\\"')
       }
     }
   } else {
