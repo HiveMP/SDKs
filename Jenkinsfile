@@ -377,7 +377,7 @@ if (preloaded["SDKs"]) {
                 parallelMap["Unity-" + version] =
                 {
                     timeout(60) {
-                        bat 'pwsh tests/Generate-UnityTests.ps1 -Version ' + version
+                        bat 'pwsh tests/Generate-UnityTests.ps1 -Version ' + version + ' -SdkVersion ' + sdkVersion
                     }
                     timeout(10) {
                         caching.pushCacheDirectory(gcloud, mainBuildHash, 'Unity' + version + 'TestUncompiled', 'tests/UnityTest-' + version + '/')
