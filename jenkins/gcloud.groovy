@@ -5,9 +5,9 @@ import groovy.transform.Field
 def installGCloudKvIfNeeded() {
     if (!this.gcloudKvInstalled.containsKey(env.NODE_NAME)) {
         if (isUnix()) {
-            sh 'yarn global add @redpointgames/gcloud-kv@0.3.4'
+            sh 'yarn global add @redpointgames/gcloud-kv@0.3.5'
         } else {
-            bat 'npm i -g @redpointgames/gcloud-kv@0.3.4'
+            bat 'npm i -g @redpointgames/gcloud-kv@0.3.5'
         }
         this.gcloudKvInstalled[env.NODE_NAME] = true
     }
@@ -18,10 +18,22 @@ def keyExists(key) {
     withCredentials([file(credentialsId: 'jenkins-vm-gcloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
         if (isUnix()) {
             def exitCode = sh(returnStatus: true, script: 'gcloud-kv -p redpoint-games-build-cluster exists "' + key + '"')
-            return exitCode == 0
+            if (exitCode == 0) {
+                return true;
+            } else if (exitCode == 1) {
+                return false;
+            } else {
+                error("'gcloud-kv exists' was unable check the key existance, refer to error message above");
+            }
         } else {
             def exitCode = bat(returnStatus: true, script: 'gcloud-kv -p redpoint-games-build-cluster exists "' + key + '"')
-            return exitCode == 0
+            if (exitCode == 0) {
+                return true;
+            } else if (exitCode == 1) {
+                return false;
+            } else {
+                error("'gcloud-kv exists' was unable check the key existance, refer to error message above");
+            }
         }
     }
 }
