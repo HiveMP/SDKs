@@ -60,9 +60,9 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
     } finally {
         dir(cwd) {
             if (unix) {
-                sh 'rm -Rf .gcloud'
+                sh ('rm -Rf "' + gcloudDir + '"')
             } else {
-                powershell 'Remove-Item -Force -Recurse .gcloud'
+                powershell 'Remove-Item -Force -Recurse "' + gcloudDir + '"'
             }
         }
     }
