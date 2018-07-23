@@ -237,6 +237,8 @@ stage("Build UAL") {
             }
             caching.pushCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual')
         }
+    } else {
+        echo ('No need to build UAL, it\'s already cached')
     }
 }
 if (preloaded["SDKs"]) {
@@ -273,11 +275,11 @@ if (preloaded["SDKs"]) {
             bat 'git submodule update --init --recursive'
             bat 'git submodule foreach --recursive git clean -xdf'
             bat 'yarn'
-            unstash name: 'cc_sdk_Win32'
-            unstash name: 'cc_sdk_Win64'
-            unstash name: 'cc_sdk_Mac64'
-            unstash name: 'cc_sdk_Linux32'
-            unstash name: 'cc_sdk_Linux64'
+            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win32', 'client_connect/sdk/Win32')
+            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win64', 'client_connect/sdk/Win64')
+            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Mac64', 'client_connect/sdk/Mac64')
+            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux32', 'client_connect/sdk/Linux32')
+            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux64', 'client_connect/sdk/Linux64')
             def parallelMap = [:]
             parallelMap["CSharp-4.5"] = {
                 timeout(15) {
