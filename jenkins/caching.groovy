@@ -42,9 +42,9 @@ def pullCacheDirectory(gcloud, hash, id, dir, targetType) {
       try {
         if (targetType == 'file') {
           recurArg = '';
-          bat ('set filename="' + targetDir + '"
+          bat ('set filename="' + targetDir + '''"
 for %%F in (%filename%) do set dirname=%%~dpF
-mkdir "%dirname%"')
+mkdir "%dirname%"''')
         } else if (targetType == 'dir') {
           bat ('mkdir "' + targetDir + '"')
         }
