@@ -2,6 +2,70 @@ import groovy.transform.Field
 
 @Field Map<String, Boolean> gcloudKvInstalled = [:]
 
+def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsClosure2 block) {
+    def id = UUID.randomUUID().toString();
+    def cwd = pwd();
+    def unix = isUnix();
+    def gcloudDir = '.gcloud' + id;
+    if (unix) {
+        sh ('mkdir "' + gcloudDir + '"')
+    } else {
+        powershell 'try { New-Item -Path "' + gcloudDir + '" -ItemType Directory } catch { }'
+    }
+    try {
+        def cloudSdkPath = cwd + '/' + gcloudDir;
+        def botoPath = cwd + '/' + gcloudDir + '/boto.cfg';
+        if (!unix) {
+            cloudSdkPath = cwd + '\\' + gcloudDir;
+            botoPath = cwd + '\\' + gcloudDir + '\\boto.cfg';
+        }
+        withEnv(['CLOUDSDK_CONFIG=' + cloudSdkPath, 'BOTO_CONFIG=' + botoPath]) {
+            // Copy the service account JSON file to our Google Cloud config directory (so it doesn't
+            // get deleted once withCredentials goes out of scope).
+            if (config["serviceAccountCredential"] != null) {
+                withCredentials([file(credentialsId: config["serviceAccountCredential"], variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    if (unix) {
+                        sh 'cp "$GOOGLE_APPLICATION_CREDENTIALS" "$CLOUDSDK_CONFIG/serviceaccount.json"'
+                    } else {
+                        powershell 'Copy-Item -Force "$GOOGLE_APPLICATION_CREDENTIALS" "$CLOUDSDK_CONFIG\\serviceaccount.json"'
+                    }
+                }
+            } else if (config["serviceAccountPath"] != null) {
+                withEnv(['GOOGLE_APPLICATION_CREDENTIALS=' + config["serviceAccountPath"]]) {
+                    if (unix) {
+                        sh 'cp "$GOOGLE_APPLICATION_CREDENTIALS" "$CLOUDSDK_CONFIG/serviceaccount.json"'
+                    } else {
+                        powershell 'Copy-Item -Force "$GOOGLE_APPLICATION_CREDENTIALS" "$CLOUDSDK_CONFIG\\serviceaccount.json"'
+                    }
+                }
+            }
+
+            // Set up service account authentication in the temporary Google Cloud config path.
+            if (unix) {
+                sh 'gcloud config set pass_credentials_to_gsutil false'
+                sh 'echo "$CLOUDSDK_CONFIG/serviceaccount.json" | gsutil config -e -o "$CLOUDSDK_CONFIG/boto.cfg"'
+                sh 'gcloud auth activate-service-account --key-file="$CLOUDSDK_CONFIG/serviceaccount.json"'
+            } else {
+                bat 'gcloud config set pass_credentials_to_gsutil false'
+                powershell 'Write-Output "$CLOUDSDK_CONFIG\\serviceaccount.json" | gsutil config -e -o "$CLOUDSDK_CONFIG\\boto.cfg"'
+                bat 'gcloud auth activate-service-account --key-file="$CLOUDSDK_CONFIG\\serviceaccount.json"'
+            }
+
+            // Invoke the closure block that the user wants to execute, with the CLOUDSDK_CONFIG
+            // and BOTO_CONFIG environment variables set.
+            block()
+        }
+    } finally {
+        dir(cwd) {
+            if (unix) {
+                sh 'rm -Rf .gcloud'
+            } else {
+                powershell 'Remove-Item -Force -Recurse .gcloud'
+            }
+        }
+    }
+}
+
 def installGCloudKvIfNeeded() {
     if (!this.gcloudKvInstalled.containsKey(env.NODE_NAME)) {
         if (isUnix()) {
@@ -15,7 +79,7 @@ def installGCloudKvIfNeeded() {
 
 def keyExists(key) {
     this.installGCloudKvIfNeeded()
-    withCredentials([file(credentialsId: 'jenkins-vm-gcloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+    this.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
         if (isUnix()) {
             def exitCode = sh(returnStatus: true, script: 'gcloud-kv -p redpoint-games-build-cluster exists "' + key + '"')
             if (exitCode == 0) {
@@ -40,7 +104,7 @@ def keyExists(key) {
 
 def keyGet(key) {
     this.installGCloudKvIfNeeded()
-    withCredentials([file(credentialsId: 'jenkins-vm-gcloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+    this.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
         if (isUnix()) {
             return (sh(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster get "' + key + '"')).trim()
         } else {
@@ -51,7 +115,7 @@ def keyGet(key) {
 
 def keySet(key, value) {
     this.installGCloudKvIfNeeded()
-    withCredentials([file(credentialsId: 'jenkins-vm-gcloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+    this.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
         if (isUnix()) {
             return (sh(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster set "' + key + '" "' + value + '"')).trim()
         } else {
@@ -62,7 +126,7 @@ def keySet(key, value) {
 
 def keyDelete(key) {
     this.installGCloudKvIfNeeded()
-    withCredentials([file(credentialsId: 'jenkins-vm-gcloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+    this.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
         if (isUnix()) {
             return (sh(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster delete "' + key + '"')).trim()
         } else {

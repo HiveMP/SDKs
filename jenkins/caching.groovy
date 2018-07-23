@@ -33,7 +33,9 @@ def pullCacheDirectory(gcloud, hash, id, dir) {
   if (env.NODE_NAME.startsWith("windows-")) {
     // This is running in Google Cloud, so we just pull the cache
     // directly onto the agent without going via Jenkins.
-    bat ('gsutil -m cp "gs://redpoint-build-cache/' + hash + '/' + dir + '" "' + dir + '"')
+    gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
+      bat ('gsutil -m cp "gs://redpoint-build-cache/' + hash + '/' + dir + '" "' + dir + '"')
+    }
   } else {
     // Try to unstash first in case Jenkins has already cached this.
     def wasUnstashSuccessful = false
@@ -59,7 +61,9 @@ def pushCacheDirectory(gcloud, hash, id, dir) {
   if (env.NODE_NAME.startsWith("windows-")) {
     // This is running in Google Cloud, so we just push the cache
     // directly onto the agent without going via Jenkins.
-    bat ('gsutil -m cp "' + dir + '" "gs://redpoint-build-cache/' + hash + '/' + dir + '"')
+    gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
+      bat ('gsutil -m cp "' + dir + '" "gs://redpoint-build-cache/' + hash + '/' + dir + '"')
+    }
     gcloud.keySet('cache-' + hash + '-' + id, 'true')
   } else {
     // Push from the agent via Jenkins.
