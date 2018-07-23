@@ -29,44 +29,64 @@ def checkMultiplePreloaded(gcloud, preloaded, hash, pid, ids, title) {
 }
 
 def pullCacheDirectory(gcloud, hash, id, dir, targetType) {
-  dir = dir.replaceAll('^/+', '').replaceAll('/+$', '');
-  def targetDir = dir;
-  if (!isUnix()) {
-    targetDir = dir.replaceAll("/","\\\\");
-  }
+  pullCacheDirectoryMultiple(gcloud, hash, [
+    [
+      id: id,
+      dir: dir,
+      targetType: targetType,
+    ]
+  ])
+}
+
+def pullCacheDirectoryMultiple(gcloud, hash, entries) {
   if (env.NODE_NAME.startsWith("windows-")) {
     // This is running in Google Cloud, so we just pull the cache
     // directly onto the agent without going via Jenkins.
     gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
-      def recurArg = '-r';
-      try {
-        if (targetType == 'file') {
-          recurArg = '';
-          bat ('set filename="' + targetDir + '''"
+      entries.each { entry ->
+        def normDir = entry.dir.replaceAll('^/+', '').replaceAll('/+$', '');
+        def targetDir = normDir;
+        if (!isUnix()) {
+          targetDir = normDir.replaceAll("/","\\\\");
+        } 
+        def recurArg = '-r';
+        try {
+          if (entry.targetType == 'file') {
+            recurArg = '';
+            bat ('set filename="' + targetDir + '''"
 for %%F in (%filename%) do set dirname=%%~dpF
 mkdir "%dirname%"''')
-        } else if (targetType == 'dir') {
-          bat ('mkdir "' + targetDir + '"')
-        }
-      } catch (e) { }
-      bat ('gsutil -m cp ' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + dir + '" "' + targetDir + '"')
+          } else if (entry.targetType == 'dir') {
+            bat ('mkdir "' + targetDir + '"')
+          }
+        } catch (e) { }
+        bat ('gsutil -m cp ' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "' + targetDir + '"')
+      }
     }
   } else {
-    // Try to unstash first in case Jenkins has already cached this.
-    def wasUnstashSuccessful = false
-    try {
-      unstash name: ('cache-' + hash + '-' + id)
-      wasUnstashSuccessful = true
-    } catch (e) {
-      wasUnstashSuccessful = false
-    }
+    entries.each { entry -> 
+      def normDir = entry.dir.replaceAll('^/+', '').replaceAll('/+$', '');
+      def targetDir = normDir;
+      if (!isUnix()) {
+        targetDir = normDir.replaceAll("/","\\\\");
+      } 
 
-    if (wasUnstashSuccessful) {
-      // Jenkins hasn't got a copy of this yet.
-      googleStorageDownload bucketUri: ('gs://redpoint-build-cache/' + hash + '/' + dir + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: (dir + '/'), pathPrefix: (hash + '/' + dir + '/')
-      stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cache-' + hash + '-' + id)
+      // Try to unstash first in case Jenkins has already cached this.
+      def wasUnstashSuccessful = false
+      try {
+        unstash name: ('cache-' + hash + '-' + entry.id)
+        wasUnstashSuccessful = true
+      } catch (e) {
+        wasUnstashSuccessful = false
+      }
 
-      // We have just implicitly unstashed on this node, so nothing more to do here.
+      if (wasUnstashSuccessful) {
+        // Jenkins hasn't got a copy of this yet.
+        googleStorageDownload bucketUri: ('gs://redpoint-build-cache/' + hash + '/' + normDir + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: (normDir + '/'), pathPrefix: (hash + '/' + normDir + '/')
+        stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cache-' + hash + '-' + entry.id)
+
+        // We have just implicitly unstashed on this node, so nothing more to do here.
+      }
     }
   }
 }

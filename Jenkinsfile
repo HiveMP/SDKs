@@ -275,11 +275,33 @@ if (preloaded["SDKs"]) {
             bat 'git submodule update --init --recursive'
             bat 'git submodule foreach --recursive git clean -xdf'
             bat 'yarn'
-            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win32', 'client_connect/sdk/Win32', 'dir')
-            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win64', 'client_connect/sdk/Win64', 'dir')
-            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Mac64', 'client_connect/sdk/Mac64', 'dir')
-            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux32', 'client_connect/sdk/Linux32', 'dir')
-            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux64', 'client_connect/sdk/Linux64', 'dir')
+            caching.pullCacheDirectoryMultiple(gcloud, clientConnectHash, [
+                [
+                    id: 'ClientConnect-Win32', 
+                    dir: 'client_connect/sdk/Win32', 
+                    targetType: 'dir',
+                ],
+                [
+                    id: 'ClientConnect-Win64', 
+                    dir: 'client_connect/sdk/Win64', 
+                    targetType: 'dir',
+                ],
+                [
+                    id: 'ClientConnect-Mac64', 
+                    dir: 'client_connect/sdk/Mac64', 
+                    targetType: 'dir',
+                ],
+                [
+                    id: 'ClientConnect-Linux32', 
+                    dir: 'client_connect/sdk/Linux32', 
+                    targetType: 'dir',
+                ],
+                [
+                    id: 'ClientConnect-Linux64', 
+                    dir: 'client_connect/sdk/Linux64', 
+                    targetType: 'dir',
+                ],
+            ]);
             def parallelMap = [:]
             parallelMap["CSharp-4.5"] = {
                 timeout(15) {
