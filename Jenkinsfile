@@ -67,10 +67,10 @@ def preloaded = [:]
 def gitCommit = ""
 def clientConnectHash = ""
 // If changing the steps related to Client Connect build, increase this number.
-def clientConnectBuildConfigVersion = "1"
+def clientConnectBuildConfigVersion = "2"
 def mainBuildHash = ""
 // If changing the steps related to the main build, increase this number.
-def mainBuildConfigVersion = "1"
+def mainBuildConfigVersion = "2"
 def ualBuildHash = ""
 def ualBuildConfigVersion = "1"
 if (env.CHANGE_TARGET != null) {
