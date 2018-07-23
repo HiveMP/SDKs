@@ -49,7 +49,7 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
                 sh 'gcloud auth activate-service-account --key-file="$CLOUDSDK_CONFIG/serviceaccount.json"'
             } else {
                 bat 'gcloud config set pass_credentials_to_gsutil false'
-                powershell '$ErrorActionPreference = "SilentlyContinue"; try { New-Item -Path "$env:USERPROFILE\\.gsutil" -ItemType Directory; } catch { }; Write-Output "$env:CLOUDSDK_CONFIG\\serviceaccount.json" | gsutil config -e -o "$env:BOTO_CONFIG" 2>&1; if ($LastExitCode -ne 0) { exit 1; };'
+                bat 'echo "%CLOUDSDK_CONFIG%\\serviceaccount.json" | gsutil config -e -o "%BOTO_CONFIG%"'
                 bat 'gcloud auth activate-service-account --key-file="%CLOUDSDK_CONFIG%\\serviceaccount.json"'
             }
 
