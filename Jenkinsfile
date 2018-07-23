@@ -138,7 +138,7 @@ stage("Detect Caches") {
 stage("Build Client Connect") {
     def parallelMap = [:]
     parallelMap["Win32"] = {
-        if (!preloaded["Win32"]) {
+        if (!preloaded["ClientConnect-Win32"]) {
             node('windows-hispeed') {
                 timeout(20) {
                     checkout(poll: false, changelog: false, scm: scm)
@@ -154,7 +154,7 @@ stage("Build Client Connect") {
         }
     };
     parallelMap["Win64"] = {
-        if (!preloaded["Win64"]) {
+        if (!preloaded["ClientConnect-Win64"]) {
             node('windows-hispeed') {
                 timeout(20) {
                     checkout(poll: false, changelog: false, scm: scm)
@@ -170,7 +170,7 @@ stage("Build Client Connect") {
         }
     };
     parallelMap["Mac64"] = {
-        if (!preloaded["Mac64"]) {
+        if (!preloaded["ClientConnect-Mac64"]) {
             node('mac') {
                 timeout(20) {
                     checkout(poll: false, changelog: false, scm: scm)
@@ -186,7 +186,7 @@ stage("Build Client Connect") {
         }
     };
     parallelMap["Linux32"] = {
-        if (!preloaded["Linux32"]) {
+        if (!preloaded["ClientConnect-Linux32"]) {
             node('linux') {
                 timeout(20) {
                     checkout(poll: false, changelog: false, scm: scm)
@@ -202,7 +202,7 @@ stage("Build Client Connect") {
         }
     };
     parallelMap["Linux64"] = {
-        if (!preloaded["Linux64"]) {
+        if (!preloaded["ClientConnect-Linux64"]) {
             node('linux') {
                 timeout(20) {
                     checkout(poll: false, changelog: false, scm: scm)
