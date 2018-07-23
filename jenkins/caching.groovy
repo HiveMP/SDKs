@@ -64,6 +64,7 @@ def pushCacheDirectory(gcloud, hash, id, dir) {
   } else {
     // Push from the agent via Jenkins.
     googleStorageUpload bucket: ('gs://redpoint-build-cache/' + hash), credentialsId: 'redpoint-games-build-cluster', pattern: (dir + '/**')
+    gcloud.keySet('cache-' + hash + '-' + id, 'true')
 
     // Now also stash the result so we can pull it later on Jenkins agents faster
     stash includes: (dir + '/**'), name: ('cache-' + hash + '-' + id)
