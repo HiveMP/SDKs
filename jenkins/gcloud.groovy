@@ -50,7 +50,7 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
             } else {
                 bat 'gcloud config set pass_credentials_to_gsutil false'
                 powershell 'Write-Output "$env:CLOUDSDK_CONFIG\\serviceaccount.json" | gsutil config -e -o "$env:CLOUDSDK_CONFIG\\boto.cfg"'
-                bat 'gcloud auth activate-service-account --key-file="$CLOUDSDK_CONFIG\\serviceaccount.json"'
+                bat 'gcloud auth activate-service-account --key-file="%CLOUDSDK_CONFIG%\\serviceaccount.json"'
             }
 
             // Invoke the closure block that the user wants to execute, with the CLOUDSDK_CONFIG
