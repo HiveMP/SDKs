@@ -45,11 +45,11 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
             // Set up service account authentication in the temporary Google Cloud config path.
             if (unix) {
                 sh 'gcloud config set pass_credentials_to_gsutil false'
-                sh 'echo "$CLOUDSDK_CONFIG/serviceaccount.json" | gsutil config -e -o "$CLOUDSDK_CONFIG/boto.cfg"'
+                sh 'echo "$CLOUDSDK_CONFIG/serviceaccount.json" | gsutil config -e -o "$BOTO_CONFIG"'
                 sh 'gcloud auth activate-service-account --key-file="$CLOUDSDK_CONFIG/serviceaccount.json"'
             } else {
                 bat 'gcloud config set pass_credentials_to_gsutil false'
-                powershell 'Write-Output "$env:CLOUDSDK_CONFIG\\serviceaccount.json" | gsutil config -e -o "$env:CLOUDSDK_CONFIG\\boto.cfg"'
+                powershell 'Write-Output "$env:CLOUDSDK_CONFIG\\serviceaccount.json" | gsutil config -e -o "$env:BOTO_CONFIG" 2>&1; if ($LastExitCode -ne 0) { exit 1 }'
                 bat 'gcloud auth activate-service-account --key-file="%CLOUDSDK_CONFIG%\\serviceaccount.json"'
             }
 
