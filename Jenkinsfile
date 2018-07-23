@@ -347,9 +347,8 @@ if (preloaded["SDKs"]) {
             };
             parallelMap["Unity"] = {
                 timeout(20) {
-                    bat ('pwsh util/Unity-PrePackage.ps1 -SdkVersion ' + sdkVersion)
                     withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
-                        bat ('pwsh util/Unity-PostPackage.ps1 -SdkVersion ' + sdkVersion)
+                        bat ('pwsh util/Unity-Package.ps1 -SdkVersion ' + sdkVersion)
                     }
                 }
             };

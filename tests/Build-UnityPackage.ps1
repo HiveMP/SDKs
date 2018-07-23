@@ -137,7 +137,7 @@ function Do-Unity-Package() {
     
     echo "Unpacking SDK package..."
     Add-Type -AssemblyName System.IO.Compression.FileSystem;
-    $sdkName = (Get-Item $PSScriptRoot\..\Unity-SDK*.zip).FullName;
+    $sdkName = (Get-Item $PSScriptRoot\..\assets\Unity-SDK.$SdkVersion.zip).FullName;
     echo $sdkName
     [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnityTest-$Version\Assets\HiveMP");
 
