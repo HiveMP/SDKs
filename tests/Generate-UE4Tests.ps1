@@ -30,7 +30,7 @@ if (!$NoCleanAndSdkUnpack) {
   
   echo "Unpacking SDK package..."
   Add-Type -AssemblyName System.IO.Compression.FileSystem;
-  $sdkName = (Get-Item $PSScriptRoot\..\UnrealEngine-$Version-SDK*.zip).FullName;
+  $sdkName = (Get-Item $PSScriptRoot\..\assets\UnrealEngine-$UeVersion-SDK.$SdkVersion.zip).FullName;
   echo $sdkName
   [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$TestPath\Plugins\HiveMPSDK");
 
