@@ -92,7 +92,7 @@ def keyExists(key) {
                 error("'gcloud-kv exists' was unable check the key existance, refer to error message above");
             }
         } else {
-            def exitCode = bat(returnStatus: true, script: 'gcloud-kv -p redpoint-games-build-cluster exists "' + key + '"')
+            def exitCode = bat(returnStatus: true, script: '"%APPDATA%\\npm\\gcloud-kv.cmd" -p redpoint-games-build-cluster exists "' + key + '"')
             if (exitCode == 0) {
                 return true;
             } else if (exitCode == 1) {
@@ -110,7 +110,7 @@ def keyGet(key) {
         if (isUnix()) {
             return (sh(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster get "' + key + '"')).trim()
         } else {
-            return (bat(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster get "' + key + '"')).trim()
+            return (bat(returnStdout: true, script: '"%APPDATA%\\npm\\gcloud-kv.cmd" -p redpoint-games-build-cluster get "' + key + '"')).trim()
         }
     }
 }
@@ -121,7 +121,7 @@ def keySet(key, value) {
         if (isUnix()) {
             return (sh(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster set "' + key + '" "' + value + '"')).trim()
         } else {
-            return (bat(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster set "' + key + '" "' + value + '"')).trim()
+            return (bat(returnStdout: true, script: '"%APPDATA%\\npm\\gcloud-kv.cmd" -p redpoint-games-build-cluster set "' + key + '" "' + value + '"')).trim()
         }
     }
 }
@@ -132,7 +132,7 @@ def keyDelete(key) {
         if (isUnix()) {
             return (sh(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster delete "' + key + '"')).trim()
         } else {
-            return (bat(returnStdout: true, script: 'gcloud-kv -p redpoint-games-build-cluster delete "' + key + '"')).trim()
+            return (bat(returnStdout: true, script: '"%APPDATA%\\npm\\gcloud-kv.cmd" -p redpoint-games-build-cluster delete "' + key + '"')).trim()
         }
     }
 }
