@@ -49,6 +49,8 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
                 sh 'gcloud auth activate-service-account --key-file="$CLOUDSDK_CONFIG/serviceaccount.json"'
             } else {
                 bat 'gcloud config set pass_credentials_to_gsutil false'
+                // This is required so that gsutil config can create %USERPROFILE%\.gsutil\metrics.log
+                bat 'mkdir %USERPROFILE%\\.gsutil'
                 bat 'echo "%CLOUDSDK_CONFIG%\\serviceaccount.json" | gsutil config -e -o "%BOTO_CONFIG%"'
                 bat 'gcloud auth activate-service-account --key-file="%CLOUDSDK_CONFIG%\\serviceaccount.json"'
             }
