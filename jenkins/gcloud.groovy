@@ -15,27 +15,29 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
     try {
         def cloudSdkPath = cwd + '/' + gcloudDir;
         def botoPath = cwd + '/' + gcloudDir + '/boto.cfg';
+        def svcPath = cwd + '/' + gcloudDir + '/serviceaccount.json';
         if (!unix) {
             cloudSdkPath = cwd + '\\' + gcloudDir;
             botoPath = cwd + '\\' + gcloudDir + '\\boto.cfg';
+            svcPath = cwd + '\\' + gcloudDir + '\\serviceaccount.json';
         }
-        withEnv(['CLOUDSDK_CONFIG=' + cloudSdkPath, 'BOTO_CONFIG=' + botoPath]) {
+        withEnv(['CLOUDSDK_CONFIG=' + cloudSdkPath, 'BOTO_CONFIG=' + botoPath, 'GOOGLE_APPLICATION_CREDENTIALS=' + svcPath]) {
             // Copy the service account JSON file to our Google Cloud config directory (so it doesn't
             // get deleted once withCredentials goes out of scope).
             if (config["serviceAccountCredential"] != null) {
-                withCredentials([file(credentialsId: config["serviceAccountCredential"], variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                withCredentials([file(credentialsId: config["serviceAccountCredential"], variable: 'SERVICE_ACCOUNT_JSON')]) {
                     if (unix) {
-                        sh 'cp "$GOOGLE_APPLICATION_CREDENTIALS" "$CLOUDSDK_CONFIG/serviceaccount.json"'
+                        sh 'cp "$SERVICE_ACCOUNT_JSON" "$CLOUDSDK_CONFIG/serviceaccount.json"'
                     } else {
-                        powershell 'Copy-Item -Force "$GOOGLE_APPLICATION_CREDENTIALS" "$CLOUDSDK_CONFIG\\serviceaccount.json"'
+                        powershell 'Copy-Item -Force "$SERVICE_ACCOUNT_JSON" "$CLOUDSDK_CONFIG\\serviceaccount.json"'
                     }
                 }
             } else if (config["serviceAccountPath"] != null) {
-                withEnv(['GOOGLE_APPLICATION_CREDENTIALS=' + config["serviceAccountPath"]]) {
+                withEnv(['SERVICE_ACCOUNT_JSON=' + config["serviceAccountPath"]]) {
                     if (unix) {
-                        sh 'cp "$GOOGLE_APPLICATION_CREDENTIALS" "$CLOUDSDK_CONFIG/serviceaccount.json"'
+                        sh 'cp "$SERVICE_ACCOUNT_JSON" "$CLOUDSDK_CONFIG/serviceaccount.json"'
                     } else {
-                        powershell 'Copy-Item -Force "$GOOGLE_APPLICATION_CREDENTIALS" "$CLOUDSDK_CONFIG\\serviceaccount.json"'
+                        powershell 'Copy-Item -Force "$SERVICE_ACCOUNT_JSON" "$CLOUDSDK_CONFIG\\serviceaccount.json"'
                     }
                 }
             }
