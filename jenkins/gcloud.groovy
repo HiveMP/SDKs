@@ -29,7 +29,7 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
                     if (unix) {
                         sh 'cp "$SERVICE_ACCOUNT_JSON" "$CLOUDSDK_CONFIG/serviceaccount.json"'
                     } else {
-                        powershell 'Copy-Item -Force "$SERVICE_ACCOUNT_JSON" "$CLOUDSDK_CONFIG\\serviceaccount.json"'
+                        powershell 'Copy-Item -Force "$env:SERVICE_ACCOUNT_JSON" "$env:CLOUDSDK_CONFIG\\serviceaccount.json"'
                     }
                 }
             } else if (config["serviceAccountPath"] != null) {
@@ -37,7 +37,7 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
                     if (unix) {
                         sh 'cp "$SERVICE_ACCOUNT_JSON" "$CLOUDSDK_CONFIG/serviceaccount.json"'
                     } else {
-                        powershell 'Copy-Item -Force "$SERVICE_ACCOUNT_JSON" "$CLOUDSDK_CONFIG\\serviceaccount.json"'
+                        powershell 'Copy-Item -Force "$env:SERVICE_ACCOUNT_JSON" "$env:CLOUDSDK_CONFIG\\serviceaccount.json"'
                     }
                 }
             }
@@ -49,7 +49,7 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
                 sh 'gcloud auth activate-service-account --key-file="$CLOUDSDK_CONFIG/serviceaccount.json"'
             } else {
                 bat 'gcloud config set pass_credentials_to_gsutil false'
-                powershell 'Write-Output "$CLOUDSDK_CONFIG\\serviceaccount.json" | gsutil config -e -o "$CLOUDSDK_CONFIG\\boto.cfg"'
+                powershell 'Write-Output "$env:CLOUDSDK_CONFIG\\serviceaccount.json" | gsutil config -e -o "$env:CLOUDSDK_CONFIG\\boto.cfg"'
                 bat 'gcloud auth activate-service-account --key-file="$CLOUDSDK_CONFIG\\serviceaccount.json"'
             }
 
