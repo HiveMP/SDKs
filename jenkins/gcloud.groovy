@@ -52,7 +52,7 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
                 try {
                     // This is required so that gsutil config can create %USERPROFILE%\.gsutil\metrics.log
                     bat 'mkdir %USERPROFILE%\\.gsutil'
-                } catch { }
+                } catch (e) { }
                 bat 'echo "%CLOUDSDK_CONFIG%\\serviceaccount.json" | gsutil config -e -o "%BOTO_CONFIG%"'
                 bat 'gcloud auth activate-service-account --key-file="%CLOUDSDK_CONFIG%\\serviceaccount.json"'
             }
