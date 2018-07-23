@@ -275,11 +275,11 @@ if (preloaded["SDKs"]) {
             bat 'git submodule update --init --recursive'
             bat 'git submodule foreach --recursive git clean -xdf'
             bat 'yarn'
-            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win32', 'client_connect/sdk/Win32')
-            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win64', 'client_connect/sdk/Win64')
-            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Mac64', 'client_connect/sdk/Mac64')
-            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux32', 'client_connect/sdk/Linux32')
-            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux64', 'client_connect/sdk/Linux64')
+            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win32', 'client_connect/sdk/Win32', 'dir')
+            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win64', 'client_connect/sdk/Win64', 'dir')
+            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Mac64', 'client_connect/sdk/Mac64', 'dir')
+            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux32', 'client_connect/sdk/Linux32', 'dir')
+            caching.pullCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux64', 'client_connect/sdk/Linux64', 'dir')
             def parallelMap = [:]
             parallelMap["CSharp-4.5"] = {
                 timeout(15) {
@@ -311,7 +311,7 @@ if (preloaded["SDKs"]) {
         }
         stage("Licensing") {
             withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
-                caching.pullCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual')
+                caching.pullCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual', 'dir')
                 bat 'pwsh util/License-Unity.ps1'
             }
         }
@@ -394,8 +394,8 @@ stage("Build Tests") {
                     timeout(30) {
                         node('windows-hispeed') {
                             dir('_test_env/Unity-' + version + '-' + platform) {
-                                caching.pullCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual')
-                                caching.pullCacheDirectory(gcloud, mainBuildHash, 'Unity' + version + 'TestUncompiled', 'tests/UnityTest-' + version + '/')
+                                caching.pullCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual', 'dir')
+                                caching.pullCacheDirectory(gcloud, mainBuildHash, 'Unity' + version + 'TestUncompiled', 'tests/UnityTest-' + version + '/', 'dir')
 
                                 withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
                                     bat('pwsh tests/UnityTest-' + version + '/License-Unity.ps1')

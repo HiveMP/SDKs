@@ -28,7 +28,7 @@ def checkMultiplePreloaded(gcloud, preloaded, hash, pid, ids, title) {
   }
 }
 
-def pullCacheDirectory(gcloud, hash, id, dir) {
+def pullCacheDirectory(gcloud, hash, id, dir, targetType) {
   dir = dir.replaceAll('^/+', '').replaceAll('/+$', '');
   def targetDir = dir;
   if (!isUnix()) {
@@ -38,7 +38,18 @@ def pullCacheDirectory(gcloud, hash, id, dir) {
     // This is running in Google Cloud, so we just pull the cache
     // directly onto the agent without going via Jenkins.
     gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
-      bat ('gsutil -m cp -r "gs://redpoint-build-cache/' + hash + '/' + dir + '" "' + targetDir + '"')
+      def recurArg = '-r';
+      try {
+        if (targetType == 'file') {
+          recurArg = '';
+          bat ('set filename="' + targetDir + '"
+for %%F in (%filename%) do set dirname=%%~dpF
+mkdir "%dirname%"')
+        } else if (targetType == 'dir') {
+          bat ('mkdir "' + targetDir + '"')
+        }
+      } catch (e) { }
+      bat ('gsutil -m cp ' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + dir + '" "' + targetDir + '"')
     }
   } else {
     // Try to unstash first in case Jenkins has already cached this.
