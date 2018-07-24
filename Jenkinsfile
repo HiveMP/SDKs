@@ -496,21 +496,24 @@ stage("Run Tests") {
             } else if (platform.startsWith("Linux")) {
                 // TODO: We don't run Linux tests yet (beyond making sure code compiles on Linux in the previous step)
             } else if (platform.startsWith("Win")) {
-                node('windows') {
-                    timeout(30) {
-                        caching.pullCacheDirectory(gcloud, mainBuildHash, [
-                            [
-                                id: 'CompiledTest-Unity-' + version + '-' + platform, 
-                                dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
-                                targetType: 'dir',
-                            ],
-                            [
-                                id: 'RunUnityTest', 
-                                dir: 'tests/Run-UnityTest.ps1', 
-                                targetType: 'file',
-                            ],
-                        ]);
-                        bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform ' + platform
+                parallelMap["Unity-" + version + "-" + platform] =
+                {
+                    node('windows') {
+                        timeout(30) {
+                            caching.pullCacheDirectory(gcloud, mainBuildHash, [
+                                [
+                                    id: 'CompiledTest-Unity-' + version + '-' + platform, 
+                                    dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
+                                    targetType: 'dir',
+                                ],
+                                [
+                                    id: 'RunUnityTest', 
+                                    dir: 'tests/Run-UnityTest.ps1', 
+                                    targetType: 'file',
+                                ],
+                            ]);
+                            bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform ' + platform
+                        }
                     }
                 }
             }
