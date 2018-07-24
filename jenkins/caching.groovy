@@ -84,8 +84,36 @@ gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + norm
 
       if (!wasUnstashSuccessful) {
         // Jenkins hasn't got a copy of this yet.
-        googleStorageDownload bucketUri: ('gs://redpoint-build-cache/' + hash + '/' + normDir + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: (normDir + '/'), pathPrefix: (hash + '/' + normDir + '/')
-        stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cache-' + hash + '-' + entry.id)
+        gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
+          def recurArg = '-r';
+
+          if (isUnix()) {
+            try {
+              if (entry.targetType == 'file') {
+                recurArg = '';
+                sh ('mkdir "$(dirname "' + targetDir + '")"')
+              } else if (entry.targetType == 'dir') {
+                sh ('mkdir "' + targetDir + '"')
+              }
+            } catch (e) { }
+            sh ('gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "$(dirname "' + targetDir + '")/"')
+          } else {
+            try {
+              if (entry.targetType == 'file') {
+                recurArg = '';
+                bat ('set filename="' + targetDir + '''"
+for %%F in (%filename%) do set dirname=%%~dpF
+mkdir "%dirname%"''')
+              } else if (entry.targetType == 'dir') {
+                bat ('mkdir "' + targetDir + '"')
+              }
+            } catch (e) { }
+            bat ('set filename="' + targetDir + '''"
+for %%F in (%filename%) do set dirname=%%~dpF
+gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "%dirname%\\"')
+          }
+        }
+        stash includes: (normDir + '/**'), name: ('cache-' + hash + '-' + entry.id)
 
         // We have just implicitly unstashed on this node, so nothing more to do here.
       }
