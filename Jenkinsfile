@@ -465,7 +465,6 @@ stage("Build Tests") {
     }
     parallel (parallelMap)
 }
-/*
 stage("Run Tests") {
     def parallelMap = [:]
     supportedUnityVersions.each { version, platforms ->
@@ -475,8 +474,18 @@ stage("Run Tests") {
                 {
                     node('mac') {
                         timeout(30) {
-                            unstash 'unity-' + version + '-test-' + platform
-                            unstash 'run-unity-test'
+                            caching.pullCacheDirectory(gcloud, mainBuildHash, [
+                                [
+                                    id: 'CompiledTest-Unity-' + version + '-' + platform, 
+                                    dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
+                                    targetType: 'dir',
+                                ],
+                                [
+                                    id: 'RunUnityTest', 
+                                    dir: 'tests/Run-UnityTest.ps1', 
+                                    targetType: 'file',
+                                ],
+                            ]);
                             sh 'chmod a+x tests/Run-UnityTest.ps1'
                             sh 'chmod -R a+rwx tests/UnityTest-' + version + '/' + platform + '/'
                             sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
@@ -489,8 +498,18 @@ stage("Run Tests") {
             } else if (platform.startsWith("Win")) {
                 node('windows') {
                     timeout(30) {
-                        unstash 'unity-' + version + '-test-' + platform
-                        unstash 'run-unity-test'
+                        caching.pullCacheDirectory(gcloud, mainBuildHash, [
+                            [
+                                id: 'CompiledTest-Unity-' + version + '-' + platform, 
+                                dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
+                                targetType: 'dir',
+                            ],
+                            [
+                                id: 'RunUnityTest', 
+                                dir: 'tests/Run-UnityTest.ps1', 
+                                targetType: 'file',
+                            ],
+                        ]);
                         bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform ' + platform
                     }
                 }
@@ -515,9 +534,10 @@ stage("Run Tests") {
             }
         }
     }
-    * /
+    */
     parallel (parallelMap)
 }
+/*
 if (env.BRANCH_NAME == 'master') {
     stage("Push") {
         node('linux') {
