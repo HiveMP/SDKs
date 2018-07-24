@@ -113,7 +113,11 @@ for %%F in (%filename%) do set dirname=%%~dpF
 gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "%dirname%\\"')
           }
         }
-        stash includes: (normDir + '/**'), name: ('cache-' + hash + '-' + entry.id)
+        if (entry.targetType == 'file') {
+          stash includes: normDir, name: ('cache-' + hash + '-' + entry.id)
+        } else {
+          stash includes: (normDir + '/**'), name: ('cache-' + hash + '-' + entry.id)
+        }
 
         // We have just implicitly unstashed on this node, so nothing more to do here.
       }
