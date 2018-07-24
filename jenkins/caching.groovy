@@ -96,7 +96,7 @@ gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + norm
                 sh ('mkdir "' + targetDir + '"')
               }
             } catch (e) { }
-            sh ('gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "$(dirname "' + targetDir + '")/"')
+            sh ('gsutil -m cp ' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "$(dirname "' + targetDir + '")/"')
           } else {
             try {
               if (entry.targetType == 'file') {
