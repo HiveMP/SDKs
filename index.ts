@@ -17,6 +17,7 @@ import {
   UnrealEngine417Generator,
   UnrealEngine418Generator,
   UnrealEngine419Generator,
+  UnrealEngine420Generator,
 } from './targets/ue4';
 import {
   MuJsTypeScriptGenerator
@@ -33,6 +34,7 @@ let targets = [
   new UnrealEngine417Generator(),
   new UnrealEngine418Generator(),
   new UnrealEngine419Generator(),
+  new UnrealEngine420Generator(),
   new MuJsTypeScriptGenerator(),
   new TypeScriptGenerator(),
 ];
@@ -64,6 +66,10 @@ program
     'enable experimental Client Connect support if this target allows it'
   )
   .option(
+    '--client-connect-only-win',
+    'only copy Win32/Win64 architecture files for Client Connect'
+  )
+  .option(
     '--client-connect-sdk-path <dir>',
     'path to the compiled Client Connect SDK, if not provided downloads the latest SDK'
   )
@@ -72,25 +78,6 @@ program
     (async(): Promise<void> => {
       let t = target;
       let found = false;
-      if (options.enableClientConnect &&
-          options.clientConnectSdkPath == null) {
-        console.log("Downloading and extracting HiveMP Client Connect SDK...")
-        await new Promise((resolve, reject) => {
-          fetch('https://github.com/HiveMP/HiveMP.ClientConnect/releases/download/latest/HiveMP.ClientConnect-SDK.tar.gz')
-            .then(function(res) {
-              try {
-                fs.mkdirSync(path.join(__dirname, 'deps'));
-              } catch (e) {}
-              let write = targz().createWriteStream(path.join(__dirname, 'deps/HiveMP.ClientConnect'));
-              let stream = res.body.pipe(write);
-              stream.on('finish', function () {
-                resolve();
-              });
-            })
-            .catch(reject);
-        });
-        options.clientConnectSdkPath = path.join(__dirname, 'deps/HiveMP.ClientConnect/sdk');
-      }
       for (let target of targets) {
         if (target.name == t) {
           // download swagger documents first.
@@ -134,6 +121,7 @@ program
               includeClusterOnly: options.includeClusterOnly,
               enableClientConnect: options.enableClientConnect,
               clientConnectSdkPath: options.clientConnectSdkPath,
+              clientConnectOnlyWin: options.clientConnectOnlyWin,
             });
           found = true;
           break;

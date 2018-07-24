@@ -236,3 +236,9 @@ export class UnrealEngine419Generator extends UnrealEngineGenerator {
     return "UnrealEngine-4.19";
   }
 }
+
+export class UnrealEngine420Generator extends UnrealEngineGenerator {
+  get name(): string {
+    return "UnrealEngine-4.20";
+  }
+}

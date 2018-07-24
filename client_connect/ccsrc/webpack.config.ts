@@ -10,6 +10,7 @@ const LoaderTargetPlugin = require("webpack/lib/LoaderTargetPlugin");
 const config: webpack.Configuration = {
   entry: './src/index.ts',
   mode: 'development',
+  devtool: false,
   target: (compiler: any) => {
     new NodeTemplatePlugin({
       asyncChunkLoading: false
@@ -28,7 +29,8 @@ const config: webpack.Configuration = {
       "curl-native",
       "timers",
       "console",
-      "hotpatching"
+      "hotpatching",
+      "process"
     ]).apply(compiler);
   },
   module: {
@@ -42,6 +44,7 @@ const config: webpack.Configuration = {
   },
   node: {
     'curl-native': false,
+    'process': false,
   },
   resolve: {
     extensions: [ '.ts', '.js' ]

@@ -3,6 +3,7 @@ declare module "curl-native" {
     url?: string;
     userAgent?: string;
     method?: string;
+    body?: string;
     headers?: string[];
   }
 

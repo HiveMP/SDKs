@@ -17,6 +17,7 @@ extern "C" {
 #include "module/console/module.h"
 #include "module/curl-native/module.h"
 #include "module/hotpatching/module.h"
+#include "module/process/module.h"
 
 void _ccl_require(js_State *J)
 {
@@ -33,6 +34,11 @@ void _ccl_require(js_State *J)
 	if (mod_str == "curl-native")
 	{
 		js_load_curl_native(J);
+		return;
+	}
+	else if (mod_str == "process")
+	{
+		js_load_process(J);
 		return;
 	}
 	else if (mod_str == "timers")

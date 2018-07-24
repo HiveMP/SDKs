@@ -4,6 +4,7 @@ export interface Request {
   url?: string;
   userAgent?: string;
   method?: string;
+  body?: string;
   headers?: { [name: string]: string };
 }
 
@@ -25,6 +26,7 @@ export async function fetch(request: Request): Promise<Response> {
     url: request.url,
     userAgent: request.userAgent,
     method: request.method,
+    body: request.body,
     headers: headers
   };
 

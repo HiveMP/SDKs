@@ -40,7 +40,8 @@ add_library(
   module/timers/module.cpp
   module/console/module.cpp
   module/curl-native/module.cpp
-  module/hotpatching/module.cpp)
+  module/hotpatching/module.cpp
+  module/process/module.cpp)
 
 target_include_directories(cchost PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(cchost libcurl)
+target_link_libraries(cchost $<TARGET_OBJECTS:libcurl> ${CURL_LIBS_EXPORTED_2})

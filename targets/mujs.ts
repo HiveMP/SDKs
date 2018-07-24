@@ -155,7 +155,7 @@ import * as moment from 'moment';
 import * as qs from 'query-string';
 
 export namespace HiveMP {
-  export class HiveMPError extends Error {
+  export class HiveMPError {
     public constructor(response: curl.Response) {
       let error: HiveMPSystemError | null = null;
       let message = 'An unknown error occurred while retrieving data from the HiveMP API';
@@ -167,8 +167,6 @@ export namespace HiveMP {
       } catch (e) {
         message = response.responseText;
       }
-
-      super(message);
 
       this.httpStatusCode = response.statusCode;
       this.error = error;
@@ -333,26 +331,30 @@ export namespace HiveMP {
         let baseUrl = options.baseUrl || 'https://${api.host}${api.basePath}';
 
         let queryParameters: { [name: string]: string } = {};
+        let body: string = '';
 `;
           if (methodValue.parameters != null) {
             for (let parameter of methodValue.parameters) {
               let parameterType = MuJsTypeScriptGenerator.getTypeScriptTypeFromDefinition(namespace, parameter.name, parameter, false);
               if (parameter.in == "body") {
-                continue;
-              }
-              let valueAccess = `request.${parameter.name}.toString()`;
-              if (parameter.type === 'string' && parameter.format === 'byte') {
-                valueAccess = `request.${parameter.name}.toBase64String()`;
-              }
-              valueAccess = `encodeURIComponent(${valueAccess})`;
-              if (parameter.required) {
-                code += `        queryParameters['${parameter.name}'] = ${valueAccess};
+                code += `
+        body = JSON.stringify(request.${parameter.name});
 `;
               } else {
-                code += `        if (request.${parameter.name} !== null && request.${parameter.name} !== undefined) {
+                let valueAccess = `request.${parameter.name}.toString()`;
+                if (parameter.type === 'string' && parameter.format === 'byte') {
+                  valueAccess = `request.${parameter.name}.toBase64String()`;
+                }
+                valueAccess = `encodeURIComponent(${valueAccess})`;
+                if (parameter.required) {
+                  code += `        queryParameters['${parameter.name}'] = ${valueAccess};
+`;
+                } else {
+                  code += `        if (request.${parameter.name} !== null && request.${parameter.name} !== undefined) {
           queryParameters['${parameter.name}'] = ${valueAccess};
         }
 `;              
+                }
               }
             }
           }
@@ -361,8 +363,11 @@ export namespace HiveMP {
         let response = await curl.fetch({
           url: baseUrl + '${el.pathName}?' + qs.stringify(queryParameters),
           method: "${el.methodName.toUpperCase()}",
+          body: body,
           headers: {
-            'X-API-Key': apiKey
+            'X-API-Key': apiKey,
+            'Content-Type': 'application/json',
+            'Content-Length': body.length.toString(),
           }
         });
 

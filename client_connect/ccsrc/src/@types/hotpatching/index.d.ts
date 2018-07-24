@@ -1,19 +1,19 @@
 declare module "hotpatching" {
-  interface IApiHotpatchRequest {
+  interface IApiHotpatchRequest<Req> {
     id: string;
     endpoint: string;
     operation: string;
     apiKey: string;
-    parameters: { [id: string]: string };
+    parameters: Req;
   }
   
-  interface IApiHotpatchResponse {
+  interface IApiHotpatchResponse<Resp> {
     code: number;
-    response: any;
+    response: Resp;
   }
 
-  function registerApiHotpatch(
+  function registerApiHotpatch<Req, Resp>(
     id: string,
-    callback: (request: IApiHotpatchRequest) => Promise<IApiHotpatchResponse> | IApiHotpatchResponse
+    callback: (request: IApiHotpatchRequest<Req>) => Promise<IApiHotpatchResponse<Resp>> | IApiHotpatchResponse<Resp>
   ): void;
 }

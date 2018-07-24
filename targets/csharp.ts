@@ -132,9 +132,11 @@ abstract class CSharpGenerator implements TargetGenerator {
       }
       await copyClientConnectPlatformBinaries("Win32");
       await copyClientConnectPlatformBinaries("Win64");
-      await copyClientConnectPlatformBinaries("Mac64");
-      await copyClientConnectPlatformBinaries("Linux32");
-      await copyClientConnectPlatformBinaries("Linux64");
+      if (!opts.clientConnectOnlyWin) {
+        await copyClientConnectPlatformBinaries("Mac64");
+        await copyClientConnectPlatformBinaries("Linux32");
+        await copyClientConnectPlatformBinaries("Linux64");
+      }
     }
 
     await this.postGenerate(opts);
@@ -152,7 +154,11 @@ export class CSharp35Generator extends CSharpGenerator {
   
   async postGenerate(opts: TargetOptions): Promise<void> {
     if (opts.enableClientConnect) {
-      fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+      if (opts.clientConnectOnlyWin) {
+        fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.ClientConnectWinOnly.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+      } else {
+        fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
+      }
     } else {
       fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.NoClientConnect.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
     }
@@ -202,14 +208,25 @@ export class UnityGenerator extends CSharpGenerator {
     });
 
     if (opts.enableClientConnect) {
-      await new Promise<void>((resolve, reject) => {
-        fs.copy("sdks/Unity-ClientConnect/", opts.outputDir, { overwrite: true }, (err) => {
-          if (err) {
-            reject(err);
-          }
-          resolve();
+      if (opts.clientConnectOnlyWin) {
+        await new Promise<void>((resolve, reject) => {
+          fs.copy("sdks/Unity-ClientConnectWinOnly/", opts.outputDir, { overwrite: true }, (err) => {
+            if (err) {
+              reject(err);
+            }
+            resolve();
+          });
         });
-      });
+      } else {
+        await new Promise<void>((resolve, reject) => {
+          fs.copy("sdks/Unity-ClientConnect/", opts.outputDir, { overwrite: true }, (err) => {
+            if (err) {
+              reject(err);
+            }
+            resolve();
+          });
+        });
+      }
     }
   }
 }

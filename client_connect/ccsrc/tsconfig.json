@@ -15,6 +15,7 @@
       "curl-native",
       "webpack-env",
       "hotpatching",
+      "process",
       "timers",
       "console",
       "moment",

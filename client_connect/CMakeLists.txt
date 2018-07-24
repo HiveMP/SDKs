@@ -17,7 +17,8 @@ set (PERL_EXECUTABLE "perl")
 
 # Tweak curl settings
 option(HTTP_ONLY "" ON)
-option(CURL_STATICLIB "" OFF)
+option(CURL_STATICLIB "" ON)
+option(CURL_STATIC_CRT "" OFF)
 option(ENABLE_MANUAL "" OFF)
 SET(BUILD_TESTING OFF CACHE BOOL "Use some expat option")
 SET(BUILD_CURL_EXE OFF CACHE BOOL "Use some expat option")
@@ -32,5 +33,6 @@ if(APPLE)
 endif()
 
 add_subdirectory(curl)
+
 add_subdirectory(cchost)
 add_subdirectory(cctest)

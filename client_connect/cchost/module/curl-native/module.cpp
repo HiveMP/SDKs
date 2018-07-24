@@ -134,8 +134,8 @@ void js_curl_fetch(js_State* J)
     if (js_isstring(J, -1))
     {
         requestBody = alloc_copy(js_tostring(J, -1));
-        js_pop(J, 1);
     }
+	js_pop(J, 1);
     
     // set based on method
     js_getproperty(J, 1, "method");
@@ -164,7 +164,7 @@ void js_curl_fetch(js_State* J)
             }
             else
             {
-                curl_easy_setopt(handle, CURLOPT_POSTFIELDS, strlen(requestBody));
+                curl_easy_setopt(handle, CURLOPT_POSTFIELDSIZE, strlen(requestBody));
                 curl_easy_setopt(handle, CURLOPT_POSTFIELDS, requestBody);
             }
         }
@@ -178,7 +178,7 @@ void js_curl_fetch(js_State* J)
             }
             else
             {
-                curl_easy_setopt(handle, CURLOPT_POSTFIELDS, strlen(requestBody));
+                curl_easy_setopt(handle, CURLOPT_POSTFIELDSIZE, strlen(requestBody));
                 curl_easy_setopt(handle, CURLOPT_POSTFIELDS, requestBody);
             }
         }
@@ -191,9 +191,8 @@ void js_curl_fetch(js_State* J)
             curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, meth_str.c_str());
         }
 #endif
-
-        js_pop(J, 1);
     }
+	js_pop(J, 1);
 
     // set custom headers
     js_getproperty(J, 1, "headers");

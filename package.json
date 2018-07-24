@@ -10,6 +10,7 @@
     "@types/mkdirp": "^0.5.1",
     "commander": "^2.11.0",
     "fs-extra": "^4.0.1",
+    "gulp": "^4.0.0",
     "mkdirp": "^0.5.1",
     "node-fetch": "^1.7.2",
     "node-tar.gz": "^1.0.0",
