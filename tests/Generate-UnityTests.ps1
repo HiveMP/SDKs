@@ -9,33 +9,38 @@ trap {
 }
 
 function Generate-Unity-Build() {
-  echo "Cleaning tests/UnityTest-$Version..."
   for ($i=0; $i -lt 30; $i++) {
     try {
-      git clean -xdff "$PSScriptRoot\..\tests\UnityTest-$Version";
-      break;
+      Write-Output "Cleaning tests/UnityTest-$Version..."
+      git clean -xdff "$PSScriptRoot\..\tests\UnityTest-$Version" 2>&1 | Out-Null;
+      if ($LASTEXITCODE -eq 0) {
+        break;
+      }
     } catch {}
   }
   for ($i=0; $i -lt 30; $i++) {
     try {
-      git checkout HEAD -- "$PSScriptRoot\..\tests\UnityTest-$Version";
-      break;
+      Write-Output "Checking out tests/UnityTest-$Version..."
+      git checkout HEAD -- "$PSScriptRoot\..\tests\UnityTest-$Version" 2>&1 | Out-Null;
+      if ($LASTEXITCODE -eq 0) {
+        break;
+      }
     } catch {}
   }
   
-  echo "Unpacking SDK package..."
+  Write-Output "Unpacking SDK package..."
   Add-Type -AssemblyName System.IO.Compression.FileSystem;
   $sdkName = (Get-Item $PSScriptRoot\..\assets\Unity-SDK.$SdkVersion.zip).FullName;
-  echo $sdkName
+  Write-Output $sdkName
   [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnityTest-$Version\Assets\HiveMP");
 
-  echo "Copying build script..."
+  Write-Output "Copying build script..."
   Copy-Item -Force $PSScriptRoot\Build-UnityTest.ps1 "$PSScriptRoot\..\tests\UnityTest-$Version\Build-UnityTest.ps1"
 
-  echo "Copying licensing script..."
+  Write-Output "Copying licensing script..."
   Copy-Item -Force $PSScriptRoot\..\util\License-Unity.ps1 "$PSScriptRoot\..\tests\UnityTest-$Version\License-Unity.ps1"
 }
 
-cd $PSScriptRoot\..
+Set-Location $PSScriptRoot\..
 
 Generate-Unity-Build

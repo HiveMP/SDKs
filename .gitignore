@@ -44,3 +44,16 @@ build/
 /tests/*/Assets/HiveMP-Unity.meta
 /assets/
 /client_connect/build_*/
+/tests/UnityTest-*/Build-UnityTest.ps1
+/tests/UnityTest-*/License-Unity.ps1
+/tests/UnityTest-*/Linux32/HiveMPTest
+/tests/UnityTest-*/Linux32/HiveMPTest_Data
+/tests/UnityTest-*/Linux64/HiveMPTest
+/tests/UnityTest-*/Linux64/HiveMPTest_Data
+/tests/UnityTest-*/Mac32/HiveMPTest.app/
+/tests/UnityTest-*/Mac64/HiveMPTest.app/
+/tests/UnityTest-*/MacUniversal/HiveMPTest.app/
+/tests/UnityTest-*/Win32/HiveMPTest.exe
+/tests/UnityTest-*/Win32/HiveMPTest_Data/
+/tests/UnityTest-*/Win64/HiveMPTest.exe
+/tests/UnityTest-*/Win64/HiveMPTest_Data/

@@ -2,6 +2,7 @@ import * as gulp from 'gulp';
 import { spawn } from 'child_process';
 import { resolve } from 'path';
 import * as path from 'path';
+import * as fs from 'fs';
 
 const supportedUnityVersions = {
   "5.4.1f": [
@@ -224,9 +225,36 @@ for (const version of Object.keys(supportedUnrealVersions)) {
 
 gulp.task('generate-tests', gulp.parallel(generateTestsTasks));
 
+const buildTestsTasks: string[] = [];
+for (const version of Object.keys(supportedUnityVersions)) {
+  const platformBuildTestsTasks: string[] = [];
+  for (const platform of supportedUnityVersions[version]) {
+    const unityPath = ('C:\\Program Files\\Unity_' + version + '\\Editor\\Unity.exe');
+    if (fs.existsSync(unityPath)) {
+      platformBuildTestsTasks.push('build-test-unity-' + version + '-' + platform);
+      gulp.task('build-test-unity-' + version + '-' + platform, async () => {
+        await execAsync('pwsh', [
+          './Build-UnityTest.ps1',
+          '-Version',
+          version,
+          '-Target',
+          platform
+        ], 'tests/UnityTest-' + version);
+      });
+    }
+  }
+  if (platformBuildTestsTasks.length > 0) {
+    buildTestsTasks.push('build-test-unity-' + version);
+    gulp.task('build-test-unity-' + version, gulp.series(platformBuildTestsTasks));
+  }
+}
+
+gulp.task('build-tests', gulp.parallel(buildTestsTasks));
+
 gulp.task('default', gulp.series(
   'build-client-connect',
   'generate',
   'package',
   'generate-tests',
+  'build-tests',
 ));
