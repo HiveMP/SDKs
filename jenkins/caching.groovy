@@ -82,7 +82,7 @@ gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + norm
         wasUnstashSuccessful = false
       }
 
-      if (wasUnstashSuccessful) {
+      if (!wasUnstashSuccessful) {
         // Jenkins hasn't got a copy of this yet.
         googleStorageDownload bucketUri: ('gs://redpoint-build-cache/' + hash + '/' + normDir + '/*'), credentialsId: 'redpoint-games-build-cluster', localDirectory: (normDir + '/'), pathPrefix: (hash + '/' + normDir + '/')
         stash includes: ('client_connect/sdk/' + it + '/**'), name: ('cache-' + hash + '-' + entry.id)
