@@ -411,7 +411,7 @@ stage("Build Tests") {
         platforms.each { platform ->
             parallelMap["Unity-" + version + "-" + platform] =
             {
-                if (!preloaded['Test-Unity-' + version + '-' + platform]) {
+                if (!preloaded['CompiledTest-Unity-' + version + '-' + platform]) {
                     timeout(30) {
                         node('windows-hispeed') {
                             dir('_test_env/Unity-' + version + '-' + platform) {
