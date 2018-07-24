@@ -159,6 +159,8 @@ stage("Build Client Connect") {
                     caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win32', 'client_connect/sdk/Win32')
                 }
             }
+        } else {
+            echo ("Already built");
         }
     };
     parallelMap["Win64"] = {
@@ -175,6 +177,8 @@ stage("Build Client Connect") {
                     caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win64', 'client_connect/sdk/Win64')
                 }
             }
+        } else {
+            echo ("Already built");
         }
     };
     parallelMap["Mac64"] = {
@@ -191,6 +195,8 @@ stage("Build Client Connect") {
                     caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Mac64', 'client_connect/sdk/Mac64')
                 }
             }
+        } else {
+            echo ("Already built");
         }
     };
     parallelMap["Linux32"] = {
@@ -207,6 +213,8 @@ stage("Build Client Connect") {
                     caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux32', 'client_connect/sdk/Linux32')
                 }
             }
+        } else {
+            echo ("Already built");
         }
     };
     parallelMap["Linux64"] = {
@@ -223,6 +231,8 @@ stage("Build Client Connect") {
                     caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux64', 'client_connect/sdk/Linux64')
                 }
             }
+        } else {
+            echo ("Already built");
         }
     };
     parallel (parallelMap)
@@ -245,25 +255,45 @@ if (preloaded["SDKs"]) {
     // Just emit all the stages, we don't have any steps for them because it's all preloaded.
     stage("Generate") { 
         def parallelMap = [:]
-        parallelMap["CSharp-4.5"] = { };
-        parallelMap["CSharp-3.5"] = { };
-        parallelMap["Unity"] = { };
+        parallelMap["CSharp-4.5"] = {
+            echo ("Already built");
+        };
+        parallelMap["CSharp-3.5"] = {
+            echo ("Already built");
+        };
+        parallelMap["Unity"] = {
+            echo ("Already built");
+        };
         supportedUnrealVersions.each { version, platforms ->
-            parallelMap["UnrealEngine-" + version] = { };
+            parallelMap["UnrealEngine-" + version] = {
+                echo ("Already built");
+            };
         }
         parallel (parallelMap)
     }
-    stage("Licensing") { }
-    stage("Package") { }
-    stage("Stash Assets") { }
+    stage("Licensing") {
+        echo ("Already built");
+    }
+    stage("Package") {
+        echo ("Already built");
+    }
+    stage("Stash Assets") {
+        echo ("Already built");
+    }
     stage("Generate Tests") {
         def parallelMap = [:]
-        parallelMap["Stash-Test-Scripts"] = { };
+        parallelMap["Stash-Test-Scripts"] = {
+            echo ("Already built");
+        };
         supportedUnityVersions.keySet().each { version ->
-            parallelMap["Unity-" + version] = { };
+            parallelMap["Unity-" + version] = {
+                echo ("Already built");
+            };
         }
         supportedUnrealVersions.each { version, platforms ->
-            parallelMap["UnrealEngine-" + version] = { };
+            parallelMap["UnrealEngine-" + version] = {
+                echo ("Already built");
+            };
         }
         parallel (parallelMap)
     }
@@ -427,6 +457,8 @@ stage("Build Tests") {
                             }
                         }
                     }
+                } else {
+                    echo ("Already built");
                 }
             }
         }         
