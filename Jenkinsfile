@@ -474,7 +474,7 @@ stage("Run Tests") {
                 {
                     node('mac') {
                         timeout(30) {
-                            caching.pullCacheDirectory(gcloud, mainBuildHash, [
+                            caching.pullCacheDirectoryMultiple(gcloud, mainBuildHash, [
                                 [
                                     id: 'CompiledTest-Unity-' + version + '-' + platform, 
                                     dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
@@ -500,7 +500,7 @@ stage("Run Tests") {
                 {
                     node('windows') {
                         timeout(30) {
-                            caching.pullCacheDirectory(gcloud, mainBuildHash, [
+                            caching.pullCacheDirectoryMultiple(gcloud, mainBuildHash, [
                                 [
                                     id: 'CompiledTest-Unity-' + version + '-' + platform, 
                                     dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
