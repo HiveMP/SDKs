@@ -419,7 +419,7 @@ stage("Build Tests") {
                                 caching.pullCacheDirectory(gcloud, mainBuildHash, 'Unity' + version + 'TestUncompiled', 'tests/UnityTest-' + version + '/', 'dir')
 
                                 withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
-                                    bat('pwsh tests/UnityTest-' + version + '/License-Unity.ps1')
+                                    bat('pwsh tests/UnityTest-' + version + '/License-Unity.ps1 -OnlyVersion ' + version)
                                     bat('pwsh tests/UnityTest-' + version + '/Build-UnityTest.ps1 -Version ' + version + ' -Target ' + platform)
                                 }
 
