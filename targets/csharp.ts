@@ -64,18 +64,18 @@ abstract class CSharpGenerator implements TargetGenerator {
     const hiveExceptionClass = fragments.getExceptionClass(defines);
     const hivePromiseSchedulerSettingsClass = fragments.getPromiseSchedulerSettingsClass(defines);
     const hivePromiseMainThreadReturnClass = fragments.getPromiseMainThreadReturnClass(defines);
-    const hiveUnityCallbackMonoBehaviourClass = fragments.getPromiseUnityCallbackMonoBehaviourClass(defines);
+    const hiveUnityMonoBehaviourClass = fragments.getPromiseUnityMonoBehaviourClass(defines);
     const hiveSocketClass = fragments.getWebSocketClass(defines);
-    const hiveSdkSetup = fragments.getSdkSetup(defines);
+    const hiveSdk = fragments.getSdk(defines);
 
     await this.writeFileContent(opts, 'HiveMP.cs', code);
     await this.writeFileContent(opts, 'RetryableHttpClient.cs', httpClientClass);
     await this.writeFileContent(opts, 'HiveMPException.cs', hiveExceptionClass);
     await this.writeFileContent(opts, 'HiveMPPromiseSchedulerSettings.cs', hivePromiseSchedulerSettingsClass);
     await this.writeFileContent(opts, 'HiveMPPromiseMainThreadReturn.cs', hivePromiseMainThreadReturnClass);
-    await this.writeFileContent(opts, 'HiveMPUnityCallbackMonoBehaviour.cs', hiveUnityCallbackMonoBehaviourClass);
+    await this.writeFileContent(opts, 'HiveMPUnityMonoBehaviour.cs', hiveUnityMonoBehaviourClass);
     await this.writeFileContent(opts, 'HiveMPWebSocket.cs', hiveSocketClass);
-    await this.writeFileContent(opts, 'HiveMPSDKSetup.cs', hiveSdkSetup);
+    await this.writeFileContent(opts, 'HiveMPSDK.cs', hiveSdk);
 
     await new Promise<void>((resolve, reject) => {
       fs.mkdirp(opts.outputDir, (err) => {

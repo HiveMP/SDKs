@@ -30,7 +30,7 @@ export class SchemaType implements ICSharpType {
     {
         static ${className}()
         {
-            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+            HiveMP.Api.HiveMPSDK.EnsureInited();
         }
 `;
     

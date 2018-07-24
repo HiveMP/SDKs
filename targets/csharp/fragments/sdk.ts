@@ -1,4 +1,4 @@
-export function getSdkSetup(defines: string[]) {
+export function getSdk(defines: string[]) {
   const clientConnectPlatforms = [
     'Win32',
     'Win64',
@@ -19,17 +19,24 @@ ${defines.join("\n")}
 using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Collections.Generic;
+using System.Linq;
+#if IS_UNITY
+using UnityEngine;
+#endif
 
 namespace HiveMP.Api
 {
-    public static class HiveMPSDKSetup
+    public static class HiveMPSDK
     {
         private static IClientConnect _clientConnect;
-        private static byte[] _clientConnectCustomInit = null;
-        private static string _clientConnectEndpoint = "https://client-connect-api.hivemp.com/v1";
         private static bool _didInit;
         private static object _initLock = new object();
-        private static System.Threading.ManualResetEvent _clientConnectEvent = new System.Threading.ManualResetEvent(false);
+        private static Dictionary<long, HotpatchRef> _runningHotpatches = new Dictionary<long, HotpatchRef>();
+#if IS_UNITY
+        private static GameObject _hiveObject;
+        private static HiveMPUnityMonoBehaviour _hiveBehaviour;
+#endif
 
 #if ENABLE_CLIENT_CONNECT_SDK
 #if HAS_TASKS
@@ -151,168 +158,19 @@ namespace HiveMP.Api
             {
                 try
                 {
-                    _clientConnect.MapChunk("_startupTest.lua", System.Text.Encoding.ASCII.GetBytes(@"
-function _startupTest_hotpatch(id, endpoint, api_key, parameters_json)
-    return 403, ""Nope""
-end
-register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
-                    _clientConnect.SetStartup("_startupTest.lua");
-                    int statusCode;
-                    var response = _clientConnect.CallHotpatch("no-api", "testPUT", "https://no-api.hivemp.nonexistent.com/v1", "", "{}", out statusCode);
-                    if (response != "Nope")
-                    {
-                        // Something went wrong and we can't use Client Connect.
-                        _clientConnect = null;
-                    }
+                    _clientConnect.Init();
                 }
                 catch (System.Exception)
                 {
                     // We can't use Client Connect
                     _clientConnect = null;
                 }
-
-                if (_clientConnect != null)
-                {
-                    // TODO: Wait on startup whenever we have to make an API call.
-                    var t = new System.Threading.Thread(new System.Threading.ThreadStart(FinalizeClientConnectSetup));
-                    t.IsBackground = true;
-                    t.Start();
-                }
             }
 
-            if (_clientConnect == null)
-            {
-                _clientConnectEvent.Set();
-            }
-        }
-
-        private static void FinalizeClientConnectSetup()
-        {
-            try
-            {
-                var filesClient = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
-                var doInit = false;
-                var cacheFolder = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData), "HiveMP");
-                cacheFolder = System.IO.Path.Combine(cacheFolder, "ClientConnectAssets");
-                try
-                {
-                    System.IO.Directory.CreateDirectory(cacheFolder);
-                }
-                catch
-                {
-                    // Cache may not be available, continue anyway.
-                }
-                var f = new HiveMP.ClientConnect.Api.FilesClient(string.Empty);
-                f.BaseUrl = _clientConnectEndpoint;
-                var files = f.FilesGET(new HiveMP.ClientConnect.Api.FilesGETRequest());
-                foreach (var file in files)
-                {
-                    var filename = file.Key as string;
-                    if (filename == null)
-                    {
-                        continue;
-                    }
-
-                    if (filename == "init.lua")
-                    {
-                        doInit = true;
-                    }
-                    
-                    var fileCache = System.IO.Path.Combine(cacheFolder, file.Value.Sha1.ToLower());
-                    if (System.IO.File.Exists(fileCache))
-                    {
-                        try
-                        {
-                            using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
-                            {
-                                var data = new byte[stream.Length];
-                                stream.Read(data, 0, data.Length);
-                                _clientConnect.MapChunk(filename, data);
-                                continue;
-                            }
-                        }
-                        catch
-                        {
-                            // Fallback to download.
-                        }
-                    }
-
-                    using (var client = new System.Net.WebClient())
-                    {
-                        client.Headers.Add("X-API-Key", string.Empty);
-                        var data = client.DownloadData(file.Value.Url);
-                        _clientConnect.MapChunk(filename, data);
-
-                        try
-                        {
-                            if (!System.IO.File.Exists(fileCache))
-                            {
-                                using (var stream = new System.IO.FileStream(fileCache, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None))
-                                {
-                                    stream.Write(data, 0, data.Length);
-                                    continue;
-                                }
-                            }
-                        }
-                        catch
-                        {
-                            // Failed to optionally cache, ignore.
-                        }
-                    }
-                }
-                if (_clientConnectCustomInit != null)
-                {
-                    if (doInit)
-                    {
-                        // Free existing chunk.
-                        _clientConnect.FreeChunk("init.lua");
-                    }
-
-                    _clientConnect.MapChunk("init.lua", _clientConnectCustomInit);
-                    doInit = true;
-                }
-                if (doInit)
-                {
-                    _clientConnect.SetStartup("init.lua");
-                }
-            }
-            catch (System.Exception ex)
-            {
 #if IS_UNITY
-                UnityEngine.Debug.LogError(ex);
-#else
-                // Client Connect failed to initialise.
+            // Create the Unity MonoBehaviour if needed.
+            GetUnityMonoBehaviour();
 #endif
-            }
-
-            _clientConnectEvent.Set();
-        }
-
-#if HAS_TASKS
-        internal static System.Threading.Tasks.Task WaitForClientConnectAsync()
-        {
-            return AsTask(_clientConnectEvent);
-        }
-
-        private static System.Threading.Tasks.Task AsTask(System.Threading.WaitHandle handle)
-        {
-            var tcs = new System.Threading.Tasks.TaskCompletionSource<object>();
-            var registration = System.Threading.ThreadPool.RegisterWaitForSingleObject(handle, (state, timedOut) =>
-            {
-                var localTcs = (System.Threading.Tasks.TaskCompletionSource<object>)state;
-                if (timedOut)
-                    localTcs.TrySetCanceled();
-                else
-                    localTcs.TrySetResult(null);
-            }, tcs, System.Threading.Timeout.InfiniteTimeSpan, executeOnlyOnce: true);
-            tcs.Task.ContinueWith((_, state) => ((System.Threading.RegisteredWaitHandle)state).Unregister(null), registration, System.Threading.Tasks.TaskScheduler.Default);
-            return tcs.Task;
-        }
-#endif
-
-        internal static void WaitForClientConnect()
-        {
-            _clientConnectEvent.WaitOne();
         }
 #endif
 
@@ -378,45 +236,22 @@ register_hotpatch(""no-api:testPUT"", ""_startupTest_hotpatch"")"));
 
             return sslPolicyErrors == SslPolicyErrors.None;
         }
-#endif
 
-        /// <summary>
-        /// Sets custom init code to be used by the Client Connect SDK
-        /// instead of the init.lua file provided by the API server.
-        /// </summary>
-        /// <remarks>
-        /// There is no support for using this method.
-        /// </remarks>
-        public static void SetClientConnectCustomInit(byte[] init)
+        internal static HiveMPUnityMonoBehaviour GetUnityMonoBehaviour()
         {
-            _clientConnectCustomInit = init;
-        }
-
-        /// <summary>
-        /// Sets a custom endpoint for the Client Connect files retrieval
-        /// that occurs during SDK startup.
-        /// </summary>
-        /// <remarks>
-        /// There is no support for using this method.
-        /// </remarks>
-        public static void SetClientConnectEndpoint(string endpoint)
-        {
-            _clientConnectEndpoint = endpoint;
-        }
-
-        internal static bool IsHotpatched(string api, string operation)
-        {
-            if (_clientConnect == null)
+            if (_hiveObject == null)
             {
-                return false; 
+                _hiveObject = new GameObject();
+                _hiveBehaviour = _hiveObject.AddComponent<HiveMPUnityMonoBehaviour>();
             }
 
-            return _clientConnect.IsHotpatched(api, operation);
+            return _hiveBehaviour;
         }
+#endif
 
-        internal static string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode)
+        internal static IClientConnect ClientConnect
         {
-            return _clientConnect.CallHotpatch(api, operation, endpoint, apiKey, parametersAsJson, out statusCode);
+            get { return _clientConnect; }
         }
 
         internal static void EnsureInited()
@@ -490,121 +325,180 @@ Rx77b+JypsJMRA==".Replace("\\r\\n", "").Replace("\\n", "")));
             }
         }
 
-        private interface IClientConnect
+        internal class HotpatchRef
         {
-            void MapChunk(string name, byte[] data);
-            void FreeChunk(string name);
-            void SetStartup(string name);
-            void SetConfig(byte[] data);
-            bool IsHotpatched(string api, string operation);
-            string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode);
+            public string BodyJson { get; set; }
+
+            public System.Int32 HttpStatusCode { get; set; }
+
+            public HiveMPPromise<HotpatchRef> Promise { get; set; }
+
+#if HAS_TASKS
+            public System.Threading.SemaphoreSlim SemaphoreAsync { get; set; }
+#endif
         }
 
-        private class ClientConnectUnityPlatform : IClientConnect
+        public static void Tick()
         {
-            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_map_chunk([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name, byte[] data, int len);
-            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_free_chunk([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
-            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_set_startup([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
-            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_set_config(byte[] data, int len);
-            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern bool cc_is_hotpatched([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation);
-            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern System.IntPtr cc_call_hotpatch([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string endpoint, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string apiKey, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string parametersAsJson, out System.Int32 statusCode);
-            [System.Runtime.InteropServices.DllImport("HiveMP.ClientConnect", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_free_string(System.IntPtr ptr);
-
-            public void MapChunk(string name, byte[] data)
+            if (_clientConnect != null)
             {
-                cc_map_chunk(name, data, data.Length);
-            }
+                _clientConnect.Tick();
 
-            public void FreeChunk(string name)
-            {
-                cc_free_chunk(name);
-            }
+                foreach (var kv in _runningHotpatches.ToArray())
+                {
+                    if (_clientConnect.IsApiHotpatchCallReady(kv.Key))
+                    {
+                        kv.Value.BodyJson = _clientConnect.GetApiHotpatchCallResult(kv.Key);
+                        kv.Value.HttpStatusCode = _clientConnect.GetApiHotpatchCallStatusCode(kv.Key);
+                        _runningHotpatches.Remove(kv.Key);
 
-            public void SetStartup(string name)
-            {
-                cc_set_startup(name);
-            }
-
-            public void SetConfig(byte[] data)
-            {
-                cc_set_config(data, data.Length);
-            }
-
-            public bool IsHotpatched(string api, string operation)
-            {
-                return cc_is_hotpatched(api, operation);
-            }
-
-            public string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode)
-            {
-                var strPtr = cc_call_hotpatch(api, operation, endpoint, apiKey, parametersAsJson, out statusCode);
-                var ret = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(strPtr);
-                cc_free_string(strPtr);
-                return ret;
+#if HAS_TASKS
+                        if (kv.Value.Promise != null)
+                        {
+#endif
+                            HiveMPPromiseScheduler.ExecuteWithMainThreadCallbacks(kv.Value.Promise);
+#if HAS_TASKS
+                        }
+                        else
+                        {
+                            kv.Value.SemaphoreAsync.Release();
+                        }
+#endif
+                    }
+                }
             }
         }
+
+        internal interface IClientConnect
+        {
+            void Init();
+            void Tick();
+            bool IsApiHotpatched(string api, string operation);
+            long CallApiHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson);
+            bool IsApiHotpatchCallReady(long id);
+            string GetApiHotpatchCallResult(long id);
+            System.Int32 GetApiHotpatchCallStatusCode(long id);
+            void ReleaseApiHotpatchCall(long id);
+        }
+
+        internal static HiveMPPromise<HotpatchRef> RunHotpatchWithPromise(
+            string api,
+            string operation,
+            string endpoint,
+            string apiKey,
+            string parametersAsJson)
+        {
+            var @ref = new HotpatchRef();
+            @ref.Promise = new HiveMPPromise<HotpatchRef>((resolve, reject) =>
+            {
+                resolve(@ref);
+            });
+            var handle = _clientConnect.CallApiHotpatch(
+                api,
+                operation,
+                endpoint,
+                apiKey,
+                parametersAsJson);
+            _runningHotpatches[handle] = @ref;
+            return @ref.Promise;
+        }
+
+#if HAS_TASKS
+        internal static async System.Threading.Tasks.Task<HotpatchRef> RunHotpatchWithTask(
+            string api,
+            string operation,
+            string endpoint,
+            string apiKey,
+            string parametersAsJson)
+        {
+            var @ref = new HotpatchRef();
+            @ref.Promise = null;
+            @ref.SemaphoreAsync = new System.Threading.SemaphoreSlim(0);
+            var handle = _clientConnect.CallApiHotpatch(
+                api,
+                operation,
+                endpoint,
+                apiKey,
+                parametersAsJson);
+            _runningHotpatches[handle] = @ref;
+            await @ref.SemaphoreAsync.WaitAsync();
+            return @ref;
+        }
+#endif
 
 `;
-  for (let platform of clientConnectPlatforms) {
-    code += `
+  const emitForPath = (platform: string, path: string) => {
+    return `
         private class ClientConnect${platform}Platform : IClientConnect
         {
-            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_map_chunk([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name, byte[] data, int len);
-            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_free_chunk([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
-            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_set_startup([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string name);
-            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_set_config(byte[] data, int len);
-            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern bool cc_is_hotpatched([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation);
-            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern System.IntPtr cc_call_hotpatch([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string endpoint, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string apiKey, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string parametersAsJson, out System.Int32 statusCode);
-            [System.Runtime.InteropServices.DllImport("${platform}\\\\HiveMP.ClientConnect.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_init();
+            [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_tick();
+            [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
             private static extern void cc_free_string(System.IntPtr ptr);
 
-            public void MapChunk(string name, byte[] data)
+            [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern bool cc_is_api_hotpatched([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation);
+            [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern long cc_call_api_hotpatch([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string api, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string operation, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string endpoint, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string apiKey, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string parametersAsJson);
+            [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern bool cc_is_api_hotpatch_call_ready(long id);
+            [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern System.IntPtr cc_get_api_hotpatch_result(long id);
+            [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern System.Int32 cc_get_api_hotpatch_status_code(long id);
+            [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+            private static extern void cc_release_api_hotpatch_result(long id);
+            
+            public void Init()
             {
-                cc_map_chunk(name, data, data.Length);
+                cc_init();
             }
 
-            public void FreeChunk(string name)
+            public void Tick()
             {
-                cc_free_chunk(name);
+                cc_tick();
             }
 
-            public void SetStartup(string name)
+            public bool IsApiHotpatched(string api, string operation)
             {
-                cc_set_startup(name);
+                return cc_is_api_hotpatched(api, operation);
             }
 
-            public void SetConfig(byte[] data)
+            public long CallApiHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson)
             {
-                cc_set_config(data, data.Length);
+                return cc_call_api_hotpatch(api, operation, endpoint, apiKey, parametersAsJson);
             }
 
-            public bool IsHotpatched(string api, string operation)
+            public bool IsApiHotpatchCallReady(long id)
             {
-                return cc_is_hotpatched(api, operation);
+                return cc_is_api_hotpatch_call_ready(id);
             }
 
-            public string CallHotpatch(string api, string operation, string endpoint, string apiKey, string parametersAsJson, out int statusCode)
+            public string GetApiHotpatchCallResult(long id)
             {
-                var strPtr = cc_call_hotpatch(api, operation, endpoint, apiKey, parametersAsJson, out statusCode);
+                var strPtr = cc_get_api_hotpatch_result(id);
                 var ret = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(strPtr);
                 cc_free_string(strPtr);
                 return ret;
             }
+
+            public System.Int32 GetApiHotpatchCallStatusCode(long id)
+            {
+                return cc_get_api_hotpatch_status_code(id);
+            }
+
+            public void ReleaseApiHotpatchCall(long id)
+            {
+                cc_release_api_hotpatch_result(id);
+            }
         }
-`
+`;
+  }
+  code += emitForPath('Unity', 'cchost');
+  for (let platform of clientConnectPlatforms) {
+    code += emitForPath(platform, `${platform}\\\\cchost.dll`);
   }
   code += `
     }

@@ -18,7 +18,7 @@ namespace HiveMP.Api
     {
         static HiveMPException()
         {
-            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+            HiveMP.Api.HiveMPSDK.EnsureInited();
         }
 
         public HiveMPException(int httpStatusCode, HiveMPSystemError error)

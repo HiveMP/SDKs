@@ -32,7 +32,7 @@ namespace HiveMP.Api
 
         static RetryableHttpClient()
         {
-            HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+            HiveMP.Api.HiveMPSDK.EnsureInited();
         }
 
         public RetryableHttpClient()

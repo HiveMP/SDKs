@@ -35,17 +35,6 @@ export function interfaceMethodDeclarations(values: {
       /// ${values.methodDescription}
       /// </remarks>
       /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
-      [System.Obsolete(
-          "Synchronous invocations are deprecated, because Client Connect implementations must be able to execute independent of the main application thread. If you invoke this method and a Client Connect implementation is present, an exception will be thrown. You should use the async/await version of this call where available. If you don't have access to async/await (.NET 4.5 and above), use the promise variant of this API call.")]
-      ${values.returnTypes.syncType} ${values.methodName}(${values.methodName}Request arguments);
-      
-      /// <summary>
-      /// ${values.methodSummary}
-      /// </summary>
-      /// <remarks>
-      /// ${values.methodDescription}
-      /// </remarks>
-      /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
       /// <param name="resolve">The callback to run when the API call returns. This is always executed on the main thread.</param>
       /// <param name="reject">The callback to run when the API call failed. This is always executed on the main thread.</param>
       void ${values.methodName}Promise(${values.methodName}Request arguments, ${values.returnTypes.promiseType} resolve, System.Action<System.Exception> reject);
@@ -104,45 +93,11 @@ export function implementationMethodDeclarations(values: {
   parameterDeclarations: string,
   parameterDeclarationsSuffix: string,
   requestClassConstruction: string,
-  clientConnectWait: string,
-  clientConnectWaitAsync: string,
   clientConnectResponseHandler: string,
+  clientConnectResponseHandlerAsync: string,
 }) {
   return `
 #if HAS_TASKS
-      /// <summary>
-      /// ${values.methodSummary}
-      /// </summary>
-      /// <remarks>
-      /// ${values.methodDescription}
-      /// </remarks>
-      ${values.legacyParameterXmlComments}
-      [System.Obsolete(
-          "API calls with fixed position parameters are subject to change when new optional parameters " +
-          "are added to the API; use the ${values.methodName}Async(${values.methodName}Request) version of this method " +
-          "instead to ensure forward compatibility")]
-      public ${values.returnTypes.asyncType} ${values.methodName}Async(${values.parameterDeclarations})
-      {
-          return ${values.methodName}Async(${values.requestClassConstruction}, System.Threading.CancellationToken.None);
-      }
-
-      /// <summary>
-      /// ${values.methodSummary}
-      /// </summary>
-      /// <remarks>
-      /// ${values.methodDescription}
-      /// </remarks>
-      ${values.legacyParameterXmlComments}
-      /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
-      [System.Obsolete(
-          "API calls with fixed position parameters are subject to change when new optional parameters " +
-          "are added to the API; use the ${values.methodName}Async(${values.methodName}Request,CancellationToken) version of this method " +
-          "instead to ensure forward compatibility")]
-      public ${values.returnTypes.asyncType} ${values.methodName}Async(${values.parameterDeclarations}${values.parameterDeclarationsSuffix}System.Threading.CancellationToken cancellationToken)
-      {
-          return ${values.methodName}Async(${values.requestClassConstruction}, cancellationToken);
-      }
-      
       /// <summary>
       /// ${values.methodSummary}
       /// </summary>
@@ -164,35 +119,33 @@ export function implementationMethodDeclarations(values: {
       /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
       public async ${values.returnTypes.asyncType} ${values.methodName}Async(${values.methodName}Request arguments, System.Threading.CancellationToken cancellationToken)
       {
-          ${values.clientConnectWaitAsync}
-
 #if ENABLE_CLIENT_CONNECT_SDK
-          // TODO: Make threaded when Client Connect supports it!
-          if (HiveMP.Api.HiveMPSDKSetup.IsHotpatched("${values.apiId}", "${values.methodOperationId}"))
+          if (HiveMP.Api.HiveMPSDK.ClientConnect != null && 
+              HiveMP.Api.HiveMPSDK.ClientConnect.IsApiHotpatched("${values.apiId}", "${values.methodOperationId}"))
           {
-              var delay = 1000;
-              do
+              int delay = 1000;
+              while (true)
               {
-                  int statusCode;
-                  var response = HiveMP.Api.HiveMPSDKSetup.CallHotpatch(
-                      "${values.apiId}",
+                  var @ref = await HiveMP.Api.HiveMPSDK.RunHotpatchWithTask(
+                      "${values.apiId}", 
                       "${values.methodOperationId}",
                       BaseUrl,
                       ApiKey,
-                      Newtonsoft.Json.JsonConvert.SerializeObject(arguments),
-                      out statusCode);
-                  if (statusCode >= 200 && statusCode < 300)
+                      Newtonsoft.Json.JsonConvert.SerializeObject(arguments)
+                  );
+                  if (@ref.HttpStatusCode >= 200 && @ref.HttpStatusCode < 300)
                   {
-                      ${values.clientConnectResponseHandler}
+                      ${values.clientConnectResponseHandlerAsync}
                   }
                   else
                   {
                       var result_ = default(HiveMP.Api.HiveMPSystemError); 
                       try
                       {
-                          result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(response);
+                          result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(@ref.BodyJson);
                           if (result_.Code >= 6000 && result_.Code < 7000)
                           {
+                              // Retry after delay.
                               await System.Threading.Tasks.Task.Delay(delay);
                               delay *= 2;
                               delay = System.Math.Min(30000, delay);
@@ -201,7 +154,7 @@ export function implementationMethodDeclarations(values: {
                       } 
                       catch (System.Exception exception_) 
                       {
-                          throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
+                          throw new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
                               {
                                   Code = 0,
                                   Message = "Could not deserialize the response body.",
@@ -211,7 +164,7 @@ export function implementationMethodDeclarations(values: {
 
                       if (result_ == null)
                       {
-                          throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
+                          throw new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
                               {
                                   Code = 0,
                                   Message = "Could not deserialize the response body.",
@@ -219,10 +172,9 @@ export function implementationMethodDeclarations(values: {
                               });
                       }
 
-                      throw new HiveMP.Api.HiveMPException(statusCode, result_);
+                      throw new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, result_);
                   }
               }
-              while (true);
           }
 #endif
 
@@ -422,27 +374,88 @@ export function implementationMethodDeclarations(values: {
       /// <remarks>
       /// ${values.methodDescription}
       /// </remarks>
-      ${values.legacyParameterXmlComments}
-      [System.Obsolete(
-          "API calls with fixed position parameters are subject to change when new optional parameters " +
-          "are added to the API; use the ${values.methodName}(${values.methodName}Request) version of this method " +
-          "instead to ensure forward compatibility")]
-      public ${values.returnTypes.syncType} ${values.methodName}(${values.parameterDeclarations})
-      {
-          ${values.returnSyncPrefix}${values.methodName}(${values.requestClassConstruction});
-      }
-
-      /// <summary>
-      /// ${values.methodSummary}
-      /// </summary>
-      /// <remarks>
-      /// ${values.methodDescription}
-      /// </remarks>
       /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
       /// <param name="resolve">The callback to run when the API call returns. This is always executed on the main thread.</param>
       /// <param name="reject">The callback to run when the API call failed. This is always executed on the main thread.</param>
       public void ${values.methodName}Promise(${values.methodName}Request arguments, ${values.returnTypes.promiseType} resolve, System.Action<System.Exception> reject)
       {
+#if ENABLE_CLIENT_CONNECT_SDK
+          if (HiveMP.Api.HiveMPSDK.ClientConnect != null && 
+              HiveMP.Api.HiveMPSDK.ClientConnect.IsApiHotpatched("${values.apiId}", "${values.methodOperationId}"))
+          {
+              HiveMP.Api.HiveMPPromiseScheduler.ExecuteWithMainThreadCallbacks(new ${values.promiseReturnType}((resolve_, reject_) =>
+              {
+                  int delay = 1000;
+                  System.Action<HiveMP.Api.HiveMPSDK.HotpatchRef> then = null;
+                  System.Action run = () =>
+                  {
+                      HiveMP.Api.HiveMPSDK.RunHotpatchWithPromise(
+                          "${values.apiId}", 
+                          "${values.methodOperationId}",
+                          BaseUrl,
+                          ApiKey,
+                          Newtonsoft.Json.JsonConvert.SerializeObject(arguments)
+                      ).Then(then).Catch(reject_);
+                  };
+                  then = (@ref) =>
+                  {
+                      if (@ref.HttpStatusCode >= 200 && @ref.HttpStatusCode < 300)
+                      {
+                          ${values.clientConnectResponseHandler}
+                      }
+                      else
+                      {
+                          var result_ = default(HiveMP.Api.HiveMPSystemError); 
+                          try
+                          {
+                              result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(@ref.BodyJson);
+                              if (result_.Code >= 6000 && result_.Code < 7000)
+                              {
+                                  // Retry after delay.
+                                  var timer = new System.Timers.Timer();
+                                  timer.Interval = delay;
+                                  timer.AutoReset = true;
+                                  timer.Elapsed += new System.Timers.ElapsedEventHandler((sender, e) =>
+                                  {
+                                      run();
+                                  });
+                                  timer.Start();
+                                  delay *= 2;
+                                  delay = System.Math.Min(30000, delay);
+                                  return;
+                              }
+                          } 
+                          catch (System.Exception exception_) 
+                          {
+                              reject_(new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
+                                  {
+                                      Code = 0,
+                                      Message = "Could not deserialize the response body.",
+                                      Fields = string.Empty,
+                                  }));
+                              return;
+                          }
+    
+                          if (result_ == null)
+                          {
+                              reject_(new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
+                                  {
+                                      Code = 0,
+                                      Message = "Could not deserialize the response body.",
+                                      Fields = string.Empty,
+                                  }));
+                              return;
+                          }
+    
+                          reject_(new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, result_));
+                          return;
+                      }
+                  };
+                  run();
+              }).Then(resolve).Catch(reject));
+          }
+#endif
+
           HiveMP.Api.HiveMPPromiseScheduler.ExecuteWithMainThreadCallbacks(new ${values.promiseReturnType}((resolve_, reject_) =>
           {
               try
@@ -464,83 +477,8 @@ export function implementationMethodDeclarations(values: {
       /// ${values.methodDescription}
       /// </remarks>
       /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
-      [System.Obsolete(
-          "Synchronous invocations are deprecated, because Client Connect implementations must be able to execute independent of the main application thread. If you invoke this method and a Client Connect implementation is present, an exception will be thrown. You should use the async/await version of this call where available. If you don't have access to async/await (.NET 4.5 and above), use the promise variant of this API call.")]
-      public ${values.returnTypes.syncType} ${values.methodName}(${values.methodName}Request arguments)
-      {
-          ${values.returnSyncPrefix} ${values.methodName}Internal(arguments);
-      }
-
-      /// <summary>
-      /// ${values.methodSummary}
-      /// </summary>
-      /// <remarks>
-      /// ${values.methodDescription}
-      /// </remarks>
-      /// <param name="arguments">The ${values.methodNameEscaped} arguments.</param>
       private ${values.returnTypes.syncType} ${values.methodName}Internal(${values.methodName}Request arguments)
       {
-          ${values.clientConnectWait}
-
-#if ENABLE_CLIENT_CONNECT_SDK
-          if (HiveMP.Api.HiveMPSDKSetup.IsHotpatched("${values.apiId}", "${values.methodOperationId}"))
-          {
-              var delay = 1000;
-              do
-              {
-                  int statusCode;
-                  var response = HiveMP.Api.HiveMPSDKSetup.CallHotpatch(
-                      "${values.apiId}",
-                      "${values.methodOperationId}",
-                      BaseUrl,
-                      ApiKey,
-                      Newtonsoft.Json.JsonConvert.SerializeObject(arguments),
-                      out statusCode);
-                  if (statusCode >= 200 && statusCode < 300)
-                  {
-                      ${values.clientConnectResponseHandler}
-                  }
-                  else
-                  {
-                      var result_ = default(HiveMP.Api.HiveMPSystemError); 
-                      try
-                      {
-                          result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(response);
-                          if (result_.Code >= 6000 && result_.Code < 7000)
-                          {
-                              System.Threading.Thread.Sleep(delay);
-                              delay *= 2;
-                              delay = System.Math.Min(30000, delay);
-                              continue;
-                          }
-                      } 
-                      catch (System.Exception exception_) 
-                      {
-                          throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
-                              {
-                                  Code = 0,
-                                  Message = "Could not deserialize the response body.",
-                                  Fields = string.Empty,
-                              });
-                      }
-
-                      if (result_ == null)
-                      {
-                          throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
-                              {
-                                  Code = 0,
-                                  Message = "Could not deserialize the response body.",
-                                  Fields = string.Empty,
-                              });
-                      }
-
-                      throw new HiveMP.Api.HiveMPException(statusCode, result_);
-                  }
-              }
-              while (true);
-          }
-#endif
-
           var urlBuilder_ = new System.Text.StringBuilder();
           urlBuilder_.Append(BaseUrl).Append("${values.methodPath}?");
           ${values.parameterQueryLoadingCode}
@@ -653,45 +591,11 @@ export function implementationWebSocketMethodDeclarations(values: {
   parameterDeclarations: string,
   parameterDeclarationsSuffix: string,
   requestClassConstruction: string,
-  clientConnectWait: string,
-  clientConnectWaitAsync: string,
   clientConnectResponseHandler: string,
+  clientConnectResponseHandlerAsync: string,
 }) {
   return `
 #if HAS_TASKS
-      /// <summary>
-      /// ${values.methodSummary}
-      /// </summary>
-      /// <remarks>
-      /// ${values.methodDescription}
-      /// </remarks>
-      ${values.legacyParameterXmlComments}
-      [System.Obsolete(
-          "API calls with fixed position parameters are subject to change when new optional parameters " +
-          "are added to the API; use the ${values.methodName}Async(${values.methodName}Request) version of this method " +
-          "instead to ensure forward compatibility")]
-      public ${values.returnTypes.asyncType} ${values.methodName}Async(${values.parameterDeclarations})
-      {
-          return ${values.methodName}Async(${values.requestClassConstruction}, System.Threading.CancellationToken.None);
-      }
-
-      /// <summary>
-      /// ${values.methodSummary}
-      /// </summary>
-      /// <remarks>
-      /// ${values.methodDescription}
-      /// </remarks>
-      ${values.legacyParameterXmlComments}
-      /// <param name="cancellationToken">The cancellation token for the asynchronous request.</param>
-      [System.Obsolete(
-          "API calls with fixed position parameters are subject to change when new optional parameters " +
-          "are added to the API; use the ${values.methodName}Async(${values.methodName}Request,CancellationToken) version of this method " +
-          "instead to ensure forward compatibility")]
-      public ${values.returnTypes.asyncType} ${values.methodName}Async(${values.parameterDeclarations}${values.parameterDeclarationsSuffix}System.Threading.CancellationToken cancellationToken)
-      {
-          return ${values.methodName}Async(${values.requestClassConstruction}, cancellationToken);
-      }
-      
       /// <summary>
       /// ${values.methodSummary}
       /// </summary>

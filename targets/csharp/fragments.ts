@@ -1,4 +1,4 @@
-export { getSdkSetup } from './fragments/sdk';
+export { getSdk } from './fragments/sdk';
 export { getExceptionClass } from './fragments/exception';
 export { getHttpClientClass } from './fragments/httpClient';
 export { getDefines } from './fragments/defines';
@@ -11,7 +11,7 @@ export {
   implementationMethodDeclarations, 
   implementationWebSocketMethodDeclarations 
 } from './fragments/methods';
-export { getPromiseMainThreadReturnClass, getPromiseSchedulerSettingsClass, getPromiseUnityCallbackMonoBehaviourClass } from './fragments/promise';
+export { getPromiseMainThreadReturnClass, getPromiseSchedulerSettingsClass, getPromiseUnityMonoBehaviourClass } from './fragments/promise';
 export { getWebSocketClass } from './fragments/websocket';
 
 export function getCodePrefix(defines: string[]) {

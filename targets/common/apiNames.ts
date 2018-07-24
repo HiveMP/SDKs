@@ -3,7 +3,7 @@ export const apiNames = {
   "api-key": "API Keys",
   "attribute": "Attributes",
   "billing": "Billing",
-  "client-connect": "Client Connect",
+  "chat": "Chat",
   "event": "Events",
   "game-server": "Game Servers",
   "integration": "Integrations",

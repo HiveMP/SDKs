@@ -10,24 +10,12 @@ import { TargetOptions } from "../TargetOptions";
 
 export function emitControllerAndImplementation(api: IApiSpec, tag: string, opts: TargetOptions) {
   let startupCode = '';
-  let clientConnectWaitAsync = '';
-  let clientConnectWait = '';
   if (!(tag == 'Files' && api.apiId == 'client-connect')) {
     startupCode = `
   static ${tag}Client()
   {
-      HiveMP.Api.HiveMPSDKSetup.EnsureInited();
+      HiveMP.Api.HiveMPSDK.EnsureInited();
   }`;
-    clientConnectWait = `
-#if ENABLE_CLIENT_CONNECT_SDK
-      HiveMP.Api.HiveMPSDKSetup.WaitForClientConnect();
-#endif
-`;
-    clientConnectWaitAsync = `
-#if ENABLE_CLIENT_CONNECT_SDK
-      await HiveMP.Api.HiveMPSDKSetup.WaitForClientConnectAsync();
-#endif
-`;
   }
 
   // Declare interface for client.
@@ -60,10 +48,7 @@ export function emitControllerAndImplementation(api: IApiSpec, tag: string, opts
       continue;
     }
 
-    code += emitImplementationMethodDeclarations(method, {
-      clientConnectWait,
-      clientConnectWaitAsync
-    });
+    code += emitImplementationMethodDeclarations(method);
   }
   code += fragments.implementationSuffix;
   

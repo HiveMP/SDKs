@@ -24,19 +24,43 @@ function getRequestClassConstruction(spec: IMethodSpec) {
 function getClientConnectResponseHandler(returnTypes: IMethodReturnTypes) {
   if (returnTypes.syncType === 'void') {
     return `
+              resolve_();
               return;
 `;
   } else {
     return `
-              var result_ = default(${returnTypes.syncType}); 
               try
               {
-                  result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<${returnTypes.syncType}>(response);
-                  return result_; 
+                  resolve_(Newtonsoft.Json.JsonConvert.DeserializeObject<${returnTypes.syncType}>(@ref.BodyJson));
               } 
               catch (System.Exception exception) 
               {
-                  throw new HiveMP.Api.HiveMPException(statusCode, new HiveMP.Api.HiveMPSystemError
+                  reject_(new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
+                      {
+                          Code = 0,
+                          Message = "Could not deserialize the response body.",
+                          Fields = string.Empty,
+                      }));
+              }
+              return;
+`;
+  }
+}
+
+function getClientConnectResponseHandlerAsync(returnTypes: IMethodReturnTypes) {
+  if (returnTypes.syncType === 'void') {
+    return `
+              return;
+`;
+  } else {
+    return `
+              try
+              {
+                  return Newtonsoft.Json.JsonConvert.DeserializeObject<${returnTypes.syncType}>(@ref.BodyJson);
+              } 
+              catch (System.Exception exception) 
+              {
+                  throw new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
                       {
                           Code = 0,
                           Message = "Could not deserialize the response body.",
@@ -129,10 +153,7 @@ export function emitInterfaceMethodDeclarations(spec: IMethodSpec) {
   });
 }
 
-export function emitImplementationMethodDeclarations(spec: IMethodSpec, opts: {
-  clientConnectWait: string,
-  clientConnectWaitAsync: string,
-}) {
+export function emitImplementationMethodDeclarations(spec: IMethodSpec) {
   const methodName = camelCase(spec.operationId);
   const returnTypes = getReturnTypes(spec);
 
@@ -153,6 +174,7 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec, opts: {
   const legacyParameterXmlComments = getLegacyParameterXmlComments(spec);
 
   const clientConnectResponseHandler = getClientConnectResponseHandler(returnTypes);
+  const clientConnectResponseHandlerAsync = getClientConnectResponseHandlerAsync(returnTypes);
   const httpResponseHandler = getHttpResponseHandler(returnTypes);
 
   let implementor = fragments.implementationMethodDeclarations;
@@ -181,9 +203,8 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec, opts: {
     parameterDeclarations,
     parameterDeclarationsSuffix,
     requestClassConstruction,
-    clientConnectWait: opts.clientConnectWait,
-    clientConnectWaitAsync: opts.clientConnectWaitAsync,
     clientConnectResponseHandler,
+    clientConnectResponseHandlerAsync,
   });
 }
 
@@ -236,14 +257,14 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// <summary>
         /// (The SDK does not generate this description yet)
         /// </summary>
-        public async System.Threading.Tasks.Task Send${protocolName}(${csType.getCSharpType(requestMessage.type)} message, System.Threading.CancellationToken cancellationToken = null)
+        public async System.Threading.Tasks.Task Send${protocolName}(${csType.getCSharpType(requestMessage.type)} message, System.Threading.CancellationToken? cancellationToken = null)
         {
-            var serializedMessage = Newtonsoft.Json.SerializeObject(new {
+            var serializedMessage = Newtonsoft.Json.JsonConvert.SerializeObject(new {
                 type = "${requestMessage.protocolMessageId}",
-                value = serializedMessage,
+                value = message,
             });
             var messageBytes = System.Text.Encoding.UTF8.GetBytes(serializedMessage);
-            var arraySegment = new System.ArraySegment(messageBytes);
+            var arraySegment = new System.ArraySegment<byte>(messageBytes);
             await _webSocket.SendAsync(
                 arraySegment,
                 System.Net.WebSockets.WebSocketMessageType.Text,
