@@ -7,7 +7,7 @@
 
 int main()
 {
-	cc_init();
+	cc_init(true, nullptr);
 
 	long call_handle = -1;
 	if (cc_is_api_hotpatched("user-session", "authenticatePUT"))
@@ -17,7 +17,7 @@ int main()
 			"authenticatePUT",
 			"https://user-session-api.hivemp.com/v1",
 			"ada0dc2f0a448e1058d4720763d1b5a1",
-			"{\"authentication\":{\"tokens\":{\"steamTokens\":[],\"itchIoTokens\":[],\"discordTokens\":[],\"deviceTestTokens\":[],\"oAuthTokens\":[]},\"emailAddress\":\"\",\"passwordHash\":\"\",\"marketingPreferenceOptIn\":null,\"twoFactor\":{\"deviceIdentifier\":\"\",\"deviceIdentifierFriendlyName\":\"\",\"twoFactorCode\":\"\",\"trustThisDevice\":null}}}"
+			"{\"authentication\":{\"tokens\":{\"steamTokens\":[],\"itchIoTokens\":[],\"discordTokens\":[],\"deviceTestTokens\":[],\"oAuthTokens\":[]},\"emailAddress\":\"\",\"passwordHash\":\"\",\"marketingPreferenceOptIn\":false,\"twoFactor\":{\"deviceIdentifier\":\"\",\"deviceIdentifierFriendlyName\":\"\",\"twoFactorCode\":\"\",\"trustThisDevice\":null}}}"
 		);
 	}
 	else

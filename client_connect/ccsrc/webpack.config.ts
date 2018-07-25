@@ -30,7 +30,8 @@ const config: webpack.Configuration = {
       "timers",
       "console",
       "hotpatching",
-      "process"
+      "process",
+      "steam"
     ]).apply(compiler);
   },
   module: {

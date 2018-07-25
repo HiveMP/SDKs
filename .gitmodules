@@ -4,3 +4,6 @@
 [submodule "client_connect/curl"]
 	path = client_connect/curl
 	url = https://github.com/curl/curl.git
+[submodule "client_connect/log_c"]
+	path = client_connect/log_c
+	url = https://github.com/rxi/log.c.git

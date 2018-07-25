@@ -20,7 +20,8 @@
       "console",
       "moment",
       "base64-js",
-      "typedarray"
+      "typedarray",
+      "steam"
     ]
   },
   "include": [

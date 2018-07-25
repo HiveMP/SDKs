@@ -7,6 +7,9 @@ extern "C" {
 #endif
 }
 #include "jsutil.h"
+extern "C" {
+#include "log.h"
+}
 #include "embed.h"
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +21,7 @@ extern "C" {
 #include "module/curl-native/module.h"
 #include "module/hotpatching/module.h"
 #include "module/process/module.h"
+#include "module/steam/module.h"
 
 void _ccl_require(js_State *J)
 {
@@ -28,6 +32,8 @@ void _ccl_require(js_State *J)
 		// We have pushed the cached load onto the stack.
 		return;
 	}
+
+	log_trace("loading native module '%s'...", mod);
 
 	std::string mod_str(mod);
 
@@ -46,6 +52,11 @@ void _ccl_require(js_State *J)
 		js_load_timers(J);
 		return;
 	}
+	else if (mod_str == "steam")
+	{
+		js_load_steam(J);
+		return;
+	}
 	else if (mod_str == "console")
 	{
 		js_load_console(J);
@@ -60,10 +71,21 @@ void _ccl_require(js_State *J)
 	js_error(J, "native module '%s' not found", mod);
 }
 
-void cci_init()
+void cci_init(bool log_stderr, const char* log_path)
 {
 	if (_js == nullptr)
 	{
+		if (!log_stderr)
+		{
+			log_set_quiet(true);
+		}
+		if (log_path != nullptr)
+		{
+			log_set_fp(fopen(log_path, "w"));
+		}
+
+		log_info("initialising Client Connect...");
+
 		_js = js_newstate(NULL, NULL, JS_STRICT);
 
 		// Load the require() function
@@ -93,6 +115,8 @@ void cci_init()
 				return;
 			}
 		}
+
+		log_info("successfully initialised Client Connect");
 	}
 }
 
@@ -104,6 +128,7 @@ bool cci_tick()
 	{
 		js_tick_timers(_js);
 		js_tick_curl_native(_js);
+		js_tick_steam(_js);
 
 		if (js_post_tick_timers(_js))
 		{
@@ -116,6 +141,11 @@ bool cci_tick()
 		}
 
 		if (js_post_tick_hotpatching(_js))
+		{
+			any_alive = true;
+		}
+
+		if (js_post_tick_steam(_js))
 		{
 			any_alive = true;
 		}

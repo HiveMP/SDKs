@@ -4,6 +4,9 @@
 #include <functional>
 
 #include "../../jsutil.h"
+extern "C" {
+#include "log.h"
+}
 
 enum async_status {
 	AS_PENDING,
@@ -30,6 +33,8 @@ void js_register_api_hotpatch(js_State* J)
 	{
 		js_copy(J, 2);
 		auto handler = js_ref(J);
+
+		log_trace("registering hotpatch for operation '%s'", id);
 
 		if (id != nullptr && handler != nullptr && api_hotpatches != nullptr)
 		{

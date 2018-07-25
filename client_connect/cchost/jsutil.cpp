@@ -1,14 +1,35 @@
 #include "jsutil.h"
+extern "C" {
+#include "log.h"
+}
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <sstream>
+#include <iomanip>
 
 js_State* _js = nullptr;
 
 void js_debug_object_dump(js_State* J, std::string indent, bool simple)
 {
+	log_debug("%s", js_get_debug_object_dump(J, indent, simple).c_str());
+}
+
+void js_debug_value_dump(js_State* J, std::string indent, bool simple)
+{
+	log_debug("%s", js_get_debug_value_dump(J, indent, simple).c_str());
+}
+
+void js_debug_stack_dump(js_State* J, bool simple)
+{
+	log_debug("%s", js_get_debug_stack_dump(J, simple).c_str());
+}
+
+std::string js_get_debug_object_dump(js_State* J, std::string indent, bool simple)
+{
+	std::string buffer = "";
 	const char* key;
 	js_pushiterator(J, -1, 1);
 	while (true)
@@ -19,79 +40,93 @@ void js_debug_object_dump(js_State* J, std::string indent, bool simple)
 			break;
 		}
 		
-		printf("%s'%s': ", indent.c_str(), key);
+		buffer += indent;
+		buffer += "'";
+		buffer += key;
+		buffer += "': ";
 
 		if (std::string(key) == "global")
 		{
-			printf("(skipped)\n");
+			buffer += "(skipped)\n";
 		}
 		else
 		{
 			js_getproperty(J, -2, key);
-			js_debug_value_dump(J, indent + "  ", true);
+			buffer += js_get_debug_value_dump(J, indent + "  ", true);
 			js_pop(J, 1);
 		}
 	}
 	js_pop(J, 1);
+	return buffer;
 }
 
-void js_debug_value_dump(js_State* L, std::string indent, bool simple)
+std::string js_get_debug_value_dump(js_State* L, std::string indent, bool simple)
 {
 	if (js_isundefined(L, -1))
 	{
-		printf("undefined\n");
+		return "undefined\n";
 	}
 	else if (js_isnull(L, -1))
 	{
-		printf("null\n");
+		return "null\n";
 	}
 	else if (js_isboolean(L, -1))
 	{
-		printf(js_toboolean(L, -1) ? "true\n" : "false\n");
+		return js_toboolean(L, -1) ? "true\n" : "false\n";
 	}
 	else if (js_isnumber(L, -1))
 	{
-		printf("%g\n", js_tonumber(L, -1));
+		std::ostringstream oss;
+		oss << js_tonumber(L, -1) << "\n";
+		return oss.str();
 	}
 	else if (js_isstring(L, -1))
 	{
-		printf("`%s'\n", js_tostring(L, -1));
+		std::ostringstream oss;
+		oss << "`" << js_tostring(L, -1) << "'\n";
+		return oss.str();
 	}
 	else if (js_iscallable(L, -1))
 	{
 		js_copy(L, -1);
-		printf("(callable: '%s')\n", js_tostring(L, -1));
+		std::ostringstream oss;
+		oss << "(callable: '" << js_tostring(L, -1) << "')\n";
 		js_pop(L, 1);
+		return oss.str();
 	}
 	else if (js_isobject(L, -1))
 	{
-		printf("(object)\n");
+		std::string buffer = "(object)\n";
 
 		if (!simple)
 		{
-			js_debug_object_dump(L, "  ", simple);
+			buffer += js_get_debug_object_dump(L, "  ", simple);
 		}
+
+		return buffer;
 	}
 	else
 	{
-		printf("(unknown)\n");
+		return "(unknown)\n";
 	}
 }
 
-void js_debug_stack_dump(js_State* L, bool simple)
+std::string js_get_debug_stack_dump(js_State* L, bool simple)
 {
 	int i;
 	int top = js_gettop(L);
-	printf("stack top: %i\n", top);
+	std::ostringstream oss;
+	oss << "stack top: " << top << "\n";
 	for (i = 0; i <= top; i++) 
 	{
-		printf("%i: ", i);
+		oss << i << ": ";
 		js_copy(L, i);
 		js_debug_value_dump(L, "", simple);
 		js_pop(L, 1);
 	}
-	printf("stack top: %i\n", js_gettop(L));
-	printf("\n");  /* end the listing */
+	oss << "stack top: " << js_gettop(L) << "\n";
+	oss << "\n";  /* end the listing */
+	return oss.str();
 }
 
 void js_debug_error_dump(js_State* J)
@@ -105,12 +140,12 @@ void js_debug_error_dump(js_State* J)
 		auto stackTrace = js_tostring(J, -1);
 		js_pop(J, 1);
 
-		fprintf(stderr, "error: %s%s", message, stackTrace);
+		log_error("error: %s%s", message, stackTrace);
 		js_pop(J, 1);
 	}
 	else
 	{
-		fprintf(stderr, "error: %s", js_tostring(J, -1));
+		log_error("error: %s", js_tostring(J, -1));
 		js_pop(J, 1);
 	}
 }

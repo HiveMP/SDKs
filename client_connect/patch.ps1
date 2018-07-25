@@ -11,3 +11,17 @@ if (!$content.Contains("# add_subdirectory(docs)"))
         Pop-Location
     }
 }
+
+Write-Output "Hotpatching log.c..."
+$content = Get-Content -Raw -Path $PSScriptRoot\log_c\src\log.h
+if ($content.Contains("__FILE__"))
+{
+    Push-Location $PSScriptRoot/log_c
+    try {
+        git checkout HEAD ./src/log.h
+        git apply ../log_c.patch
+        git update-index --assume-unchanged ./src/log.h
+    } finally {
+        Pop-Location
+    }
+}

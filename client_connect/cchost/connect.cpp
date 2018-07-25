@@ -1,5 +1,3 @@
-#include "connect.h"
-
 #if CLIENT_CONNECT_TARGETING_UNREAL
 #else
 extern "C" {
@@ -19,9 +17,9 @@ extern "C" {
 
 extern "C"
 {
-	DLLEXPORT void cc_init()
+	DLLEXPORT void cc_init(bool log_stderr, const char* log_path)
 	{
-		cci_init();
+		cci_init(log_stderr, log_path);
 	}
 
 	DLLEXPORT bool cc_tick()

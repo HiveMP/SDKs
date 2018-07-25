@@ -17,7 +17,7 @@ extern "C"
 #define DLLIMPORT
 #endif
 
-	DLLIMPORT void cc_init();
+	DLLIMPORT void cc_init(bool log_stderr, const char* log_path);
 	DLLIMPORT bool cc_tick();
 	DLLIMPORT void cc_free_string(char* ptr);
 

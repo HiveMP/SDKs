@@ -41,8 +41,28 @@ add_library(
   module/console/module.cpp
   module/curl-native/module.cpp
   module/hotpatching/module.cpp
-  module/process/module.cpp)
+  module/process/module.cpp
+  module/steam/module.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../log_c/src/log.c)
+define_file_basename_for_sources(cchost)
+
+if(MSVC)
+  if(${CMAKE_CXX_COMPILER} MATCHES x64\/cl.exe)
+    set(STEAM_LIBRARY_NAME steam_api64 delayimp)
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /delayload:steam_api64.dll")
+  else()
+    set(STEAM_LIBRARY_NAME steam_api delayimp)
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /delayload:steam_api.dll")
+  endif()
+else()
+  set(STEAM_LIBRARY_NAME steam_api)
+endif()
 
 add_dependencies(cchost libcurl)
 target_include_directories(cchost PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(cchost $<TARGET_OBJECTS:libcurl> ${CURL_LIBS_EXPORTED_2})
+target_include_directories(cchost PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../steam/public)
+target_include_directories(cchost PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../log_c/src)
+target_link_libraries(cchost $<TARGET_OBJECTS:libcurl> ${CURL_LIBS_EXPORTED_2} ${STEAM_LIBRARY_NAME})
+
+message("C++ compiler is: ${CMAKE_CXX_COMPILER}")
+message("Steam library name is: ${STEAM_LIBRARY_NAME}")
