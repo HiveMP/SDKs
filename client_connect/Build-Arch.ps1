@@ -61,6 +61,9 @@ try {
           $Dir = "bin/"
         }
         Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)cchost$Ext $PSScriptRoot/sdk/$Id/$($Pre)cchost$Ext
+        if ($global:IsMacOS -or $global:IsLinux) {
+          Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)steam_api$Ext $PSScriptRoot/sdk/$Id/$($Pre)steam_api$Ext
+        }
       } finally {
         Pop-Location
       }

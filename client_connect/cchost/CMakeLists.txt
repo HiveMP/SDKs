@@ -66,3 +66,18 @@ target_link_libraries(cchost $<TARGET_OBJECTS:libcurl> ${CURL_LIBS_EXPORTED_2} $
 
 message("C++ compiler is: ${CMAKE_CXX_COMPILER}")
 message("Steam library name is: ${STEAM_LIBRARY_NAME}")
+
+# On Linux and macOS, our prebuilt binaries require the presence of the Steam API DLLs. This is
+# because unlike Windows, these platforms do not support delay loading of shared libraries. Note
+# that while these platforms require the presence of the Steam API DLLs, HiveMP will still degrade
+# gracefully if Steam is not running.
+if(APPLE)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../steam/osx/libsteam_api.dylib ${CMAKE_CURRENT_BINARY_DIR}/libsteam_api.dylib COPYONLY)
+elseif(MSVC)
+else()
+  if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../steam/linux32/libsteam_api.so ${CMAKE_CURRENT_BINARY_DIR}/libsteam_api.so COPYONLY)
+  else()
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../steam/linux64/libsteam_api.so ${CMAKE_CURRENT_BINARY_DIR}/libsteam_api.so COPYONLY)
+  endif()
+endif()
