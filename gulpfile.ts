@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import { resolve } from 'path';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as which from 'which';
 
 const supportedUnityVersions = {
   "5.4.1f": [
@@ -85,15 +86,25 @@ gulp.task('build-client-connect-win64', async () => {
   await execAsync('pwsh', [ 'client_connect\\Build-Arch.ps1', 'Win64' ]);
 });
 
+gulp.task('build-client-connect-linux32', async () => {
+  await execAsync('ubuntu1804', [ 'run', 'pwsh', 'client_connect/Build-Arch.ps1', 'Linux32' ]);
+});
+
+gulp.task('build-client-connect-linux64', async () => {
+  await execAsync('ubuntu1804', [ 'run', 'pwsh', 'client_connect/Build-Arch.ps1', 'Linux64' ]);
+});
+
 gulp.task('build-client-connect', gulp.series(
   'build-client-connect-init',
   gulp.parallel(
     'build-client-connect-win32',
-    'build-client-connect-win64'
+    'build-client-connect-win64',
+    'build-client-connect-linux32',
+    'build-client-connect-linux64'
   )
 ));
 
-const yarnPath = 'C:\\Program Files (x86)\\Yarn\\bin\\yarn.cmd';
+const yarnPath = which.sync('yarn');
 
 gulp.task('generate-csharp-4.5', async () => {
   await execAsync(yarnPath, [

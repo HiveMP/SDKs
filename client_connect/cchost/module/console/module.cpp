@@ -1,11 +1,14 @@
 #include "module.h"
 #include <cstdio>
+extern "C" {
+	#include "log.h"
+}
 
 void js_console_log(js_State* J)
 {
 	auto str = js_tostring(J, 1);
 
-	printf("%s\n", str);
+	log_info("%s\n", str);
 }
 
 void js_load_console(js_State* J)

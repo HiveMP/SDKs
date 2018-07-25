@@ -22,6 +22,9 @@
 #include <thread>
 #include <vector>
 #include "../../jsutil.h"
+extern "C" {
+    #include "log.h"
+}
 
 enum curl_handle_state {
     CHS_PENDING,
@@ -92,6 +95,7 @@ void js_curl_fetch(js_State* J)
     js_getproperty(J, 1, "url");
     if (js_isstring(J, -1))
     {
+        log_trace("curl fetch: url=%s", js_tostring(J, -1));
 #if CLIENT_CONNECT_TARGETING_UNREAL
         handle->SetURL(FString(js_tostring(J, -1)));
 #else
@@ -133,6 +137,7 @@ void js_curl_fetch(js_State* J)
     js_getproperty(J, 1, "body");
     if (js_isstring(J, -1))
     {
+        log_trace("curl fetch: body=%s", js_tostring(J, -1));
         requestBody = alloc_copy(js_tostring(J, -1));
     }
 	js_pop(J, 1);
@@ -142,6 +147,8 @@ void js_curl_fetch(js_State* J)
     if (js_isstring(J, -1))
     {
         auto meth_str = std::string(js_tostring(J, -1));
+
+        log_trace("curl fetch: method=%s", js_tostring(J, -1));
 
 #if CLIENT_CONNECT_TARGETING_UNREAL
         handle->SetVerb(meth_str.c_str());
@@ -160,6 +167,7 @@ void js_curl_fetch(js_State* J)
 
             if (requestBody == nullptr)
             {
+                log_trace("curl fetch: (no body, setting Content-Length to 0)");
                 headers = curl_slist_append(headers, "Content-Length: 0");
             }
             else
@@ -174,6 +182,7 @@ void js_curl_fetch(js_State* J)
 
             if (requestBody == nullptr)
             {
+                log_trace("curl fetch: (no body, setting Content-Length to 0)");
                 headers = curl_slist_append(headers, "Content-Length: 0");
             }
             else
@@ -201,6 +210,7 @@ void js_curl_fetch(js_State* J)
         for (auto i = 0; i < js_getlength(J, -1); i++)
         {
             js_getindex(J, -1, i);
+            log_trace("curl fetch: header=%s", js_tostring(J, -1));
 #if CLIENT_CONNECT_TARGETING_UNREAL
             handle->SetHeader(js_tostring(J, -1), TEXT(""));
 #else
@@ -242,6 +252,7 @@ void js_curl_fetch(js_State* J)
     {
         if (!HttpResponse.IsValid())
         {
+            log_trace("curl fetch: result=error");
             handle_ref->state = CHS_ERROR;
         }
         else
@@ -249,17 +260,23 @@ void js_curl_fetch(js_State* J)
             auto Response = HttpResponse.Get();
 
             handle_ref->responseStatusCode = Response->GetResponseCode();
-            
+
             if (Response->GetResponseCode() != 200)
             {
+                log_trace("curl fetch: result=success-with-error");
                 handle_ref->state = CHS_ERROR;
             }
             else
             {
+                log_trace("curl fetch: result=success");
                 handle_ref->state = CHS_SUCCESS;
             }
 
+            log_trace("curl fetch: http-status-code=%i", handle_ref->responseStatusCode);
+
             handle_ref->responseData = std::string(TCHAR_TO_UTF8(*(Response->GetContentAsString())));
+
+            log_trace("curl fetch: response=%s", handle_ref->responseData.c_str());
         }
 
         if (handle_ref->requestData != nullptr)
@@ -276,11 +293,15 @@ void js_curl_fetch(js_State* J)
         auto result = curl_easy_perform(handle_ref->handle);
         if (result == CURLE_OK)
         {
+            log_trace("curl fetch: result=success");
             handle_ref->state = CHS_SUCCESS;
             curl_easy_getinfo(handle_ref->handle, CURLINFO_RESPONSE_CODE, &handle_ref->responseStatusCode);
+            log_trace("curl fetch: http-status-code=%i", handle_ref->responseStatusCode);
+            log_trace("curl fetch: response=%s", handle_ref->responseData.c_str());
         }
         else
         {
+            log_trace("curl fetch: result=error (%i, %s)", result, curl_easy_strerror(result));
             handle_ref->state = CHS_ERROR;
         }
 

@@ -34,6 +34,21 @@ if(APPLE)
   option(CMAKE_USE_OPENSSL "Use OpenSSL code. Experimental" OFF)
   SET(CURL_CA_PATH "none" CACHE STRING "Use some expat option")
 endif()
+if(NOT WIN32 AND NOT APPLE)
+  set(CURL_CA_FALLBACK ON)
+endif()
+
+# Detect WSL building for 32-bit (WSL can't execute the 32-bit configure
+# commands required to detect this).
+if(NOT MSVC AND NOT APPLE)
+  FILE(READ /proc/version TMPTXT)
+  STRING(FIND "${TMPTXT}" "Microsoft" matchres)
+  if (${matchres} EQUAL -1)
+  else()
+    # Just tell the build system we have this.
+    add_definitions(-DHAVE_POSIX_STRERROR_R=1)
+  endif()
+endif()
 
 add_subdirectory(curl)
 
