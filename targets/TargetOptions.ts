@@ -3,5 +3,4 @@ export interface TargetOptions {
   includeClusterOnly: boolean;
   enableClientConnect: boolean;
   clientConnectSdkPath: string;
-  clientConnectOnlyWin: boolean;
 }

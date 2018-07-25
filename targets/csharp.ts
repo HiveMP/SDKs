@@ -115,11 +115,11 @@ abstract class CSharpGenerator implements TargetGenerator {
                   } catch { }
                   fs.renameSync(opts.outputDir + "/" + platform + "/libcchost.dylib", opts.outputDir + "/" + platform + "/libcchost.bundle");
                 }
-                if (fs.existsSync(opts.outputDir + "/" + platform + "/libcurl.dylib")) {
+                if (fs.existsSync(opts.outputDir + "/" + platform + "/libsteam_api.dylib")) {
                   try {
-                    fs.unlinkSync(opts.outputDir + "/" + platform + "/libcurl.bundle");
+                    fs.unlinkSync(opts.outputDir + "/" + platform + "/libsteam_api.bundle");
                   } catch { }
-                  fs.renameSync(opts.outputDir + "/" + platform + "/libcurl.dylib", opts.outputDir + "/" + platform + "/libcurl.bundle");
+                  fs.renameSync(opts.outputDir + "/" + platform + "/libsteam_api.dylib", opts.outputDir + "/" + platform + "/libsteam_api.bundle");
                 }
               }
               if (err) {
@@ -132,11 +132,9 @@ abstract class CSharpGenerator implements TargetGenerator {
       }
       await copyClientConnectPlatformBinaries("Win32");
       await copyClientConnectPlatformBinaries("Win64");
-      if (!opts.clientConnectOnlyWin) {
-        await copyClientConnectPlatformBinaries("Mac64");
-        await copyClientConnectPlatformBinaries("Linux32");
-        await copyClientConnectPlatformBinaries("Linux64");
-      }
+      await copyClientConnectPlatformBinaries("Mac64");
+      await copyClientConnectPlatformBinaries("Linux32");
+      await copyClientConnectPlatformBinaries("Linux64");
     }
 
     await this.postGenerate(opts);
@@ -154,11 +152,7 @@ export class CSharp35Generator extends CSharpGenerator {
   
   async postGenerate(opts: TargetOptions): Promise<void> {
     if (opts.enableClientConnect) {
-      if (opts.clientConnectOnlyWin) {
-        fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.ClientConnectWinOnly.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
-      } else {
-        fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
-      }
+      fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
     } else {
       fs.copySync(path.join(__dirname, "../sdks/CSharp-3.5/HiveMP.NoClientConnect.csproj"), path.join(opts.outputDir, "HiveMP.csproj"));
     }
@@ -208,25 +202,14 @@ export class UnityGenerator extends CSharpGenerator {
     });
 
     if (opts.enableClientConnect) {
-      if (opts.clientConnectOnlyWin) {
-        await new Promise<void>((resolve, reject) => {
-          fs.copy("sdks/Unity-ClientConnectWinOnly/", opts.outputDir, { overwrite: true }, (err) => {
-            if (err) {
-              reject(err);
-            }
-            resolve();
-          });
+      await new Promise<void>((resolve, reject) => {
+        fs.copy("sdks/Unity-ClientConnect/", opts.outputDir, { overwrite: true }, (err) => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
         });
-      } else {
-        await new Promise<void>((resolve, reject) => {
-          fs.copy("sdks/Unity-ClientConnect/", opts.outputDir, { overwrite: true }, (err) => {
-            if (err) {
-              reject(err);
-            }
-            resolve();
-          });
-        });
-      }
+      });
     }
   }
 }

@@ -66,10 +66,6 @@ program
     'enable experimental Client Connect support if this target allows it'
   )
   .option(
-    '--client-connect-only-win',
-    'only copy Win32/Win64 architecture files for Client Connect'
-  )
-  .option(
     '--client-connect-sdk-path <dir>',
     'path to the compiled Client Connect SDK, if not provided downloads the latest SDK'
   )
@@ -121,7 +117,6 @@ program
               includeClusterOnly: options.includeClusterOnly,
               enableClientConnect: options.enableClientConnect,
               clientConnectSdkPath: options.clientConnectSdkPath,
-              clientConnectOnlyWin: options.clientConnectOnlyWin,
             });
           found = true;
           break;
