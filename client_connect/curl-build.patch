@@ -1,8 +1,17 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 490cc19ef..cb2183e40 100644
+index 490cc19ef..235680758 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -1138,7 +1138,7 @@ else()
+@@ -45,8 +45,6 @@ include(Macros)
+ include(CMakeDependentOption)
+ include(CheckCCompilerFlag)
+ 
+-project( CURL C )
+-
+ message(WARNING "the curl cmake build system is poorly maintained. Be aware")
+ 
+ file (READ ${CURL_SOURCE_DIR}/include/curl/curlver.h CURL_VERSION_H_CONTENTS)
+@@ -1138,7 +1136,7 @@ else()
  endif()
  
  if(USE_MANUAL)
@@ -11,7 +20,7 @@ index 490cc19ef..cb2183e40 100644
  endif()
  
  add_subdirectory(lib)
-@@ -1325,3 +1325,5 @@ if(NOT TARGET uninstall)
+@@ -1325,3 +1323,5 @@ if(NOT TARGET uninstall)
        COMMAND ${CMAKE_COMMAND} -P
        ${CMAKE_CURRENT_BINARY_DIR}/CMake/cmake_uninstall.cmake)
  endif()

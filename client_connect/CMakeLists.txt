@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(HiveMP.ClientConnect)
+project(client_connect)
 
 # This should hopefully also set for curl
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
