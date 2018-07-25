@@ -43,5 +43,6 @@ add_library(
   module/hotpatching/module.cpp
   module/process/module.cpp)
 
+add_dependencies(cchost libcurl)
 target_include_directories(cchost PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(cchost $<TARGET_OBJECTS:libcurl> ${CURL_LIBS_EXPORTED_2})
