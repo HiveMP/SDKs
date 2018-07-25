@@ -83,6 +83,9 @@ try {
           Write-Output "Running tests in SDK directory..."
           Push-Location $PSScriptRoot/sdk/$Id/
           try {
+            if ($global:IsLinux) {
+              $env:LD_LIBRARY_PATH=".:$env:LD_LIBRARY_PATH"
+            }
             & .\cctest$TestExt
             if ($LastExitCode -ne 0) {
               Write-Error "Unable to run cctest successfully! Check the output above."
