@@ -154,7 +154,7 @@ stage("Build Client Connect") {
                     bat 'git submodule update --init --recursive'
                     bat 'git submodule foreach --recursive git clean -xdf'
                     bat 'yarn'
-                    bat 'pwsh client_connect\\Build-Init.ps1'
+                    bat 'pwsh client_connect\\Build-Init.ps1 Win32'
                     bat 'pwsh client_connect\\Build-Arch.ps1 Win32'
                     caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win32', 'client_connect/sdk/Win32')
                 }
@@ -172,7 +172,7 @@ stage("Build Client Connect") {
                     bat 'git submodule update --init --recursive'
                     bat 'git submodule foreach --recursive git clean -xdf'
                     bat 'yarn'
-                    bat 'pwsh client_connect\\Build-Init.ps1'
+                    bat 'pwsh client_connect\\Build-Init.ps1 Win64'
                     bat 'pwsh client_connect\\Build-Arch.ps1 Win64'
                     caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win64', 'client_connect/sdk/Win64')
                 }
@@ -190,7 +190,7 @@ stage("Build Client Connect") {
                     sh 'git submodule update --init --recursive'
                     sh 'git submodule foreach --recursive git clean -xdf'
                     sh 'yarn'
-                    sh 'pwsh client_connect/Build-Init.ps1'
+                    sh 'pwsh client_connect/Build-Init.ps1 Mac64'
                     sh 'pwsh client_connect/Build-Arch.ps1 Mac64'
                     caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Mac64', 'client_connect/sdk/Mac64')
                 }
@@ -208,7 +208,7 @@ stage("Build Client Connect") {
                     sh 'git submodule update --init --recursive'
                     sh 'git submodule foreach --recursive git clean -xdf'
                     sh 'yarn'
-                    sh 'pwsh client_connect/Build-Init.ps1'
+                    sh 'pwsh client_connect/Build-Init.ps1 Linux32'
                     sh 'pwsh client_connect/Build-Arch.ps1 Linux32'
                     caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux32', 'client_connect/sdk/Linux32')
                 }
@@ -226,7 +226,7 @@ stage("Build Client Connect") {
                     sh 'git submodule update --init --recursive'
                     sh 'git submodule foreach --recursive git clean -xdf'
                     sh 'yarn'
-                    sh 'pwsh client_connect/Build-Init.ps1'
+                    sh 'pwsh client_connect/Build-Init.ps1 Linux64'
                     sh 'pwsh client_connect/Build-Arch.ps1 Linux64'
                     caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux64', 'client_connect/sdk/Linux64')
                 }
