@@ -52,21 +52,24 @@ try {
         $TestExt = ".exe"
         $Pre = ""
         $Dir = "Release/"
+        $SteamDir = "Release/"
         if ($global:IsMacOS) {
           $Ext = ".dylib"
           $TestExt = ""
           $Pre = "lib"
           $Dir = "bin/Release/"
+          $SteamDir = "bin/"
         } elseif ($global:IsLinux) {
           $Ext = ".so"
           $TestExt = ""
           $Pre = "lib"
           $Dir = "bin/"
+          $SteamDir = "bin/"
         }
         Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)cchost$Ext $PSScriptRoot/sdk/$Id/$($Pre)cchost$Ext
         Copy-Item $PSScriptRoot/build_$Id/$($Dir)cctest$TestExt $PSScriptRoot/sdk/$Id/cctest$TestExt
         if ($global:IsMacOS -or $global:IsLinux) {
-          Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)steam_api$Ext $PSScriptRoot/sdk/$Id/$($Pre)steam_api$Ext
+          Copy-Item $PSScriptRoot/build_$Id/$SteamDir$($Pre)steam_api$Ext $PSScriptRoot/sdk/$Id/$($Pre)steam_api$Ext
         } else {
           # These are only temporarily copied so we can run cctest twice on Windows, once with Steam API DLLs
           # present and again without them present, since we should be successfully be delay loading them.

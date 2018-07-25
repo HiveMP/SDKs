@@ -4,6 +4,9 @@ project(client_connect)
 # This should hopefully also set for curl
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Fix up so that cchost can link against other dylibs on macOS
+set(CMAKE_SKIP_RPATH ON)
+
 execute_process(COMMAND pwsh ${CMAKE_CURRENT_SOURCE_DIR}/patch.ps1)
 
 if(MSVC)
@@ -53,13 +56,19 @@ endif()
 add_subdirectory(curl)
 
 # Include Steam directories
-link_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR}/steam/linux32/
-  ${CMAKE_CURRENT_SOURCE_DIR}/steam/linux64/
-  ${CMAKE_CURRENT_SOURCE_DIR}/steam/osx/
-  ${CMAKE_CURRENT_SOURCE_DIR}/steam/win32/
-  ${CMAKE_CURRENT_SOURCE_DIR}/steam/win64/
-)
+if(APPLE)
+  link_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/steam/osx/
+  )
+else()
+  link_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/steam/linux32/
+    ${CMAKE_CURRENT_SOURCE_DIR}/steam/linux64/
+    ${CMAKE_CURRENT_SOURCE_DIR}/steam/osx/
+    ${CMAKE_CURRENT_SOURCE_DIR}/steam/win32/
+    ${CMAKE_CURRENT_SOURCE_DIR}/steam/win64/
+  )
+endif()
 
 # Set up macros for logging
 function(define_file_basename_for_sources targetname)

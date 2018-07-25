@@ -86,6 +86,31 @@ gulp.task('build-client-connect-win64', async () => {
   await execAsync('pwsh', [ 'client_connect\\Build-Arch.ps1', 'Win64' ]);
 });
 
+const restoreRepo = async (name: string) => {
+  if (!fs.existsSync(`client_connect/${name}/.git/index`)) {
+    // is a submodule, but we need to copy the actual Git repo directory over
+    try {
+      await execAsync('ubuntu1804', [ 'run', 'ssh', 'Build@172.25.218.188', 'mkdir', '-pv', `/Users/build/cc-dev-build/client_connect/${name}/.gitreal` ]);
+    } catch (e) { }
+    const gitPath = `client_connect/${name}/` + fs.readFileSync(`client_connect/${name}/.git`, 'utf8').substr(8).trim() + '/*';
+    console.log(gitPath);
+    await execAsync('ubuntu1804', [ 'run', 'rsync', '-av', gitPath, `Build@172.25.218.188:/Users/build/cc-dev-build/client_connect/${name}/.gitreal/` ]);
+    await execAsync('ubuntu1804', [ 'run', 'ssh', 'Build@172.25.218.188', 'pwsh', '/Users/build/cc-dev-build/client_connect/Restore-Repo.ps1', name ]);
+  }
+};
+
+gulp.task('build-client-connect-mac64', async () => {
+  console.log('Copying source files to macOS...');
+  await execAsync('ubuntu1804', [ 'run', 'rsync', '-av', '--include-from=rsync-mac.list', '--exclude=*', './', 'Build@172.25.218.188:/Users/build/cc-dev-build/' ]);
+  await restoreRepo('curl');
+  await restoreRepo('log_c');
+  await execAsync('ubuntu1804', [ 'run', 'ssh', 'Build@172.25.218.188', 'pwsh', '/Users/build/cc-dev-build/client_connect/patch.ps1', '-Force' ]);
+  console.log('Running build remotely...');
+  await execAsync('ubuntu1804', [ 'run', 'ssh', 'Build@172.25.218.188', 'pwsh', '/Users/build/cc-dev-build/client_connect/Build-Arch.ps1', 'Mac64' ]);
+  console.log('Copying compiled files from macOS...');
+  await execAsync('ubuntu1804', [ 'run', 'rsync', '-av', 'Build@172.25.218.188:/Users/build/cc-dev-build/client_connect/sdk/*', './client_connect/sdk/',  ]);
+});
+
 gulp.task('build-client-connect-linux32', async () => {
   await execAsync('ubuntu1804', [ 'run', 'pwsh', 'client_connect/Build-Arch.ps1', 'Linux32' ]);
 });
@@ -99,6 +124,7 @@ gulp.task('build-client-connect', gulp.series(
   gulp.parallel(
     'build-client-connect-win32',
     'build-client-connect-win64',
+    'build-client-connect-mac64',
     'build-client-connect-linux32',
     'build-client-connect-linux64'
   )
