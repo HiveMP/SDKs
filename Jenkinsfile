@@ -442,8 +442,8 @@ stage("Build Tests") {
             parallelMap["Unity-" + version + "-" + platform] =
             {
                 if (!preloaded['CompiledTest-Unity-' + version + '-' + platform]) {
-                    timeout(30) {
-                        node('windows-hispeed') {
+                    node('windows-hispeed') {
+                        timeout(30) {
                             dir('_test_env/Unity-' + version + '-' + platform) {
                                 caching.pullCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual', 'dir')
                                 caching.pullCacheDirectory(gcloud, mainBuildHash, 'Unity' + version + 'TestUncompiled', 'tests/UnityTest-' + version + '/', 'dir')
