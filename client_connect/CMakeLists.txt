@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.8)
 project(HiveMP.ClientConnect)
 
+# This should hopefully also set for curl
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 execute_process(COMMAND pwsh ${CMAKE_CURRENT_SOURCE_DIR}/patch.curl.ps1)
 
 if(MSVC)
