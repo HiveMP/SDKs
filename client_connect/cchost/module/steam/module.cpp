@@ -12,7 +12,7 @@
 #pragma push_macro("ARRAY_COUNT")
 #undef ARRAY_COUNT
 THIRD_PARTY_INCLUDES_START
-#include "../../../steam/steam/steam_api.h"
+#include "steam/steam_api.h"
 THIRD_PARTY_INCLUDES_END
 #pragma pop_macro("ARRAY_COUNT")
 #else

@@ -149,7 +149,6 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
     await copy("sdks/" + this.name + "/", opts.outputDir);
     await copy("client_connect/cchost/", opts.outputDir + "/Source/HiveMPSDK/Private/cchost");
     await copy("client_connect/mujs/", opts.outputDir + "/Source/HiveMPSDK/Private/mujs");
-    await copy("client_connect/steam/public/", opts.outputDir + "/Source/HiveMPSDK/Private/steam");
     await unlink(opts.outputDir + "/Source/HiveMPSDK/Private/mujs/one.c");
     await unlink(opts.outputDir + "/Source/HiveMPSDK/Private/mujs/main.c");
     await unlink(opts.outputDir + "/Source/HiveMPSDK/Private/cchost/connect.h");
