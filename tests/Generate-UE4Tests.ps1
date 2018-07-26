@@ -14,28 +14,33 @@ trap {
 cd $PSScriptRoot\..
 
 if (!$NoCleanAndSdkUnpack) {
-  echo "Cleaning tests/UnrealBuilds-$Version..."
   for ($i=0; $i -lt 30; $i++) {
     try {
-      git clean -xdff "$TestPath";
-      break;
+      Write-Output "Cleaning tests/UnrealTest-$Version..."
+      git clean -xdff "$PSScriptRoot\..\tests\UnrealTest-$Version" 2>&1 | Out-Null;
+      if ($LASTEXITCODE -eq 0) {
+        break;
+      }
     } catch {}
   }
   for ($i=0; $i -lt 30; $i++) {
     try {
-      git checkout HEAD -- "$TestPath";
-      break;
+      Write-Output "Checking out tests/UnrealTest-$Version..."
+      git checkout HEAD -- "$PSScriptRoot\..\tests\UnrealTest-$Version" 2>&1 | Out-Null;
+      if ($LASTEXITCODE -eq 0) {
+        break;
+      }
     } catch {}
   }
   
   echo "Unpacking SDK package..."
   Add-Type -AssemblyName System.IO.Compression.FileSystem;
-  $sdkName = (Get-Item $PSScriptRoot\..\assets\UnrealEngine-$UeVersion-SDK.$SdkVersion.zip).FullName;
+  $sdkName = (Get-Item $PSScriptRoot\..\assets\UnrealEngine-$Version-SDK.$SdkVersion.zip).FullName;
   echo $sdkName
-  [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$TestPath\Plugins\HiveMPSDK");
+  [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnrealTest-$Version\Plugins\HiveMPSDK");
 
   echo "Copying build script..."
-  Copy-Item -Force $PSScriptRoot\Build-UE4Test.ps1 "$TestPath\Build-UE4Test.ps1"
+  Copy-Item -Force $PSScriptRoot\Build-UE4Test.ps1 "$PSScriptRoot\..\tests\UnrealTest-$Version\Build-UE4Test.ps1"
 }
 
 cd $OriginalLocation

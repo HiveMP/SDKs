@@ -57,3 +57,5 @@ build/
 /tests/UnityTest-*/Win32/HiveMPTest_Data/
 /tests/UnityTest-*/Win64/HiveMPTest.exe
 /tests/UnityTest-*/Win64/HiveMPTest_Data/
+
+/tests/UnrealTest-*/Build-UE4Test.ps1

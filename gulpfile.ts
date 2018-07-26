@@ -44,9 +44,6 @@ const supportedUnityVersions = {
   ],
 };
 const supportedUnrealVersions = {
-  "4.17": [
-    "Win64",
-  ],
   "4.18": [
     "Win64",
   ],
@@ -244,7 +241,6 @@ for (const version of Object.keys(supportedUnityVersions)) {
 for (const version of Object.keys(supportedUnrealVersions)) {
   generateTestsTasks.push('generate-test-ue' + version);
   gulp.task('generate-test-ue' + version, async () => {
-    /*
     await execAsync('pwsh', [
       'tests/Generate-UE4Tests.ps1',
       '-Version',
@@ -252,7 +248,6 @@ for (const version of Object.keys(supportedUnrealVersions)) {
       '-SdkVersion',
       '1.0.0-DEV'
     ]);
-    */
   });
 }
 
@@ -279,6 +274,28 @@ for (const version of Object.keys(supportedUnityVersions)) {
   if (platformBuildTestsTasks.length > 0) {
     buildTestsTasks.push('build-test-unity-' + version);
     gulp.task('build-test-unity-' + version, gulp.series(platformBuildTestsTasks));
+  }
+}
+for (const version of Object.keys(supportedUnrealVersions)) {
+  const platformBuildTestsTasks: string[] = [];
+  for (const platform of supportedUnrealVersions[version]) {
+    const unityPath = ('C:\\Program Files\\Epic Games\\UE_' + version);
+    if (fs.existsSync(unityPath)) {
+      platformBuildTestsTasks.push('build-test-unreal-' + version + '-' + platform);
+      gulp.task('build-test-unreal-' + version + '-' + platform, async () => {
+        await execAsync('pwsh', [
+          './Build-UE4Test.ps1',
+          '-Version',
+          version,
+          '-Target',
+          platform
+        ], 'tests/UnrealTest-' + version);
+      });
+    }
+  }
+  if (platformBuildTestsTasks.length > 0) {
+    buildTestsTasks.push('build-test-unreal-' + version);
+    gulp.task('build-test-unreal-' + version, gulp.series(platformBuildTestsTasks));
   }
 }
 

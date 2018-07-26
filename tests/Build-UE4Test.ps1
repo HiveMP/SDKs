@@ -11,7 +11,7 @@ trap {
   exit 1
 }
 
-$TestPath = "$PSScriptRoot\..\tests\UnrealTest" + $Version.Replace(".", "");
+$TestPath = "$PSScriptRoot";
 $UnrealEnginePath = "C:\Program Files\Epic Games\UE_" + $Version + "\Engine";
 $RunUAT = "$UnrealEnginePath\Build\BatchFiles\RunUAT.bat";
 $UnrealBuildTool = "$UnrealEnginePath\Binaries\DotNET\UnrealBuildTool.exe";

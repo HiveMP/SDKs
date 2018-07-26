@@ -42,19 +42,15 @@ def supportedUnityVersions = [
     ],
 ];
 def supportedUnrealVersions = [
-    "4.17": [
-        "Win64"
-    ],
     "4.18": [
         "Win64"
     ],
     "4.19": [
         "Win64"
     ],
-    // TODO: Add this when it's added to the build agents.
-    // "4.20": [
-    //     "Win64"
-    // ],
+    "4.20": [
+        "Win64"
+    ],
 ];
 def clientConnectPlatformCaches = [
     "Win32",
@@ -417,18 +413,12 @@ if (preloaded["SDKs"]) {
             supportedUnrealVersions.keySet().each { version ->
                 parallelMap["UnrealEngine-" + version] =
                 {
-                    /*
-                    lock(resource: "SDK_" + env.NODE_NAME, inversePrecedence: true) {
-                        timeout(120) {
-                            bat 'pwsh tests/Build-UE4Tests.ps1 -Version ' + version
-                        }
+                    timeout(60) {
+                        bat 'pwsh tests/Generate-UE4Tests.ps1 -Version ' + version + ' -SdkVersion ' + sdkVersion
                     }
                     timeout(10) {
-                        stash includes: 'tests/UnrealBuilds-' + version + '/Win64/**', name: 'unreal-' + version + '-test-win64'
-                        stash includes: 'tests/*.ps1', name: 'unreal-' + version + '-test-script'
-                        googleStorageUpload bucket: ('gs://redpoint-build-cache/' + mainBuildHash), credentialsId: 'redpoint-games-build-cluster', pattern: 'tests/UnityTest-' + version + '/**'
+                        caching.pushCacheDirectory(gcloud, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/')
                     }
-                    */
                 };
             }
             parallel (parallelMap)
@@ -454,6 +444,28 @@ stage("Build Tests") {
                                 }
 
                                 caching.pushCacheDirectory(gcloud, mainBuildHash, 'CompiledTest-Unity-' + version + '-' + platform, 'tests/UnityTest-' + version + '/' + platform + '/')
+                            }
+                        }
+                    }
+                } else {
+                    echo ("Already built");
+                }
+            }
+        }         
+    }
+    supportedUnrealVersions.each { version, platforms -> 
+        platforms.each { platform ->
+            parallelMap["Unreal-" + version + "-" + platform] =
+            {
+                if (!preloaded['CompiledTest-Unreal-' + version + '-' + platform]) {
+                    node('windows-hispeed') {
+                        timeout(30) {
+                            dir('_test_env/Unreal-' + version + '-' + platform) {
+                                caching.pullCacheDirectory(gcloud, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/', 'dir')
+
+                                bat('pwsh tests/UnityTest-' + version + '/Build-UE4Test.ps1 -Version ' + version + ' -Target ' + platform)
+
+                                caching.pushCacheDirectory(gcloud, mainBuildHash, 'CompiledTest-Unreal-' + version + '-' + platform, 'tests/UnrealBuilds-' + version + '/' + platform + '/')
                             }
                         }
                     }
