@@ -295,12 +295,23 @@ if (preloaded["SDKs"]) {
     }
 } else {
     node('windows-hispeed') {
-        stage("Generate") {
+        stage("Checkout") {
             checkout(poll: false, changelog: false, scm: scm)
             bat 'git clean -xdf'
             bat 'git submodule update --init --recursive'
             bat 'git submodule foreach --recursive git clean -xdf'
             bat 'yarn'
+        }
+        stage("Generate CC Embed for UE4") {
+            // This is required because the UE4 SDK generator embeds the Client Connect
+            // source code directly inside itself, and it therefore needs embed.cpp to
+            // be available to copy. However, because Client Connect might not have been
+            // built on this machine (or even built during this run at all), we need to
+            // manually call the embed.ps1 script to generate it.
+            bat 'pwsh client_connect/patch.ps1'
+            bat 'pwsh client_connect/cchost/embed.ps1'
+        }
+        stage("Generate") {
             caching.pullCacheDirectoryMultiple(gcloud, clientConnectHash, [
                 [
                     id: 'ClientConnect-Win32', 

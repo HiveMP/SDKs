@@ -123,68 +123,38 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
       }
     }
     
-    await new Promise<void>((resolve, reject) => {
-      fs.copy("sdks/UnrealEngine-Common/", opts.outputDir, { overwrite: true }, (err) => {
-        if (err) {
-          reject(err);
-        }
-        resolve();
+    const copy = async (source: string, target: string) => {
+      await new Promise<void>((resolve, reject) => {
+        fs.copy(source, target, { overwrite: true }, (err) => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        });
       });
-    });
+    };
 
-    await new Promise<void>((resolve, reject) => {
-      fs.copy("sdks/" + this.name + "/", opts.outputDir, { overwrite: true }, (err) => {
-        if (err) {
-          reject(err);
-        }
-        resolve();
+    const unlink = async (target: string) => {
+      await new Promise<void>((resolve, reject) => {
+        fs.unlink(target, (err) => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        });
       });
-    });
+    };
 
-    await new Promise<void>((resolve, reject) => {
-      fs.copy("client_connect/cchost/", opts.outputDir + "/Source/HiveMPSDK/Private/cchost", { overwrite: true }, (err) => {
-        if (err) {
-          reject(err);
-        }
-        resolve();
-      });
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      fs.copy("client_connect/mujs/", opts.outputDir + "/Source/HiveMPSDK/Private/mujs", { overwrite: true }, (err) => {
-        if (err) {
-          reject(err);
-        }
-        resolve();
-      });
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      fs.unlink(opts.outputDir + "/Source/HiveMPSDK/Private/mujs/one.c", (err) => {
-        if (err) {
-          reject(err);
-        }
-        resolve();
-      });
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      fs.unlink(opts.outputDir + "/Source/HiveMPSDK/Private/mujs/main.c", (err) => {
-        if (err) {
-          reject(err);
-        }
-        resolve();
-      });
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      fs.copy("client_connect/polyfill/", opts.outputDir + "/Source/HiveMPSDK/Private/polyfill", { overwrite: true }, (err) => {
-        if (err) {
-          reject(err);
-        }
-        resolve();
-      });
-    });
+    await copy("sdks/UnrealEngine-Common/", opts.outputDir);
+    await copy("sdks/" + this.name + "/", opts.outputDir);
+    await copy("client_connect/cchost/", opts.outputDir + "/Source/HiveMPSDK/Private/cchost");
+    await copy("client_connect/mujs/", opts.outputDir + "/Source/HiveMPSDK/Private/mujs");
+    await unlink(opts.outputDir + "/Source/HiveMPSDK/Private/mujs/one.c");
+    await unlink(opts.outputDir + "/Source/HiveMPSDK/Private/mujs/main.c");
+    await unlink(opts.outputDir + "/Source/HiveMPSDK/Private/cchost/connect.h");
+    await unlink(opts.outputDir + "/Source/HiveMPSDK/Private/cchost/connect.cpp");
+    await unlink(opts.outputDir + "/Source/HiveMPSDK/Private/cchost/embed.ps1");
+    await copy("client_connect/polyfill/", opts.outputDir + "/Source/HiveMPSDK/Private/polyfill");
   }
 
   private writeFileContent(opts: TargetOptions, filename: string, code: string): Promise<void> {

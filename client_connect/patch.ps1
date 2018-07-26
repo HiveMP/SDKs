@@ -29,3 +29,18 @@ if ($content.Contains("__FILE__") -or $Force)
         Pop-Location
     }
 }
+
+Write-Output "Hotpatching mujs..."
+$content = Get-Content -Raw -Path $PSScriptRoot\mujs\mujsg.h
+if (!$content.Contains("PATCHED FOR CLIENT CONNECT") -or $Force)
+{
+    Push-Location $PSScriptRoot/mujs
+    try {
+        git update-index --no-assume-unchanged ./mujs.h
+        git checkout HEAD ./mujs.h
+        git apply ../mujs.patch
+        git update-index --assume-unchanged ./mujs.h
+    } finally {
+        Pop-Location
+    }
+}

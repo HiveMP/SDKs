@@ -62,7 +62,7 @@ public:
     const ueType = resolveType(request.type);
     code += `
   UFUNCTION(BlueprintCallable, Category = "HiveMP")
-  void Send${name}(${ueType.getCPlusPlusInType(request.type)});
+  void Send${name}(${ueType.getCPlusPlusInType(request.type)} Message);
 `;
   }
   code += `
@@ -162,6 +162,36 @@ void U${spec.implementationName}_ProtocolSocket::HandleClosed()
     this->OnServerDisconnected.Broadcast();
 }
 `;
+for (const request of spec.webSocketRequestMessageTypes) {
+  const name = camelCase(normalizeWebSocketProtocolName(request.protocolMessageId));
+  const ueType = resolveType(request.type);
+  code += `
+void U${spec.implementationName}_ProtocolSocket::Send${name}(${ueType.getCPlusPlusInType(request.type)} Message)
+{
+    TSharedPtr<FJsonValue> BodyJson;
+    ${ueType.emitSerializationFragment({
+      spec: request.type,
+      into: 'BodyJson',
+      from: `Message`,
+      nestLevel: 0,
+    })}
+    if (BodyJson.IsValid())
+    {
+        TSharedPtr<FJsonObject> Target = MakeShareable(new FJsonObject());
+        Target->SetStringField(TEXT("type"), TEXT("${request.protocolMessageId}"));
+        Target->SetField(TEXT("value"), BodyJson);
+
+        TSharedPtr<FJsonValue> TargetValue =  MakeShareable(new FJsonValueObject(Target));
+
+        FString BodyString = TEXT("");
+        TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
+        FJsonSerializer::Serialize(TargetValue, TEXT(""), Writer);
+        
+        this->WebSocket->SendText(BodyString);
+    }
+}
+`;
+}
   return code;
 }
 

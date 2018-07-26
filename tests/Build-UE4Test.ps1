@@ -19,7 +19,7 @@ $ProjectNameNoExt = "UnrealTest" + $Version.Replace(".", "");
 $ProjectName = "UnrealTest" + $Version.Replace(".", "") + ".uproject";
 
 function Do-Unreal-Build($Platform) {
-  $OutputDir = "$PSScriptRoot\..\tests\UnrealBuilds-$Version\$Platform";
+  $OutputDir = "$PSScriptRoot\..\UnrealBuilds-$Version\$Platform";
 
   echo "Building project for $Platform...";
   $BuildMode = "-build";

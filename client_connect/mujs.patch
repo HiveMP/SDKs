@@ -1,0 +1,30 @@
+diff --git a/mujs.h b/mujs.h
+index a4b5d0d..8380425 100644
+--- a/mujs.h
++++ b/mujs.h
+@@ -7,6 +7,8 @@
+ extern "C" {
+ #endif
+ 
++/* PATCHED FOR CLIENT CONNECT */
++
+ /* noreturn is a GCC extension */
+ #ifdef __GNUC__
+ #define JS_NORETURN __attribute__((noreturn))
+@@ -22,12 +24,16 @@ extern "C" {
+ #ifdef __printflike
+ #define JS_PRINTFLIKE __printflike
+ #else
++#ifdef __GNUC__
+ #if __GNUC__ > 2 || __GNUC__ == 2 && __GNUC_MINOR__ >= 7
+ #define JS_PRINTFLIKE(fmtarg, firstvararg) \
+ 	__attribute__((__format__ (__printf__, fmtarg, firstvararg)))
+ #else
+ #define JS_PRINTFLIKE(fmtarg, firstvararg)
+ #endif
++#else
++#define JS_PRINTFLIKE(fmtarg, firstvararg)
++#endif
+ #endif
+ 
+ typedef struct js_State js_State;

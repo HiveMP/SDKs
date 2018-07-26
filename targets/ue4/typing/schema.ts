@@ -217,7 +217,7 @@ else
   }
 
   public pushOntoQueryStringArray(arrayVariable: string, spec: IParameterSpec): string | null {
-    return null;
+    return '/* NOT IMPLEMENTED: Pushing schema onto query string */';
   }
 
   public getCustomResponseHandler(spec: ITypeSpec): string {

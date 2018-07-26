@@ -1,14 +1,36 @@
 #include "module.h"
 #include "../../jsutil.h"
+#if !defined(CLIENT_CONNECT_TARGETING_UNREAL) || (defined(WITH_STEAMWORKS) && WITH_STEAMWORKS)
+#define SUPPORTS_STEAM 1
+#else
+#define SUPPORTS_STEAM 0
+#endif
+#if SUPPORTS_STEAM
+#if defined(CLIENT_CONNECT_TARGETING_UNREAL)
+#include "CoreMinimal.h"
+#include "OnlineSubsystem.h"
+#pragma push_macro("ARRAY_COUNT")
+#undef ARRAY_COUNT
+THIRD_PARTY_INCLUDES_START
+#include <steam/steam_api.h>
+THIRD_PARTY_INCLUDES_END
+#pragma pop_macro("ARRAY_COUNT")
+#else
 #include "steam/steam_api.h"
+#endif
+#endif
 #include <string>
 #include <vector>
 #if defined(WIN32)
 #include <Windows.h>
 #endif
+#if CLIENT_CONNECT_TARGETING_UNREAL
+#include "../../ue4log.h"
+#else
 extern "C" {
 #include "log.h"
 }
+#endif
 
 enum HiveMPSteamManagerStatus
 {
@@ -21,19 +43,22 @@ class HiveMPSteamManager
 {
 public:
 	HiveMPSteamManager(const char* resolve, const char* reject);
-	~HiveMPSteamManager();
+	virtual ~HiveMPSteamManager();
 	std::string GetEncodedTicket();
 
 	HiveMPSteamManagerStatus status;
-	HAuthTicket ticket;
-	const char* buffer;
-	uint32 ticketLength;
 	std::string resolveRegistryName;
 	std::string rejectRegistryName;
 	std::string rejectErrorMessage;
 
+#if SUPPORTS_STEAM
+	HAuthTicket ticket;
+	const char* buffer;
+	uint32 ticketLength;
+
 private:
 	STEAM_CALLBACK(HiveMPSteamManager, OnGotAuthTicket, GetAuthSessionTicketResponse_t);
+#endif
 };
 
 bool has_inited_steam = false;
@@ -44,6 +69,7 @@ bool try_init_steam()
 {
 	if (!has_inited_steam)
 	{
+#if SUPPORTS_STEAM
 #if defined(WIN32)
 		__try
 		{
@@ -74,6 +100,11 @@ bool try_init_steam()
 			log_warn("unable to load Steam APIs: the steam_api DLL couldn't be loaded (this game might not support Steam)");
 		}
 #endif
+#else
+		did_init_steam = false;
+		has_inited_steam = true;
+		log_warn("unable to load Steam APIs: this version of Client Connect wasn't built with Steam support");
+#endif
 	}
 
 	return did_init_steam;
@@ -86,10 +117,16 @@ HiveMPSteamManager::HiveMPSteamManager(const char* resolve, const char* reject)
 	this->resolveRegistryName = resolve;
 	this->rejectRegistryName = reject;
 	this->status = HiveMPSteamManagerStatus::NotComplete;
+#if SUPPORTS_STEAM
 	this->buffer = nullptr;
 	this->ticket = -1;
+#endif
 
+#if SUPPORTS_STEAM
 	if (!try_init_steam())
+#else
+	if (true)
+#endif
 	{
 		log_error("auth ticket request: Steam isn't available or loaded, immediately rejecting request");
 		this->rejectErrorMessage = "Steam is not available";
@@ -97,19 +134,24 @@ HiveMPSteamManager::HiveMPSteamManager(const char* resolve, const char* reject)
 		return;
 	}
 
+#if SUPPORTS_STEAM
 	this->buffer = (const char*)malloc(1024);
 	memset((void*)(this->buffer), 0, 1024);
 	this->ticket = SteamUser()->GetAuthSessionTicket((void*)(this->buffer), 1024, &this->ticketLength);
+#endif
 }
 
 HiveMPSteamManager::~HiveMPSteamManager()
 {
+#if SUPPORTS_STEAM
 	if (this->buffer != nullptr)
 	{
 		free((void*)this->buffer);
 	}
+#endif
 }
 
+#if SUPPORTS_STEAM
 void HiveMPSteamManager::OnGotAuthTicket(GetAuthSessionTicketResponse_t* response)
 {
 	if (response->m_hAuthTicket == this->ticket)
@@ -128,9 +170,11 @@ void HiveMPSteamManager::OnGotAuthTicket(GetAuthSessionTicketResponse_t* respons
 		}
 	}
 }
+#endif
 
 std::string HiveMPSteamManager::GetEncodedTicket()
 {
+#if SUPPORTS_STEAM
 	static const char* const lut = "0123456789abcdef";
 	size_t len = this->ticketLength;
 
@@ -143,6 +187,9 @@ std::string HiveMPSteamManager::GetEncodedTicket()
 		output.push_back(lut[c & 15]);
 	}
 	return output;
+#else
+	return "";
+#endif
 }
 
 void js_steam_is_available(js_State* J)
@@ -235,8 +282,10 @@ void js_tick_steam(js_State* J)
 			++it;
 		}
 
+#if SUPPORTS_STEAM
 		// Run Steam API callbacks.
 		SteamAPI_RunCallbacks();
+#endif
 	}
 }
 

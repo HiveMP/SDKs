@@ -1,8 +1,12 @@
 #include "module.h"
 #include <cstdio>
+#if CLIENT_CONNECT_TARGETING_UNREAL
+#include "../../ue4log.h"
+#else
 extern "C" {
-	#include "log.h"
+#include "log.h"
 }
+#endif
 
 void js_console_log(js_State* J)
 {

@@ -73,7 +73,7 @@ export class MapType implements IUnrealEngineType {
   }
 
   public pushOntoQueryStringArray(arrayVariable: string, spec: IParameterSpec): string | null {
-    return null;
+    return '/* NOT IMPLEMENTED: Pushing map onto query string */';
   }
 
   public getCustomResponseHandler(spec: ITypeSpec): string {

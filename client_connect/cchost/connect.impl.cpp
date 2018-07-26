@@ -7,9 +7,13 @@ extern "C" {
 #endif
 }
 #include "jsutil.h"
+#if CLIENT_CONNECT_TARGETING_UNREAL
+#include "ue4log.h"
+#else
 extern "C" {
 #include "log.h"
 }
+#endif
 #include "embed.h"
 #include <stdlib.h>
 #include <string.h>

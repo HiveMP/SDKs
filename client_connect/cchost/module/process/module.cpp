@@ -27,7 +27,7 @@ int js_put_env(js_State* J, void* p, const char* name)
 {
 	const char* env_p = js_tostring(J, -1);
 #if defined(_WIN32)
-	SetEnvironmentVariable(name, env_p);
+	SetEnvironmentVariableA(name, env_p);
 #else
 	setenv(name, env_p, true);
 #endif
@@ -38,7 +38,7 @@ int js_put_env(js_State* J, void* p, const char* name)
 int js_delete_env(js_State* J, void* p, const char* name)
 {
 #if defined(_WIN32)
-	SetEnvironmentVariable(name, nullptr);
+	SetEnvironmentVariableA(name, nullptr);
 #else
 	unsetenv(name);
 #endif

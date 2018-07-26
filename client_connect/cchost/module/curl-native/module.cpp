@@ -22,9 +22,13 @@
 #include <thread>
 #include <vector>
 #include "../../jsutil.h"
+#if CLIENT_CONNECT_TARGETING_UNREAL
+#include "../../ue4log.h"
+#else
 extern "C" {
-    #include "log.h"
+#include "log.h"
 }
+#endif
 
 enum curl_handle_state {
     CHS_PENDING,
