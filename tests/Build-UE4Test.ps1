@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-param([string] $Version = "4.16", [switch] $Target = "")
+param([string] $Version = "4.16", [string] $Target = "")
 
 $global:ErrorActionPreference = "Stop"
 

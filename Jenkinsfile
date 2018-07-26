@@ -76,32 +76,34 @@ if (env.CHANGE_TARGET != null) {
 }
 stage("Setup") {
     node('linux') {
-        gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
-        sh ('echo ' + gitCommit)
-        sh 'git clean -xdf'
-        sh 'git submodule update --init --recursive'
-        sh 'git submodule foreach --recursive git clean -xdf'
-        sdkVersion = readFile 'SdkVersion.txt'
-        sdkVersion = sdkVersion.trim()
-        clientConnectHash = hashing.hashEntries(
-            clientConnectBuildConfigVersion,
-            [
-                'client_connect/'
-            ]
-        );
-        mainBuildHash = hashing.hashEntries(
-            mainBuildConfigVersion,
-            [
-                'targets/',
-                'sdks/',
-                'index.ts',
-                'SdkVersion.txt'
-            ]
-        );
-        ualBuildHash = hashing.hashEntries(
-            clientConnectBuildConfigVersion,
-            [ ]
-        );
+        timeout(15) {
+            gitCommit = checkout(poll: false, changelog: false, scm: scm).GIT_COMMIT
+            sh ('echo ' + gitCommit)
+            sh 'git clean -xdf'
+            sh 'git submodule update --init --recursive'
+            sh 'git submodule foreach --recursive git clean -xdf'
+            sdkVersion = readFile 'SdkVersion.txt'
+            sdkVersion = sdkVersion.trim()
+            clientConnectHash = hashing.hashEntries(
+                clientConnectBuildConfigVersion,
+                [
+                    'client_connect/'
+                ]
+            );
+            mainBuildHash = hashing.hashEntries(
+                mainBuildConfigVersion,
+                [
+                    'targets/',
+                    'sdks/',
+                    'index.ts',
+                    'SdkVersion.txt'
+                ]
+            );
+            ualBuildHash = hashing.hashEntries(
+                clientConnectBuildConfigVersion,
+                [ ]
+            );
+        }
     }
 }
 stage("Detect Caches") {
@@ -236,12 +238,14 @@ stage("Build Client Connect") {
 stage("Build UAL") {
     if (!preloaded["UAL"]) {
         node('windows-hispeed') {
-            dir('ual_build') {
-                git changelog: false, poll: false, url: 'https://github.com/RedpointGames/UnityAutomaticLicensor'
-                bat 'dotnet publish -c Release -r win10-x64'
-                powershell 'Move-Item -Force UnityAutomaticLicensor\\bin\\Release\\netcoreapp2.1\\win10-x64\\publish ..\\ual'
+            timeout(30) {
+                dir('ual_build') {
+                    git changelog: false, poll: false, url: 'https://github.com/RedpointGames/UnityAutomaticLicensor'
+                    bat 'dotnet publish -c Release -r win10-x64'
+                    powershell 'Move-Item -Force UnityAutomaticLicensor\\bin\\Release\\netcoreapp2.1\\win10-x64\\publish ..\\ual'
+                }
+                caching.pushCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual')
             }
-            caching.pushCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual')
         }
     } else {
         echo ('No need to build UAL, it\'s already cached')
@@ -296,11 +300,13 @@ if (preloaded["SDKs"]) {
 } else {
     node('windows-hispeed') {
         stage("Checkout") {
-            checkout(poll: false, changelog: false, scm: scm)
-            bat 'git clean -xdf'
-            bat 'git submodule update --init --recursive'
-            bat 'git submodule foreach --recursive git clean -xdf'
-            bat 'yarn'
+            timeout(60) {
+                checkout(poll: false, changelog: false, scm: scm)
+                bat 'git clean -xdf'
+                bat 'git submodule update --init --recursive'
+                bat 'git submodule foreach --recursive git clean -xdf'
+                bat 'yarn'
+            }
         }
         stage("Generate CC Embed for UE4") {
             // This is required because the UE4 SDK generator embeds the Client Connect
@@ -308,8 +314,10 @@ if (preloaded["SDKs"]) {
             // be available to copy. However, because Client Connect might not have been
             // built on this machine (or even built during this run at all), we need to
             // manually call the embed.ps1 script to generate it.
-            bat 'pwsh client_connect/patch.ps1'
-            bat 'pwsh client_connect/cchost/embed.ps1'
+            timeout(10) {
+                bat 'pwsh client_connect/patch.ps1'
+                bat 'pwsh client_connect/cchost/embed.ps1'
+            }
         }
         stage("Generate") {
             caching.pullCacheDirectoryMultiple(gcloud, clientConnectHash, [
@@ -370,8 +378,10 @@ if (preloaded["SDKs"]) {
         }
         stage("Licensing") {
             withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
-                caching.pullCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual', 'dir')
-                bat 'pwsh util/License-Unity.ps1'
+                timeout(30) {
+                    caching.pullCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual', 'dir')
+                    bat 'pwsh util/License-Unity.ps1'
+                }
             }
         }
         stage("Package") {
@@ -400,14 +410,18 @@ if (preloaded["SDKs"]) {
             parallel (parallelMap)
         }
         stage("Stash Assets") {
-            caching.pushCacheDirectory(gcloud, mainBuildHash, 'Assets', 'assets/')
+            timeout(15) {
+                caching.pushCacheDirectory(gcloud, mainBuildHash, 'Assets', 'assets/')
+            }
         }
         stage("Generate Tests") {
             def parallelMap = [:]
             parallelMap["Stash-Test-Scripts"] =
             {
-                caching.pushCacheDirectory(gcloud, mainBuildHash, 'RunUnityTest', 'tests/Run-UnityTest.ps1')
-                caching.pushCacheDirectory(gcloud, mainBuildHash, 'RunUE4Test', 'tests/Run-UE4Test.ps1')
+                timeout(5) {
+                    caching.pushCacheDirectory(gcloud, mainBuildHash, 'RunUnityTest', 'tests/Run-UnityTest.ps1')
+                    caching.pushCacheDirectory(gcloud, mainBuildHash, 'RunUE4Test', 'tests/Run-UE4Test.ps1')
+                }
             };
             supportedUnityVersions.keySet().each { v ->
                 def version = v
@@ -542,25 +556,36 @@ stage("Run Tests") {
             }
         }
     }
-    /*
     supportedUnrealVersions.each { version, platforms ->
         platforms.each { platform ->
             if (platform.startsWith("Mac")) {
-                // TODO: We don't run macOS tests yet
+                // TODO: We don't run macOS tests yet (beyond making sure code compiles for macOS in the previous step)
             } else if (platform.startsWith("Linux")) {
-                // TODO: We don't run Linux tests yet
+                // TODO: We don't run Linux tests yet (beyond making sure code compiles for Linux in the previous step)
             } else if (platform.startsWith("Win")) {
-                node('windows') {
-                    timeout(30) {
-                        unstash 'unreal-' + version + '-test-' + platform
-                        unstash 'run-ue4-test'
-                        bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform ' + platform
+                parallelMap["Unreal-" + version + "-" + platform] =
+                {
+                    node('windows') {
+                        timeout(30) {
+                            caching.pullCacheDirectoryMultiple(gcloud, mainBuildHash, [
+                                [
+                                    id: 'CompiledTest-Unreal-' + version + '-' + platform, 
+                                    dir: 'tests/UnrealBuilds-' + version + '/' + platform + '/', 
+                                    targetType: 'dir',
+                                ],
+                                [
+                                    id: 'RunUE4Test', 
+                                    dir: 'tests/Run-UE4Test.ps1', 
+                                    targetType: 'file',
+                                ],
+                            ]);
+                            bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform ' + platform
+                        }
                     }
                 }
             }
         }
     }
-    */
     parallel (parallelMap)
 }
 /*
