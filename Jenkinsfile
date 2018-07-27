@@ -430,7 +430,7 @@ if (preloaded["SDKs"]) {
                     timeout(60) {
                         bat 'pwsh tests/Generate-UnityTests.ps1 -Version ' + version + ' -SdkVersion ' + sdkVersion
                     }
-                    timeout(10) {
+                    timeout(25) {
                         caching.pushCacheDirectory(gcloud, mainBuildHash, 'Unity' + version + 'TestUncompiled', 'tests/UnityTest-' + version + '/')
                     }
                 };
@@ -441,7 +441,7 @@ if (preloaded["SDKs"]) {
                     timeout(60) {
                         bat 'pwsh tests/Generate-UE4Tests.ps1 -Version ' + version + ' -SdkVersion ' + sdkVersion
                     }
-                    timeout(10) {
+                    timeout(25) {
                         caching.pushCacheDirectory(gcloud, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/')
                     }
                 };
