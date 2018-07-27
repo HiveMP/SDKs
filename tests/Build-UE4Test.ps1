@@ -22,9 +22,8 @@ function Do-Unreal-Build($Platform) {
   $OutputDir = "$PSScriptRoot\..\UnrealBuilds-$Version\$Platform";
 
   echo "Building project for $Platform...";
-  $BuildMode = "-build";
   cd $TestPath;
-  & $RunUAT BuildCookRun -project="$TestPath\$ProjectName" -noP4 -platform="$Platform" -editorconfig=Development -clientconfig=Development -serverconfig=Development -cook -maps=AllMaps $BuildMode -stage -pak -archive -archivedirectory="$OutputDir" -unattended
+  & $RunUAT BuildCookRun -nocompileeditor -installed -nop4 -project="$TestPath\$ProjectName" -cook -stage -archive -archivedirectory="$OutputDir" -package -clientconfig=Development -pak -prereqs -nodebuginfo -targetplatform=$Platform -build -unattended
   if ($LASTEXITCODE -eq 0) {
     return;
   } else {
@@ -35,7 +34,7 @@ function Do-Unreal-Build($Platform) {
 cd $PSScriptRoot\..
 
 cd $TestPath
-& $UnrealBuildTool $ProjectNameNoExt Development Win64 -project="$TestPath\$ProjectName" -editorrecompile -NoHotReloadFromIDE
+& $UnrealBuildTool Development Win64 -project="$TestPath\$ProjectName" -TargetType=Editor -Progress -NoHotReloadFromIDE
 if ($LASTEXITCODE -ne 0) {
   throw "Unreal Engine failed to build!"
 }
