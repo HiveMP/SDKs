@@ -31,7 +31,7 @@ if ($content.Contains("__FILE__") -or $Force)
 }
 
 Write-Output "Hotpatching mujs..."
-$content = Get-Content -Raw -Path $PSScriptRoot\mujs\mujsg.h
+$content = Get-Content -Raw -Path $PSScriptRoot\mujs\mujs.h
 if (!$content.Contains("PATCHED FOR CLIENT CONNECT") -or $Force)
 {
     Push-Location $PSScriptRoot/mujs

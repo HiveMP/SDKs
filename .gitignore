@@ -59,3 +59,5 @@ build/
 /tests/UnityTest-*/Win64/HiveMPTest_Data/
 
 /tests/UnrealTest-*/Build-UE4Test.ps1
+
+/client_connect/ccsrc/cache_*/
