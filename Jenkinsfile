@@ -474,6 +474,7 @@ if (preloaded["SDKs"]) {
 }
 stage("Build Tests") {
     def parallelMap = [:]
+    /*
     supportedUnityVersions.each { version, platforms -> 
         platforms.each { platform ->
             parallelMap["Unity-" + version + "-" + platform] =
@@ -500,6 +501,7 @@ stage("Build Tests") {
             }
         }         
     }
+    */
     supportedUnrealVersions.each { version, platforms -> 
         platforms.each { platform ->
             parallelMap["Unreal-" + version + "-" + platform] =
@@ -526,6 +528,7 @@ stage("Build Tests") {
 }
 stage("Run Tests") {
     def parallelMap = [:]
+    /*
     supportedUnityVersions.each { version, platforms ->
         platforms.each { platform ->
             if (platform.startsWith("Mac")) {
@@ -578,6 +581,7 @@ stage("Run Tests") {
             }
         }
     }
+    */
     supportedUnrealVersions.each { version, platforms ->
         platforms.each { platform ->
             if (platform.startsWith("Mac")) {
