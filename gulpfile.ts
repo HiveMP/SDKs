@@ -174,10 +174,33 @@ gulp.task('generate-unity', async () => {
   ]);
 });
 
+let isRunningCCEmbed = false;
+gulp.task('generate-cc-embed', async () => {
+  if (!fs.existsSync('client_connect\\cchost\\embed.cpp')) {
+    if (isRunningCCEmbed) {
+      while (!fs.existsSync('client_connect\\cchost\\embed.cpp') && isRunningCCEmbed) {
+        await new Promise((resolve, reject) => {
+          setTimeout(resolve, 1000);
+        });
+      }
+      if (!fs.existsSync('client_connect\\cchost\\embed.cpp')) {
+        throw new Error('client_connect\\cchost\\embed.cpp still didn\'t appear after parallel generation');
+      }
+    } else {
+      isRunningCCEmbed = true;
+      try {
+        await execAsync('pwsh', [ 'client_connect\\cchost\\embed.ps1' ]);
+      } finally {
+        isRunningCCEmbed = false;
+      }
+    }
+  }
+});
+
 const generateUe4Tasks: string[] = [];
 for (const version of Object.keys(supportedUnrealVersions)) {
   generateUe4Tasks.push('generate-ue' + version);
-  gulp.task('generate-ue' + version, async () => {
+  gulp.task('generate-ue' + version + '-internal', async () => {
     await execAsync(yarnPath, [
       'run',
       'generator',
@@ -189,6 +212,7 @@ for (const version of Object.keys(supportedUnrealVersions)) {
       'dist/UnrealEngine-' + version
     ]);
   });
+  gulp.task('generate-ue' + version, gulp.series('generate-cc-embed', 'generate-ue' + version + '-internal'));
 }
 
 gulp.task('generate', gulp.parallel([
