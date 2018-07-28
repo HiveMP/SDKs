@@ -154,7 +154,7 @@ stage("Build Client Connect") {
                     bat 'yarn'
                     bat 'pwsh client_connect\\Build-Init.ps1 Win32'
                     bat 'pwsh client_connect\\Build-Arch.ps1 Win32'
-                    caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win32', 'client_connect/sdk/Win32')
+                    caching.pushCacheDirectory(gcloud, hashing, clientConnectHash, 'ClientConnect-Win32', 'client_connect/sdk/Win32')
                 }
             }
         } else {
@@ -172,7 +172,7 @@ stage("Build Client Connect") {
                     bat 'yarn'
                     bat 'pwsh client_connect\\Build-Init.ps1 Win64'
                     bat 'pwsh client_connect\\Build-Arch.ps1 Win64'
-                    caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Win64', 'client_connect/sdk/Win64')
+                    caching.pushCacheDirectory(gcloud, hashing, clientConnectHash, 'ClientConnect-Win64', 'client_connect/sdk/Win64')
                 }
             }
         } else {
@@ -190,7 +190,7 @@ stage("Build Client Connect") {
                     sh 'yarn'
                     sh 'pwsh client_connect/Build-Init.ps1 Mac64'
                     sh 'pwsh client_connect/Build-Arch.ps1 Mac64'
-                    caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Mac64', 'client_connect/sdk/Mac64')
+                    caching.pushCacheDirectory(gcloud, hashing, clientConnectHash, 'ClientConnect-Mac64', 'client_connect/sdk/Mac64')
                 }
             }
         } else {
@@ -208,7 +208,7 @@ stage("Build Client Connect") {
                     sh 'yarn'
                     sh 'pwsh client_connect/Build-Init.ps1 Linux32'
                     sh 'pwsh client_connect/Build-Arch.ps1 Linux32'
-                    caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux32', 'client_connect/sdk/Linux32')
+                    caching.pushCacheDirectory(gcloud, hashing, clientConnectHash, 'ClientConnect-Linux32', 'client_connect/sdk/Linux32')
                 }
             }
         } else {
@@ -226,7 +226,7 @@ stage("Build Client Connect") {
                     sh 'yarn'
                     sh 'pwsh client_connect/Build-Init.ps1 Linux64'
                     sh 'pwsh client_connect/Build-Arch.ps1 Linux64'
-                    caching.pushCacheDirectory(gcloud, clientConnectHash, 'ClientConnect-Linux64', 'client_connect/sdk/Linux64')
+                    caching.pushCacheDirectory(gcloud, hashing, clientConnectHash, 'ClientConnect-Linux64', 'client_connect/sdk/Linux64')
                 }
             }
         } else {
@@ -244,7 +244,7 @@ stage("Build UAL") {
                     bat 'dotnet publish -c Release -r win10-x64'
                     powershell 'Move-Item -Force UnityAutomaticLicensor\\bin\\Release\\netcoreapp2.1\\win10-x64\\publish ..\\ual'
                 }
-                caching.pushCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual')
+                caching.pushCacheDirectory(gcloud, hashing, ualBuildHash, 'UAL', 'ual')
             }
         }
     } else {
@@ -320,7 +320,7 @@ if (preloaded["SDKs"]) {
             }
         }
         stage("Generate") {
-            caching.pullCacheDirectoryMultiple(gcloud, clientConnectHash, [
+            caching.pullCacheDirectoryMultiple(gcloud, hashing, clientConnectHash, [
                 [
                     id: 'ClientConnect-Win32', 
                     dir: 'client_connect/sdk/Win32', 
@@ -379,7 +379,7 @@ if (preloaded["SDKs"]) {
         stage("Licensing") {
             withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
                 timeout(30) {
-                    caching.pullCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual', 'dir')
+                    caching.pullCacheDirectory(gcloud, hashing, ualBuildHash, 'UAL', 'ual', 'dir')
                     bat 'pwsh util/License-Unity.ps1'
                 }
             }
@@ -411,7 +411,7 @@ if (preloaded["SDKs"]) {
         }
         stage("Stash Assets") {
             timeout(15) {
-                caching.pushCacheDirectory(gcloud, mainBuildHash, 'Assets', 'assets/')
+                caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'Assets', 'assets/')
             }
         }
         stage("Generate Tests") {
@@ -419,8 +419,8 @@ if (preloaded["SDKs"]) {
             parallelMap["Stash-Test-Scripts"] =
             {
                 timeout(5) {
-                    caching.pushCacheDirectory(gcloud, mainBuildHash, 'RunUnityTest', 'tests/Run-UnityTest.ps1')
-                    caching.pushCacheDirectory(gcloud, mainBuildHash, 'RunUE4Test', 'tests/Run-UE4Test.ps1')
+                    caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'RunUnityTest', 'tests/Run-UnityTest.ps1')
+                    caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'RunUE4Test', 'tests/Run-UE4Test.ps1')
                 }
             };
             supportedUnityVersions.keySet().each { v ->
@@ -431,7 +431,7 @@ if (preloaded["SDKs"]) {
                         bat 'pwsh tests/Generate-UnityTests.ps1 -Version ' + version + ' -SdkVersion ' + sdkVersion
                     }
                     timeout(25) {
-                        caching.pushCacheDirectory(gcloud, mainBuildHash, 'Unity' + version + 'TestUncompiled', 'tests/UnityTest-' + version + '/')
+                        caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'Unity' + version + 'TestUncompiled', 'tests/UnityTest-' + version + '/')
                     }
                 };
             }
@@ -442,7 +442,7 @@ if (preloaded["SDKs"]) {
                         bat 'pwsh tests/Generate-UE4Tests.ps1 -Version ' + version + ' -SdkVersion ' + sdkVersion
                     }
                     timeout(25) {
-                        caching.pushCacheDirectory(gcloud, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/')
+                        caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/')
                     }
                 };
             }
@@ -460,15 +460,15 @@ stage("Build Tests") {
                     node('windows-hispeed') {
                         timeout(30) {
                             dir('_test_env/Unity-' + version + '-' + platform) {
-                                caching.pullCacheDirectory(gcloud, ualBuildHash, 'UAL', 'ual', 'dir')
-                                caching.pullCacheDirectory(gcloud, mainBuildHash, 'Unity' + version + 'TestUncompiled', 'tests/UnityTest-' + version + '/', 'dir')
+                                caching.pullCacheDirectory(gcloud, hashing, ualBuildHash, 'UAL', 'ual', 'dir')
+                                caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'Unity' + version + 'TestUncompiled', 'tests/UnityTest-' + version + '/', 'dir')
 
                                 withCredentials([usernamePassword(credentialsId: 'unity-license-account', passwordVariable: 'UNITY_LICENSE_PASSWORD', usernameVariable: 'UNITY_LICENSE_USERNAME')]) {
                                     bat('pwsh tests/UnityTest-' + version + '/License-Unity.ps1 -OnlyVersion ' + version)
                                     bat('pwsh tests/UnityTest-' + version + '/Build-UnityTest.ps1 -Version ' + version + ' -Target ' + platform)
                                 }
 
-                                caching.pushCacheDirectory(gcloud, mainBuildHash, 'CompiledTest-Unity-' + version + '-' + platform, 'tests/UnityTest-' + version + '/' + platform + '/')
+                                caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'CompiledTest-Unity-' + version + '-' + platform, 'tests/UnityTest-' + version + '/' + platform + '/')
                             }
                         }
                     }
@@ -486,11 +486,11 @@ stage("Build Tests") {
                     node('windows-hispeed') {
                         timeout(30) {
                             dir('_test_env/Unreal-' + version + '-' + platform) {
-                                caching.pullCacheDirectory(gcloud, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/', 'dir')
+                                caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/', 'dir')
 
                                 bat('pwsh tests/UnityTest-' + version + '/Build-UE4Test.ps1 -Version ' + version + ' -Target ' + platform)
 
-                                caching.pushCacheDirectory(gcloud, mainBuildHash, 'CompiledTest-Unreal-' + version + '-' + platform, 'tests/UnrealBuilds-' + version + '/' + platform + '/')
+                                caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'CompiledTest-Unreal-' + version + '-' + platform, 'tests/UnrealBuilds-' + version + '/' + platform + '/')
                             }
                         }
                     }
@@ -511,7 +511,7 @@ stage("Run Tests") {
                 {
                     node('mac') {
                         timeout(30) {
-                            caching.pullCacheDirectoryMultiple(gcloud, mainBuildHash, [
+                            caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
                                 [
                                     id: 'CompiledTest-Unity-' + version + '-' + platform, 
                                     dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
@@ -537,7 +537,7 @@ stage("Run Tests") {
                 {
                     node('windows') {
                         timeout(30) {
-                            caching.pullCacheDirectoryMultiple(gcloud, mainBuildHash, [
+                            caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
                                 [
                                     id: 'CompiledTest-Unity-' + version + '-' + platform, 
                                     dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
@@ -567,7 +567,7 @@ stage("Run Tests") {
                 {
                     node('windows') {
                         timeout(30) {
-                            caching.pullCacheDirectoryMultiple(gcloud, mainBuildHash, [
+                            caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
                                 [
                                     id: 'CompiledTest-Unreal-' + version + '-' + platform, 
                                     dir: 'tests/UnrealBuilds-' + version + '/' + platform + '/', 

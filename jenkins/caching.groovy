@@ -28,8 +28,8 @@ def checkMultiplePreloaded(gcloud, preloaded, hash, pid, ids, title) {
   }
 }
 
-def pullCacheDirectory(gcloud, hash, id, dir, targetType) {
-  pullCacheDirectoryMultiple(gcloud, hash, [
+def pullCacheDirectory(gcloud, hashing, hash, id, dir, targetType) {
+  pullCacheDirectoryMultiple(gcloud, hashing, hash, [
     [
       id: id,
       dir: dir,
@@ -68,7 +68,7 @@ pwsh -Command "Expand-Archive -Path _cache_store_''' + dirHash + '.zip  -Destina
   }
 }
 
-def pullCacheDirectoryMultiple(gcloud, hash, entries) {
+def pullCacheDirectoryMultiple(gcloud, hashing, hash, entries) {
   def unix = isUnix();
 
   if (env.NODE_NAME.startsWith("windows-")) {
