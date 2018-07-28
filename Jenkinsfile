@@ -319,7 +319,7 @@ if (preloaded["SDKs"]) {
                 bat 'pwsh client_connect/cchost/embed.ps1'
             }
         }
-        stage("Generate") {
+        stage("Download Client Connect") {
             caching.pullCacheDirectoryMultiple(gcloud, hashing, clientConnectHash, [
                 [
                     id: 'ClientConnect-Win32', 
@@ -347,6 +347,8 @@ if (preloaded["SDKs"]) {
                     targetType: 'dir',
                 ],
             ]);
+        }
+        stage("Generate") {
             def parallelMap = [:]
             parallelMap["CSharp-4.5"] = {
                 timeout(15) {
