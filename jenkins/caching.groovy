@@ -98,7 +98,7 @@ def pullCacheDirectoryMultiple(gcloud, hashing, hash, entries) {
       // Try to unstash first in case Jenkins has already cached this.
       def wasUnstashSuccessful = false
       try {
-        unstash name: ('cache-' + hash + '-' + entry.id)
+        unstash name: ('cache-zipped-' + hash + '-' + entry.id)
         wasUnstashSuccessful = true
       } catch (e) {
         wasUnstashSuccessful = false
