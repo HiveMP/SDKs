@@ -317,10 +317,10 @@ for (const version of Object.keys(supportedUnityVersions)) {
 for (const version of Object.keys(supportedUnrealVersions)) {
   const platformRunTestsTasks: string[] = [];
   for (const platform of supportedUnrealVersions[version]) {
-    const testPath = 'tests/UnrealBuilds-' + version + '/Win64/WindowsNoEditor/UnrealTest' + version.replace(/\./g, '') + '.exe';
-    if (fs.existsSync(testPath)) {
-      platformRunTestsTasks.push('run-test-unreal-' + version + '-' + platform);
-      gulp.task('run-test-unreal-' + version + '-' + platform, async () => {
+    platformRunTestsTasks.push('run-test-unreal-' + version + '-' + platform);
+    gulp.task('run-test-unreal-' + version + '-' + platform, async () => {
+      const testPath = 'tests/UnrealBuilds-' + version + '/Win64/WindowsNoEditor/UnrealTest' + version.replace(/\./g, '') + '.exe';
+      if (fs.existsSync(testPath)) {
         await execAsync('pwsh', [
           './Run-UE4Test.ps1',
           '-Version',
@@ -328,8 +328,8 @@ for (const version of Object.keys(supportedUnrealVersions)) {
           '-Platform',
           platform
         ], 'tests');
-      });
-    }
+      }
+    });
   }
   if (platformRunTestsTasks.length > 0) {
     runTestsTasks.push('run-test-unreal-' + version);
