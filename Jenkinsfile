@@ -128,6 +128,9 @@ stage("Detect Caches") {
             supportedUnityVersions.keySet().each { version ->
                 components.add('Unity' + version + 'TestUncompiled');
             };
+            supportedUnrealVersions.keySet().each { version ->
+                components.add('UE' + version + 'TestUncompiled');
+            };
             caching.checkMultiplePreloaded(gcloud, preloaded, mainBuildHash, 'SDKs', components, 'SDKs')
         }
         supportedUnityVersions.each { version, platforms -> 
@@ -135,6 +138,14 @@ stage("Detect Caches") {
                 parallelMap["Unity-" + version + "-" + platform] =
                 {
                     caching.checkPreloaded(gcloud, preloaded, mainBuildHash, 'CompiledTest-Unity-' + version + '-' + platform, 'compiled Unity ' + version + ' test for ' + platform)
+                }
+            }
+        }
+        supportedUnrealVersions.each { version, platforms -> 
+            platforms.each { platform ->
+                parallelMap["UnrealEngine-" + version + "-" + platform] =
+                {
+                    caching.checkPreloaded(gcloud, preloaded, mainBuildHash, 'CompiledTest-Unreal-' + version + '-' + platform, 'compiled Unreal Engine ' + version + ' test for ' + platform)
                 }
             }
         }
