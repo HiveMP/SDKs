@@ -1,5 +1,3 @@
-import java.security.*
-
 def hashEntries(version, entries) {
   def id = UUID.randomUUID().toString()
   try {
@@ -14,11 +12,15 @@ def hashEntries(version, entries) {
 }
 
 def sha1String(str) {
-  MessageDigest digest = MessageDigest.getInstance("SHA-1")
-  digest.update(str.getBytes("ASCII"))
-  byte[] passwordDigest = digest.digest() // byte[], not string
-  String hexString = passwordDigest.collect { String.format('%02x', it) }.join()
-  return hexString
+  def id = UUID.randomUUID().toString()
+  writeFile file: 'hash_' + id, text: str
+  def result = sha1('hash_' + id);
+  if (isUnix()) {
+    sh ('rm hash_' + id)
+  } else {
+    bat ('pwsh -Command "rm hash_' + id + '"')
+  }
+  return result
 }
 
 return this
