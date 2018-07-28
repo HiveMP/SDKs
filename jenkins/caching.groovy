@@ -143,7 +143,7 @@ def pushCacheDirectory(gcloud, hashing, hash, id, dir) {
       // Also stash if the node is a local node.
       stash includes: ('_cache_store_' + dirHash + '.zip'), name: ('cache-zipped-' + hash + '-' + id)
     }
-  });
+  };
 }
 
 return this
