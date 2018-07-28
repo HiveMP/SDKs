@@ -1,3 +1,5 @@
+import java.security.*
+
 def hashEntries(version, entries) {
   def id = UUID.randomUUID().toString()
   try {
@@ -9,6 +11,14 @@ def hashEntries(version, entries) {
   } finally {
     sh ('rm ' + id + '_hash')
   }
+}
+
+def sha1String(str) {
+  MessageDigest digest = MessageDigest.getInstance("SHA-1")
+  digest.update(str.getBytes("ASCII"))
+  byte[] passwordDigest = digest.digest() // byte[], not string
+  String hexString = passwordDigest.collect { String.format('%02x', it) }.join()
+  return hexString
 }
 
 return this

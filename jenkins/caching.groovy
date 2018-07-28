@@ -1,5 +1,5 @@
 def hasCache(gcloud, hash, id) {
-  return gcloud.keyExists('cache-' + hash + '-' + id);
+  return gcloud.keyExists('cache-zipped-' + hash + '-' + id);
 }
 
 def checkPreloaded(gcloud, preloaded, hash, id, title) {
@@ -38,7 +38,39 @@ def pullCacheDirectory(gcloud, hash, id, dir, targetType) {
   ])
 }
 
+def pullEntriesInWrappedContext(entry, unix, hash, targetDir, normDir, dirHash) {
+  if (unix) {
+    try {
+      if (entry.targetType == 'file') {
+        recurArg = '';
+        sh ('mkdir -pv "$(dirname "' + targetDir + '")"')
+      } else if (entry.targetType == 'dir') {
+        sh ('mkdir -pv "' + targetDir + '"')
+      }
+    } catch (e) { }
+    sh ('gsutil cp "gs://redpoint-build-cache/zipped-' + hash + '/' + dirHash + '.zip" "_cache_store_' + dirHash + '.zip"')
+    sh ('pwsh -Command "Compress-Archive -Path _cache_store_' + dirHash + '.zip -DestinationPath \'$(dirname "' + targetDir + '")/\'"')
+  } else {
+    try {
+      if (entry.targetType == 'file') {
+        recurArg = '';
+        bat ('set filename="' + targetDir + '''"
+for %%F in (%filename%) do set dirname=%%~dpF
+mkdir "%dirname%"''')
+      } else if (entry.targetType == 'dir') {
+        bat ('mkdir "' + targetDir + '"')
+      }
+    } catch (e) { }
+    bat ('set filename="' + targetDir + '''"
+for %%F in (%filename%) do set dirname=%%~dpF
+gsutil cp "gs://redpoint-build-cache/zipped-''' + hash + '/' + dirHash + '.zip" "_cache_store_' + dirHash + '.zip"
+pwsh -Command "Expand-Archive -Path _cache_store_' + dirHash + '.zip  -DestinationPath $env:dirname"')
+  }
+}
+
 def pullCacheDirectoryMultiple(gcloud, hash, entries) {
+  def unix = isUnix();
+
   if (env.NODE_NAME.startsWith("windows-")) {
     // This is running in Google Cloud, so we just pull the cache
     // directly onto the agent without going via Jenkins.
@@ -46,32 +78,22 @@ def pullCacheDirectoryMultiple(gcloud, hash, entries) {
       entries.each { entry ->
         def normDir = entry.dir.replaceAll('^/+', '').replaceAll('/+$', '');
         def targetDir = normDir;
-        if (!isUnix()) {
+        if (!unix) {
           targetDir = normDir.replaceAll("/","\\\\");
-        } 
-        def recurArg = '-r';
-        try {
-          if (entry.targetType == 'file') {
-            recurArg = '';
-            bat ('set filename="' + targetDir + '''"
-for %%F in (%filename%) do set dirname=%%~dpF
-mkdir "%dirname%"''')
-          } else if (entry.targetType == 'dir') {
-            bat ('mkdir "' + targetDir + '"')
-          }
-        } catch (e) { }
-        bat ('set filename="' + targetDir + '''"
-for %%F in (%filename%) do set dirname=%%~dpF
-gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "%dirname%\\"')
+        }
+        def dirHash = hashing.sha1String(normDir);
+
+        pullEntriesInWrappedContext(entry, unix, hash, targetDir, normDir, dirHash)
       }
     }
   } else {
     entries.each { entry -> 
       def normDir = entry.dir.replaceAll('^/+', '').replaceAll('/+$', '');
       def targetDir = normDir;
-      if (!isUnix()) {
+      if (!unix) {
         targetDir = normDir.replaceAll("/","\\\\");
       } 
+      def dirHash = hashing.sha1String(normDir);
 
       // Try to unstash first in case Jenkins has already cached this.
       def wasUnstashSuccessful = false
@@ -85,38 +107,12 @@ gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + norm
       if (!wasUnstashSuccessful) {
         // Jenkins hasn't got a copy of this yet.
         gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
-          def recurArg = '-r';
-
-          if (isUnix()) {
-            try {
-              if (entry.targetType == 'file') {
-                recurArg = '';
-                sh ('mkdir -pv "$(dirname "' + targetDir + '")"')
-              } else if (entry.targetType == 'dir') {
-                sh ('mkdir -pv "' + targetDir + '"')
-              }
-            } catch (e) { }
-            sh ('gsutil -m cp ' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "$(dirname "' + targetDir + '")/"')
-          } else {
-            try {
-              if (entry.targetType == 'file') {
-                recurArg = '';
-                bat ('set filename="' + targetDir + '''"
-for %%F in (%filename%) do set dirname=%%~dpF
-mkdir "%dirname%"''')
-              } else if (entry.targetType == 'dir') {
-                bat ('mkdir "' + targetDir + '"')
-              }
-            } catch (e) { }
-            bat ('set filename="' + targetDir + '''"
-for %%F in (%filename%) do set dirname=%%~dpF
-gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + normDir + '" "%dirname%\\"')
-          }
+          pullEntriesInWrappedContext(entry, unix, hash, targetDir, normDir, dirHash)
         }
         if (entry.targetType == 'file') {
-          stash includes: normDir, name: ('cache-' + hash + '-' + entry.id)
+          stash includes: normDir, name: ('cache-zipped-' + hash + '-' + entry.id)
         } else {
-          stash includes: (normDir + '/**'), name: ('cache-' + hash + '-' + entry.id)
+          stash includes: (normDir + '/**'), name: ('cache-zipped-' + hash + '-' + entry.id)
         }
 
         // We have just implicitly unstashed on this node, so nothing more to do here.
@@ -125,26 +121,36 @@ gsutil -m cp ''' + recurArg + ' "gs://redpoint-build-cache/' + hash + '/' + norm
   }
 }
 
-def pushCacheDirectory(gcloud, hash, id, dir) {
+def pushCacheDirectory(gcloud, hashing, hash, id, dir) {
   dir = dir.replaceAll('^/+', '').replaceAll('/+$', '');
   def targetDir = dir;
-  if (!isUnix()) {
+  def unix = isUnix();
+  if (!unix) {
     targetDir = dir.replaceAll("/","\\\\");
   }
+  def dirHash = hashing.sha1String(dir);
   if (env.NODE_NAME.startsWith("windows-")) {
     // This is running in Google Cloud, so we just push the cache
     // directly onto the agent without going via Jenkins.
     gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
-      bat ('gsutil -m cp -r "' + targetDir + '" "gs://redpoint-build-cache/' + hash + '/' + dir + '"')
+      bat ('pwsh -Command "Compress-Archive -Path ' + targetDir + ' -DestinationPath _cache_store_' + dirHash + '.zip -CompressionLevel NoCompression"')
+      bat ('gsutil cp "_cache_store_' + dirHash + '.zip" "gs://redpoint-build-cache/zipped-' + hash + '/' + dirHash + '.zip"')
     }
-    gcloud.keySet('cache-' + hash + '-' + id, 'true')
+    gcloud.keySet('cache-zipped-' + hash + '-' + id, 'true')
   } else {
+    // Compress on agent.
+    if (unix) {
+      sh ('pwsh -Command "Compress-Archive -Path \'' + targetDir + '\' -DestinationPath _cache_store_' + dirHash + '.zip -CompressionLevel NoCompression"')
+    } else {
+      bat ('pwsh -Command "Compress-Archive -Path \'' + targetDir + '\' -DestinationPath _cache_store_' + dirHash + '.zip -CompressionLevel NoCompression"')
+    }
+
     // Push from the agent via Jenkins.
-    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + hash), credentialsId: 'redpoint-games-build-cluster', pattern: (dir + '/**')
-    gcloud.keySet('cache-' + hash + '-' + id, 'true')
+    googleStorageUpload bucket: ('gs://redpoint-build-cache/' + hash), credentialsId: 'redpoint-games-build-cluster', pattern: ('_cache_store_' + dirHash + '.zip')
+    gcloud.keySet('cache-zipped-' + hash + '-' + id, 'true')
 
     // Now also stash the result so we can pull it later on Jenkins agents faster
-    stash includes: (dir + '/**'), name: ('cache-' + hash + '-' + id)
+    stash includes: ('_cache_store_' + dirHash + '.zip'), name: ('cache-zipped-' + hash + '-' + id)
   }
 }
 
