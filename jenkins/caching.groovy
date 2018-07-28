@@ -129,29 +129,21 @@ def pushCacheDirectory(gcloud, hashing, hash, id, dir) {
     targetDir = dir.replaceAll("/","\\\\");
   }
   def dirHash = hashing.sha1String(dir);
-  if (env.NODE_NAME.startsWith("windows-")) {
-    // This is running in Google Cloud, so we just push the cache
-    // directly onto the agent without going via Jenkins.
-    gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
-      bat ('pwsh -Command "Compress-Archive -Path ' + targetDir + ' -DestinationPath _cache_store_' + dirHash + '.zip -CompressionLevel NoCompression"')
-      bat ('gsutil cp "_cache_store_' + dirHash + '.zip" "gs://redpoint-build-cache/zipped-' + hash + '/' + dirHash + '.zip"')
-    }
-    gcloud.keySet('cache-zipped-' + hash + '-' + id, 'true')
-  } else {
-    // Compress on agent.
+
+  gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
     if (unix) {
       sh ('pwsh -Command "Compress-Archive -Path \'' + targetDir + '\' -DestinationPath _cache_store_' + dirHash + '.zip -CompressionLevel NoCompression"')
     } else {
       bat ('pwsh -Command "Compress-Archive -Path \'' + targetDir + '\' -DestinationPath _cache_store_' + dirHash + '.zip -CompressionLevel NoCompression"')
     }
-
-    // Push from the agent via Jenkins.
-    googleStorageUpload bucket: ('gs://redpoint-build-cache/zipped-' + hash), credentialsId: 'redpoint-games-build-cluster', pattern: ('_cache_store_' + dirHash + '.zip')
+    bat ('gsutil cp "_cache_store_' + dirHash + '.zip" "gs://redpoint-build-cache/zipped-' + hash + '/' + dirHash + '.zip"')
     gcloud.keySet('cache-zipped-' + hash + '-' + id, 'true')
 
-    // Now also stash the result so we can pull it later on Jenkins agents faster
-    stash includes: ('_cache_store_' + dirHash + '.zip'), name: ('cache-zipped-' + hash + '-' + id)
-  }
+    if (!env.NODE_NAME.startsWith("windows-")) {
+      // Also stash if the node is a local node.
+      stash includes: ('_cache_store_' + dirHash + '.zip'), name: ('cache-zipped-' + hash + '-' + id)
+    }
+  });
 }
 
 return this
