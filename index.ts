@@ -2,11 +2,7 @@
 
 import * as program from 'commander';
 import * as swagger from 'swagger2';
-import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
-import * as request from 'request';
-import * as targz from 'node-tar.gz';
-import * as path from 'path';
 import fetch from 'node-fetch';
 import {
   CSharp35Generator,
@@ -14,7 +10,6 @@ import {
   UnityGenerator,
 } from './targets/csharp';
 import {
-  UnrealEngine417Generator,
   UnrealEngine418Generator,
   UnrealEngine419Generator,
   UnrealEngine420Generator,
@@ -31,7 +26,6 @@ let targets = [
   new CSharp35Generator(),
   new CSharp45Generator(),
   new UnityGenerator(),
-  new UnrealEngine417Generator(),
   new UnrealEngine418Generator(),
   new UnrealEngine419Generator(),
   new UnrealEngine420Generator(),
@@ -103,7 +97,7 @@ program
   
           console.log('generating for target \'' + t + '\'...');
           await new Promise((resolve, reject) => {
-            mkdirp(outputDir, (err, made) => {
+            mkdirp(outputDir, (err) => {
               if (err) {
                 reject(err);
               }
