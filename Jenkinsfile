@@ -253,6 +253,15 @@ stage("Build UAL") {
 }
 if (preloaded["SDKs"]) {
     // Just emit all the stages, we don't have any steps for them because it's all preloaded.
+    stage("Checkout") {
+        echo ("Already built");
+    }
+    stage("Generate CC Embed for UE4") {
+        echo ("Already built");
+    }
+    stage("Download Client Connect") {
+        echo ("Already built");
+    }
     stage("Generate") { 
         def parallelMap = [:]
         parallelMap["CSharp-4.5"] = {
@@ -490,7 +499,7 @@ stage("Build Tests") {
                             dir('_test_env/Unreal-' + version + '-' + platform) {
                                 caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/', 'dir')
 
-                                bat('pwsh tests/UnityTest-' + version + '/Build-UE4Test.ps1 -Version ' + version + ' -Target ' + platform)
+                                bat('pwsh tests/UnrealTest-' + version + '/Build-UE4Test.ps1 -Version ' + version + ' -Target ' + platform)
 
                                 caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'CompiledTest-Unreal-' + version + '-' + platform, 'tests/UnrealBuilds-' + version + '/' + platform + '/')
                             }
