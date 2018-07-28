@@ -63,8 +63,8 @@ mkdir "%dirname%"''')
     } catch (e) { }
     bat ('set filename="' + targetDir + '''"
 for %%F in (%filename%) do set dirname=%%~dpF
-gsutil cp "gs://redpoint-build-cache/zipped-''' + hash + '/' + dirHash + '.zip" "_cache_store_' + dirHash + '.zip"
-pwsh -Command "Expand-Archive -Path _cache_store_' + dirHash + '.zip  -DestinationPath $env:dirname"')
+gsutil cp "gs://redpoint-build-cache/zipped-''' + hash + '/' + dirHash + '.zip" "_cache_store_' + dirHash + '''.zip"
+pwsh -Command "Expand-Archive -Path _cache_store_''' + dirHash + '.zip  -DestinationPath $env:dirname"')
   }
 }
 
