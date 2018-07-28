@@ -26,6 +26,7 @@ extern "C" {
 #include "module/hotpatching/module.h"
 #include "module/process/module.h"
 #include "module/steam/module.h"
+#include "module/ztserver/module.h"
 
 void _ccl_require(js_State *J)
 {
@@ -133,8 +134,20 @@ bool cci_tick()
 		js_tick_timers(_js);
 		js_tick_curl_native(_js);
 		js_tick_steam(_js);
+		js_tick_process(_js);
+		js_tick_ztserver(_js);
 
 		if (js_post_tick_timers(_js))
+		{
+			any_alive = true;
+		}
+
+		if (js_post_tick_process(_js))
+		{
+			any_alive = true;
+		}
+
+		if (js_post_tick_ztserver(_js))
 		{
 			any_alive = true;
 		}

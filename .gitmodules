@@ -7,3 +7,6 @@
 [submodule "client_connect/log_c"]
 	path = client_connect/log_c
 	url = https://github.com/rxi/log.c.git
+[submodule "client_connect/tpl"]
+	path = client_connect/tpl
+	url = https://gitlab.com/eidheim/tiny-process-library

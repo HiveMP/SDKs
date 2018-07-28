@@ -28,6 +28,10 @@ extern "C"
 	DLLIMPORT int32_t cc_get_api_hotpatch_status_code(long id);
 	DLLIMPORT void cc_release_api_hotpatch_result(long id);
 
+	DLLIMPORT void cc_vs_send(long id, void* buffer, long len);
+	DLLIMPORT bool cc_vs_try_receive(long id, void** buffer, long* len);
+	DLLIMPORT bool cc_vs_free_receive_buffer(void* buffer);
+
 #ifdef __cplusplus
 }
 #endif

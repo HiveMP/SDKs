@@ -68,5 +68,20 @@ extern "C"
 	{
 		return js_release_api_hotpatch_result(id);
 	}
+
+	DLLEXPORT void cc_vs_send(long id, void* buffer, long len)
+	{
+		cci_vs_send()
+	}
+
+	DLLEXPORT bool cc_vs_try_receive(long id, void** buffer, long* len)
+	{
+
+	}
+
+	DLLEXPORT void cc_vs_free_receive_buffer(void* buffer)
+	{
+
+	}
 }
 #endif

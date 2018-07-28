@@ -5,6 +5,7 @@ file(GLOB_RECURSE ccsrc_files ${CMAKE_CURRENT_SOURCE_DIR}/../ccsrc/src/*.ts)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../mujs)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../polyfill)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../curl/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../tpl)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/embed.cpp
@@ -29,6 +30,12 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
+if(WIN32)
+  set(TPL_PROCESS_IMPL ${CMAKE_CURRENT_SOURCE_DIR}/../tpl/process_win.cpp)
+else()
+  set(TPL_PROCESS_IMPL ${CMAKE_CURRENT_SOURCE_DIR}/../tpl/process_unix.cpp)
+endif()
+
 add_library(
   cchost SHARED
   ${mujs_files}
@@ -43,8 +50,14 @@ add_library(
   module/hotpatching/module.cpp
   module/process/module.cpp
   module/steam/module.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../log_c/src/log.c)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../log_c/src/log.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../tpl/process.cpp
+  ${TPL_PROCESS_IMPL})
 define_file_basename_for_sources(cchost)
+
+find_package(Threads REQUIRED)
+
+target_link_libraries(cchost ${CMAKE_THREAD_LIBS_INIT})
 
 if(MSVC)
   if(${CMAKE_CXX_COMPILER} MATCHES x64\/cl.exe)

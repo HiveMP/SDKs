@@ -19,4 +19,5 @@ export const apiNames = {
   "temp-session": "Temporary Sessions",
   "ugc-cache": "UGC Cache",
   "user-session": "User Sessions",
+  "virtual-switch": "Virtual Switch",
 };
