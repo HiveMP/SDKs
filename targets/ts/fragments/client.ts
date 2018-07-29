@@ -16,6 +16,11 @@ export function clientPrefix(values: {
      */
     public baseUrlFactory: () => string;
 
+    /**
+     * The invocation wrapper that is called around every API method.
+     */
+    public invocationWrapper: HiveMPInvocationWrapper<any> | null;
+
     public getOriginalApiId: () => string = () => "${values.apiId}";
 
     public getOriginalBasePath: () => string = () => "${values.apiBasePath}";
@@ -29,6 +34,7 @@ export function clientPrefix(values: {
         this.apiKeyFactory = apiKey;
       }
       this.baseUrlFactory = () => "https://${values.apiId}-api.hivemp.com${values.apiBasePath}";
+      this.invocationWrapper = null;
     }
 
 `;

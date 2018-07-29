@@ -1,6 +1,5 @@
 import { IUnrealEngineType, resolveType, IDeserializationInfo } from "../typing";
 import { ITypeSpec, IDefinitionSpec, IParameterSpec } from '../../common/typeSpec';
-import { normalizeTypeName } from "../../common/normalize";
 
 export class ObjectType implements IUnrealEngineType {
   public doesHandleType(spec: ITypeSpec): boolean {

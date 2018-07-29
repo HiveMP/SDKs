@@ -56,9 +56,15 @@ export function emitRequestClassForMethod(spec: IMethodSpec) {
   `;
   for (const parameter of spec.parameters) {
     const csType = resolveType(parameter);
-    code += `
+    if (parameter.required) {
+      code += `
         ${parameter.name}: ${csType.getTypeScriptType(parameter)};
 `;
+    } else {
+      code += `
+        ${parameter.name}?: ${csType.getTypeScriptType(parameter)};
+`;
+    }
   }
   code += `
     }

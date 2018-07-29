@@ -1,7 +1,6 @@
 import { IUnrealEngineType, resolveType, IDeserializationInfo, ISerializationInfo } from "../typing";
 import { ITypeSpec, IDefinitionSpec, IParameterSpec, IPropertySpec } from '../../common/typeSpec';
 import { normalizeTypeName } from "../../common/normalize";
-import { stripDefinition } from "../../common/definition";
 import { escapeForMultilineComment } from "../../cpp/escape";
 import { isErrorStructure } from "../../common/error";
 

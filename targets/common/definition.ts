@@ -1,6 +1,6 @@
 export function stripDefinition(s: string): string {
   if (s.startsWith('#/definitions/')) {
-    return s.substr('#/definitions/'.length).replace(/(\[|\])/g, '');
+    return s.substr('#/definitions/'.length);
   }
-  return s.replace(/(\[|\])/g, '');
+  return s;
 }

@@ -8,10 +8,20 @@ export class SchemaType implements ITypeScriptType {
   }
 
   public getTypeScriptType(spec: ITypeSpec): string {
+    if (spec.schema.startsWith('PaginatedResults[')) {
+      // We provide this as a generic type in TypeScript.
+      return spec.schema.replace(/\[/g, '<').replace(/\]/g, '>');
+    }
+
     return normalizeTypeName(spec.schema);
   }
 
   public emitInterfaceDefinition(spec: IDefinitionSpec): string {
+    if (spec.name.startsWith('PaginatedResults[')) {
+      // We provide this as a generic type in TypeScript.
+      return '';
+    }
+
     const className = spec.name.replace(/(\[|\])/g, '');
 
     let code = `

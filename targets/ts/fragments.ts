@@ -10,6 +10,17 @@ export interface IHiveMPClient {
   baseUrlFactory: () => string;
   getOriginalApiId: () => string;
   getOriginalBasePath: () => string;
+  invocationWrapper: HiveMPInvocationWrapper<any> | null;
+}
+
+export interface PaginatedResults<T> {
+  next: string;
+  moreResults: boolean;
+  results: T[];
+}
+
+export interface HiveMPInvocationWrapper<T> {
+  (methodToInvoke: () => Promise<T>): Promise<T>;
 }
 
 export interface HiveMPClientConstructable {

@@ -20,6 +20,14 @@ export function implementationMethodDeclarations(values: {
   }
   return `
     public async ${values.methodName}(req: ${values.methodName}Request): ${values.returnTypes.promiseType} {
+      if (this.invocationWrapper === null) {
+        return await this.__${values.methodName}(req);
+      } else {
+        return await this.invocationWrapper(() => this.__${values.methodName}(req));
+      }
+    }
+
+    private async __${values.methodName}(req: ${values.methodName}Request): ${values.returnTypes.promiseType} {
       const request = superagent
         .${invokeName}(this.baseUrlFactory() + '${values.methodPath}')
         .set('Content-Type', 'application/json');
