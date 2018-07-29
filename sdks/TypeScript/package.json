@@ -1,6 +1,6 @@
 {
   "name": "hivemp",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "HiveMP SDK for TypeScript (Browser + Node.js)",
   "main": "dist/index.js",
   "author": "Redpoint Games Pty Ltd",

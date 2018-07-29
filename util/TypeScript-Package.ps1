@@ -11,6 +11,10 @@ if (Test-Path ./assets/hivemp.tgz) {
 
 Push-Location ./dist/TypeScript
 try {
+  $PackageJson = (Get-Content -Raw -Path ./package.json)
+  $PackageJson = $PackageJson.Replace("`"version`": `"0.0.1`"", "`"version`": `"$SdkVersion`"");
+  Set-Content -Path ./package.json -Value $PackageJson
+
   yarn
   if ($LastExitCode -ne 0) {
     Write-Error "yarn failed to run successfully!"
