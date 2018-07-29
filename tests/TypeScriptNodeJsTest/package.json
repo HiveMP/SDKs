@@ -1,0 +1,16 @@
+{
+  "name": "TypeScriptNodeJsTest",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "ts-node": "^7.0.0",
+    "typescript": "^2.9.2"
+  },
+  "dependencies": {
+    "hivemp": ".\\hivemp.tgz"
+  },
+  "scripts": {
+    "test": "./node_modules/.bin/ts-node ./index.ts"
+  }
+}

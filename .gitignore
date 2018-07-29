@@ -61,3 +61,9 @@ build/
 /tests/UnrealTest-*/Build-UE4Test.ps1
 
 /client_connect/ccsrc/cache_*/
+
+/tests/TypeScriptNodeJsTest/hivemp.tgz
+/tests/TypeScriptNodeJsTest/node_modules/
+/tests/TypeScriptNodeJsTest/Build-TypeScriptTest.ps1
+/tests/TypeScriptNodeJsTest/yarn.lock
+/tests/TypeScriptNodeJsTest/cache/

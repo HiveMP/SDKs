@@ -161,6 +161,19 @@ gulp.task('generate-csharp-3.5', async () => {
   await execAsync(msbuildPath, [ '/p:Configuration=Release', '/m', 'HiveMP.sln' ], 'dist/CSharp-3.5');
 });
 
+gulp.task('generate-typescript', async () => {
+  await execAsync(yarnPath, [
+    'run',
+    'generator',
+    'generate',
+    '--client-connect-sdk-path',
+    'client_connect/sdk',
+    '-c',
+    'TypeScript',
+    'dist/TypeScript'
+  ]);
+});
+
 gulp.task('generate-unity', async () => {
   await execAsync(yarnPath, [
     'run',
@@ -218,12 +231,17 @@ for (const version of Object.keys(supportedUnrealVersions)) {
 gulp.task('generate', gulp.parallel([
   'generate-csharp-4.5',
   'generate-csharp-3.5',
-  'generate-unity'
+  'generate-unity',
+  'generate-typescript'
 ].concat(generateUe4Tasks)));
 
 gulp.task('package-csharp', async () => {
   await execAsync('pwsh', [ 'util/Fetch-NuGet-4.5.ps1' ]);
   await execAsync('nuget', [ 'pack', '-Version', '1.0.0-DEV', '-NonInteractive', 'HiveMP.nuspec' ], 'dist/CSharp-4.5');
+});
+
+gulp.task('package-typescript', async () => {
+  await execAsync('pwsh', [ 'util/TypeScript-Package.ps1', '-SdkVersion', '1.0.0-DEV' ]);
 });
 
 gulp.task('package-unity', async () => {
@@ -246,7 +264,8 @@ for (const version of Object.keys(supportedUnrealVersions)) {
 
 gulp.task('package', gulp.parallel([
   'package-csharp',
-  'package-unity'
+  'package-unity',
+  'package-typescript'
 ].concat(packageUe4Tasks)));
 
 const generateTestsTasks: string[] = [];
@@ -274,6 +293,15 @@ for (const version of Object.keys(supportedUnrealVersions)) {
     ]);
   });
 }
+
+generateTestsTasks.push('generate-test-typescript');
+gulp.task('generate-test-typescript', async () => {
+  await execAsync('pwsh', [
+    'tests/Generate-TypeScriptTests.ps1',
+    '-SdkVersion',
+    '1.0.0-DEV'
+  ]);
+});
 
 gulp.task('generate-tests', gulp.parallel(generateTestsTasks));
 
@@ -323,6 +351,13 @@ for (const version of Object.keys(supportedUnrealVersions)) {
   }
 }
 
+buildTestsTasks.push('build-test-typescript');
+gulp.task('build-test-typescript', async () => {
+  await execAsync('pwsh', [
+    './Build-TypeScriptTest.ps1',
+  ], 'tests/TypeScriptNodeJsTest');
+});
+
 gulp.task('build-tests', gulp.parallel(buildTestsTasks));
 
 const runTestsTasks: string[] = [];
@@ -360,6 +395,13 @@ for (const version of Object.keys(supportedUnrealVersions)) {
     gulp.task('run-test-unreal-' + version, gulp.series(platformRunTestsTasks));
   }
 }
+
+runTestsTasks.push('run-test-typescript');
+gulp.task('run-test-typescript', async () => {
+  await execAsync('pwsh', [
+    './Run-TypeScriptTest.ps1',
+  ], 'tests');
+});
 
 gulp.task('run-tests', gulp.parallel(runTestsTasks));
 

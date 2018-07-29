@@ -59,5 +59,22 @@ export class TypeScriptGenerator implements TargetGenerator {
     }
 
     await this.writeFileContent(opts, 'index.ts', code);
+
+    if (!opts.skipSupportingFiles) {
+      await new Promise<void>((resolve, reject) => {
+        fs.mkdirp(opts.outputDir, (err) => {
+          if (err) {
+            reject(err);
+          }
+          let src = "sdks/TypeScript";
+          fs.copy(src, opts.outputDir, { overwrite: true }, (err) => {
+            if (err) {
+              reject(err);
+            }
+            resolve();
+          });
+        });
+      });
+    }
   }
 }

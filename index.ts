@@ -63,6 +63,10 @@ program
     '--client-connect-sdk-path <dir>',
     'path to the compiled Client Connect SDK, if not provided downloads the latest SDK'
   )
+  .option(
+    '--skip-supporting-files',
+    'skip copying supporting files (such as build script files) to the output directory'
+  )
   .action((target: string, outputDir: string, options: any) => {
     command = 'generate';
     (async(): Promise<void> => {
@@ -111,6 +115,7 @@ program
               includeClusterOnly: options.includeClusterOnly,
               enableClientConnect: options.enableClientConnect,
               clientConnectSdkPath: options.clientConnectSdkPath,
+              skipSupportingFiles: options.skipSupportingFiles,
             });
           found = true;
           break;

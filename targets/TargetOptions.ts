@@ -3,4 +3,5 @@ export interface TargetOptions {
   includeClusterOnly: boolean;
   enableClientConnect: boolean;
   clientConnectSdkPath: string;
+  skipSupportingFiles: boolean;
 }
