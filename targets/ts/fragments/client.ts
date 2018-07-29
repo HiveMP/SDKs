@@ -5,20 +5,30 @@ export function clientPrefix(values: {
   apiBasePath: string
 }) {
   return `
-  export class ${values.tag}Client {
+  export class ${values.tag}Client implements IHiveMPClient {
     /**
-     * The API key to use in HiveMP requests.
+     * The method that returns the API key to use in the request.
      */
-    public apiKey: string;
+    public apiKeyFactory: () => string;
 
     /**
-     * The base URL for requests.
+     * The base URL factory for requests.
      */
-    public baseUrl: string;
+    public baseUrlFactory: () => string;
 
-    constructor(apiKey?: string) {
-      this.apiKey = apiKey === undefined ? '' : apiKey;
-      this.baseUrl = "https://${values.apiId}-api.hivemp.com${values.apiBasePath}";
+    public getOriginalApiId: () => string = () => "${values.apiId}";
+
+    public getOriginalBasePath: () => string = () => "${values.apiBasePath}";
+
+    constructor(apiKey?: (string | (() => string))) {
+      if (apiKey === undefined) {
+        this.apiKeyFactory = () => '';
+      } else if (typeof apiKey === 'string') {
+        this.apiKeyFactory = () => apiKey;
+      } else {
+        this.apiKeyFactory = apiKey;
+      }
+      this.baseUrlFactory = () => "https://${values.apiId}-api.hivemp.com${values.apiBasePath}";
     }
 
 `;

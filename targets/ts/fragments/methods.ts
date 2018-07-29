@@ -21,15 +21,23 @@ export function implementationMethodDeclarations(values: {
   return `
     public async ${values.methodName}(req: ${values.methodName}Request): ${values.returnTypes.promiseType} {
       const request = superagent
-        .${invokeName}(this.baseUrl + '${values.methodPath}')
+        .${invokeName}(this.baseUrlFactory() + '${values.methodPath}')
         .set('Content-Type', 'application/json');
       const qs: { [id: string]: string } = {};
       ${values.parameterQueryLoadingCode}
       ${values.parameterBodyLoadingCode}
       request.query(qs);
-      request.set('X-API-Key', this.apiKey);
+      request.set('X-API-Key', this.apiKeyFactory());
       const response = await request;
-      ${returnCode}
+      if (response.ok) {
+        ${returnCode}
+      } else {
+        if (response.serverError) {
+          throw HiveMPErrorFactory.createApiError(JSON.parse(response.body) as HiveMPSystemError);
+        } else {
+          throw HiveMPErrorFactory.createClientError(response);
+        }
+      }
     }
 `;
 }

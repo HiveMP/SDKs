@@ -19,8 +19,9 @@ export interface ${className} {
 `;
     for (const property of spec.properties) {
       const csType = resolveType(property);
+      const undefinedFlag = className == 'HiveMPSystemErrorData' ? '?' : '';
       code += `
-  ${property.name}: ${csType.getTypeScriptType(property)}
+  ${property.name}${undefinedFlag}: ${csType.getTypeScriptType(property)} | null;
 `;
     }
     code += `
