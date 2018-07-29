@@ -161,7 +161,7 @@ stage("Build Client Connect") {
     def parallelMap = [:]
     parallelMap["Win32"] = {
         if (!preloaded["ClientConnect-Win32"]) {
-            node('windows-hispeed') {
+            node('windows-hicpu') {
                 timeout(20) {
                     checkout(poll: false, changelog: false, scm: scm)
                     bat 'git clean -xdf'
@@ -179,7 +179,7 @@ stage("Build Client Connect") {
     };
     parallelMap["Win64"] = {
         if (!preloaded["ClientConnect-Win64"]) {
-            node('windows-hispeed') {
+            node('windows-hicpu') {
                 timeout(20) {
                     checkout(poll: false, changelog: false, scm: scm)
                     bat 'git clean -xdf'
@@ -253,7 +253,7 @@ stage("Build Client Connect") {
 }
 stage("Build UAL") {
     if (!preloaded["UAL"]) {
-        node('windows-hispeed') {
+        node('windows') {
             timeout(30) {
                 dir('ual_build') {
                     git changelog: false, poll: false, url: 'https://github.com/RedpointGames/UnityAutomaticLicensor'
@@ -329,7 +329,7 @@ if (preloaded["SDKs"]) {
         parallel (parallelMap)
     }
 } else {
-    node('windows-hispeed') {
+    node('windows') {
         stage("Checkout") {
             timeout(60) {
                 checkout(poll: false, changelog: false, scm: scm)
@@ -510,7 +510,7 @@ stage("Build Tests") {
     parallelMap["TypeScript"] =
     {
         if (!preloaded['CompiledTest-TypeScript']) {
-            node('windows-hispeed') {
+            node('windows') {
                 timeout(30) {
                     dir('_test_env/TypeScript') {
                         caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'TypeScriptTestUncompiled', 'tests/TypeScriptNodeJsTest/', 'dir')
@@ -530,7 +530,7 @@ stage("Build Tests") {
             parallelMap["Unreal-" + version + "-" + platform] =
             {
                 if (!preloaded['CompiledTest-Unreal-' + version + '-' + platform]) {
-                    node('windows-hispeed') {
+                    node('windows-hicpu') {
                         timeout(30) {
                             dir('_test_env/Unreal-' + version + '-' + platform) {
                                 caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/', 'dir')
@@ -553,7 +553,7 @@ stage("Build Tests") {
             parallelMap["Unity-" + version + "-" + platform] =
             {
                 if (!preloaded['CompiledTest-Unity-' + version + '-' + platform]) {
-                    node('windows-hispeed') {
+                    node('windows') {
                         timeout(30) {
                             dir('_test_env/Unity-' + version + '-' + platform) {
                                 caching.pullCacheDirectory(gcloud, hashing, ualBuildHash, 'UAL', 'ual', 'dir')
