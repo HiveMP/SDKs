@@ -33,13 +33,14 @@ try {
     exit 1
   }
 
-  if ($env:PGP_PRIVATE_KEY -ne $null -and $env:PGP_PRIVATE_KEY_PASSPHRASE -ne $null) {
-    .\node_modules\.bin\pkgsign sign --signer pgp --pgp-private-key-path "$PGP_PRIVATE_KEY" --pgp-private-key-passphrase "$PGP_PRIVATE_KEY_PASSPHRASE" --pgp-public-key-https-url "https://hivemp.com/sign.asc" "./hivemp.tgz"
-    if ($LastExitCode -ne 0) {
-      Write-Error "pkgsign failed to run successfully!"
-      exit 1
-    }
-  }
+  # TODO: Get this working
+  # if ($env:PGP_PRIVATE_KEY -ne $null -and $env:PGP_PRIVATE_KEY_PASSPHRASE -ne $null) {
+  #   .\node_modules\.bin\pkgsign sign --signer pgp --pgp-private-key-path "$PGP_PRIVATE_KEY" --pgp-private-key-passphrase "$PGP_PRIVATE_KEY_PASSPHRASE" --pgp-public-key-https-url "https://hivemp.com/sign.asc" "./hivemp.tgz"
+  #   if ($LastExitCode -ne 0) {
+  #     Write-Error "pkgsign failed to run successfully!"
+  #     exit 1
+  #   }
+  # }
 } finally {
   Pop-Location
 }
