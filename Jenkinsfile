@@ -123,7 +123,8 @@ stage("Detect Caches") {
             def components = [
                 'Assets',
                 'RunUnityTest',
-                'RunUE4Test'
+                'RunUE4Test',
+                'TypeScriptTestUncompiled'
             ];
             supportedUnityVersions.keySet().each { version ->
                 components.add('Unity' + version + 'TestUncompiled');
@@ -132,6 +133,10 @@ stage("Detect Caches") {
                 components.add('UE' + version + 'TestUncompiled');
             };
             caching.checkMultiplePreloaded(gcloud, preloaded, mainBuildHash, 'SDKs', components, 'SDKs')
+        }
+        parallelMap["TypeScript"] =
+        {
+            caching.checkPreloaded(gcloud, preloaded, mainBuildHash, 'CompiledTest-TypeScript', 'compiled TypeScript test')
         }
         supportedUnityVersions.each { version, platforms -> 
             platforms.each { platform ->
@@ -284,6 +289,9 @@ if (preloaded["SDKs"]) {
         parallelMap["Unity"] = {
             echo ("Already built");
         };
+        parallelMap["TypeScript"] = {
+            echo ("Already built");
+        };
         supportedUnrealVersions.each { version, platforms ->
             parallelMap["UnrealEngine-" + version] = {
                 echo ("Already built");
@@ -305,13 +313,16 @@ if (preloaded["SDKs"]) {
         parallelMap["Stash-Test-Scripts"] = {
             echo ("Already built");
         };
-        supportedUnityVersions.keySet().each { version ->
-            parallelMap["Unity-" + version] = {
+        parallelMap["TypeScript"] = {
+            echo ("Already built");
+        };
+        supportedUnrealVersions.each { version, platforms ->
+            parallelMap["UnrealEngine-" + version] = {
                 echo ("Already built");
             };
         }
-        supportedUnrealVersions.each { version, platforms ->
-            parallelMap["UnrealEngine-" + version] = {
+        supportedUnityVersions.keySet().each { version ->
+            parallelMap["Unity-" + version] = {
                 echo ("Already built");
             };
         }
@@ -388,6 +399,11 @@ if (preloaded["SDKs"]) {
                     bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c Unity dist/Unity'
                 }
             };
+            parallelMap["TypeScript"] = {
+                timeout(5) {
+                    bat 'yarn run generator generate --client-connect-sdk-path client_connect/sdk -c TypeScript dist/TypeScript'
+                }
+            };
             supportedUnrealVersions.each { version, platforms ->
                 parallelMap["UnrealEngine-" + version] =
                 {
@@ -421,6 +437,13 @@ if (preloaded["SDKs"]) {
                     }
                 }
             };
+            parallelMap["TypeScript"] = {
+                timeout(20) {
+                    withCredentials([file(credentialsId: 'hivemp-pgp-private-key', variable: 'PGP_PRIVATE_KEY'), string(credentialsId: 'hivemp-pgp-private-key-passphrase', variable: 'PGP_PRIVATE_KEY_PASSPHRASE')]) {
+                        bat ('pwsh util/TypeScript-Package.ps1 -SdkVersion ' + sdkVersion)
+                    }
+                }
+            };
             supportedUnrealVersions.keySet().each { version ->
                 parallelMap["UnrealEngine-" + version] =
                 {
@@ -443,6 +466,16 @@ if (preloaded["SDKs"]) {
                 timeout(5) {
                     caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'RunUnityTest', 'tests/Run-UnityTest.ps1')
                     caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'RunUE4Test', 'tests/Run-UE4Test.ps1')
+                    caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'RunTypeScriptTest', 'tests/Run-TypeScriptTest.ps1')
+                }
+            };
+            parallelMap["TypeScript"] =
+            {
+                timeout(60) {
+                    bat 'pwsh tests/Generate-TypeScriptTests.ps1 -SdkVersion ' + sdkVersion
+                }
+                timeout(25) {
+                    caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'TypeScriptTestUncompiled', 'tests/TypeScriptNodeJsTest/')
                 }
             };
             supportedUnityVersions.keySet().each { v ->
@@ -474,6 +507,46 @@ if (preloaded["SDKs"]) {
 }
 stage("Build Tests") {
     def parallelMap = [:]
+    parallelMap["TypeScript"] =
+    {
+        if (!preloaded['CompiledTest-TypeScript']) {
+            node('windows-hispeed') {
+                timeout(30) {
+                    dir('_test_env/TypeScript') {
+                        caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'TypeScriptTestUncompiled', 'tests/TypeScriptNodeJsTest/', 'dir')
+
+                        bat('pwsh tests/TypeScriptNodeJsTest/Build-TypeScriptTest.ps1 -Version ' + version + ' -Target ' + platform)
+
+                        caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'CompiledTest-TypeScript', 'tests/TypeScriptNodeJsTest/')
+                    }
+                }
+            }
+        } else {
+            echo ("Already built");
+        }
+    }
+    supportedUnrealVersions.each { version, platforms -> 
+        platforms.each { platform ->
+            parallelMap["Unreal-" + version + "-" + platform] =
+            {
+                if (!preloaded['CompiledTest-Unreal-' + version + '-' + platform]) {
+                    node('windows-hispeed') {
+                        timeout(30) {
+                            dir('_test_env/Unreal-' + version + '-' + platform) {
+                                caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/', 'dir')
+
+                                bat('pwsh tests/UnrealTest-' + version + '/Build-UE4Test.ps1 -Version ' + version + ' -Target ' + platform)
+
+                                caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'CompiledTest-Unreal-' + version + '-' + platform, 'tests/UnrealBuilds-' + version + '/' + platform + '/')
+                            }
+                        }
+                    }
+                } else {
+                    echo ("Already built");
+                }
+            }
+        }         
+    }
     /*
     supportedUnityVersions.each { version, platforms -> 
         platforms.each { platform ->
@@ -502,32 +575,60 @@ stage("Build Tests") {
         }         
     }
     */
-    supportedUnrealVersions.each { version, platforms -> 
-        platforms.each { platform ->
-            parallelMap["Unreal-" + version + "-" + platform] =
-            {
-                if (!preloaded['CompiledTest-Unreal-' + version + '-' + platform]) {
-                    node('windows-hispeed') {
-                        timeout(30) {
-                            dir('_test_env/Unreal-' + version + '-' + platform) {
-                                caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'UE' + version + 'TestUncompiled', 'tests/UnrealTest-' + version + '/', 'dir')
-
-                                bat('pwsh tests/UnrealTest-' + version + '/Build-UE4Test.ps1 -Version ' + version + ' -Target ' + platform)
-
-                                caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'CompiledTest-Unreal-' + version + '-' + platform, 'tests/UnrealBuilds-' + version + '/' + platform + '/')
-                            }
-                        }
-                    }
-                } else {
-                    echo ("Already built");
-                }
-            }
-        }         
-    }
     parallel (parallelMap)
 }
 stage("Run Tests") {
     def parallelMap = [:]
+    supportedUnrealVersions.each { version, platforms ->
+        platforms.each { platform ->
+            if (platform.startsWith("Mac")) {
+                // TODO: We don't run macOS tests yet (beyond making sure code compiles for macOS in the previous step)
+            } else if (platform.startsWith("Linux")) {
+                // TODO: We don't run Linux tests yet (beyond making sure code compiles for Linux in the previous step)
+            } else if (platform.startsWith("Win")) {
+                parallelMap["Unreal-" + version + "-" + platform] =
+                {
+                    node('windows') {
+                        timeout(30) {
+                            caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
+                                [
+                                    id: 'CompiledTest-Unreal-' + version + '-' + platform, 
+                                    dir: 'tests/UnrealBuilds-' + version + '/' + platform + '/', 
+                                    targetType: 'dir',
+                                ],
+                                [
+                                    id: 'RunUE4Test', 
+                                    dir: 'tests/Run-UE4Test.ps1', 
+                                    targetType: 'file',
+                                ],
+                            ]);
+                            bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform ' + platform
+                        }
+                    }
+                }
+            }
+        }
+    }
+    parallelMap["TypeScript"] =
+    {
+        node('windows') {
+            timeout(30) {
+                caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
+                    [
+                        id: 'CompiledTest-TypeScript', 
+                        dir: 'tests/TypescriptNodeJsTest/', 
+                        targetType: 'dir',
+                    ],
+                    [
+                        id: 'RunTypeScriptTest', 
+                        dir: 'tests/Run-TypeScriptTest.ps1', 
+                        targetType: 'file',
+                    ],
+                ]);
+                bat 'pwsh tests/Run-TypeScriptTest.ps1'
+            }
+        }
+    }
     /*
     supportedUnityVersions.each { version, platforms ->
         platforms.each { platform ->
@@ -582,36 +683,6 @@ stage("Run Tests") {
         }
     }
     */
-    supportedUnrealVersions.each { version, platforms ->
-        platforms.each { platform ->
-            if (platform.startsWith("Mac")) {
-                // TODO: We don't run macOS tests yet (beyond making sure code compiles for macOS in the previous step)
-            } else if (platform.startsWith("Linux")) {
-                // TODO: We don't run Linux tests yet (beyond making sure code compiles for Linux in the previous step)
-            } else if (platform.startsWith("Win")) {
-                parallelMap["Unreal-" + version + "-" + platform] =
-                {
-                    node('windows') {
-                        timeout(30) {
-                            caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
-                                [
-                                    id: 'CompiledTest-Unreal-' + version + '-' + platform, 
-                                    dir: 'tests/UnrealBuilds-' + version + '/' + platform + '/', 
-                                    targetType: 'dir',
-                                ],
-                                [
-                                    id: 'RunUE4Test', 
-                                    dir: 'tests/Run-UE4Test.ps1', 
-                                    targetType: 'file',
-                                ],
-                            ]);
-                            bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform ' + platform
-                        }
-                    }
-                }
-            }
-        }
-    }
     parallel (parallelMap)
 }
 /*
