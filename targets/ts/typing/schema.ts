@@ -30,9 +30,18 @@ export interface ${className} {
     for (const property of spec.properties) {
       const csType = resolveType(property);
       const undefinedFlag = className == 'HiveMPSystemErrorData' ? '?' : '';
-      code += `
+      if (spec.name.startsWith("Paginated") && (property.name == 'moreResults' || property.name == 'results')) {
+        // The API doesn't yet declare whether schema fields are nullable (since C# nullable reference types
+        // haven't shipped yet). In this case we want to make moreResults and results fields on paginated
+        // schema types non-nullable so they're compatible with PaginatedResults<>.
+        code += `
+  ${property.name}${undefinedFlag}: ${csType.getTypeScriptType(property)};
+`;
+      } else {
+        code += `
   ${property.name}${undefinedFlag}: ${csType.getTypeScriptType(property)} | null;
 `;
+      }
     }
     code += `
 }`;
