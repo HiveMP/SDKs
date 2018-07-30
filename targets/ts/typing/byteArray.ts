@@ -8,7 +8,7 @@ export class ByteArrayType implements ITypeScriptType {
   }
 
   public getTypeScriptType(spec: ITypeSpec): string {
-    return 'Buffer';
+    return 'Buffer | ArrayBuffer';
   }
 
   public emitInterfaceDefinition(spec: IDefinitionSpec): string {

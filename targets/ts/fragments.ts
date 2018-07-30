@@ -14,7 +14,7 @@ export interface IHiveMPClient {
 }
 
 export interface PaginatedResults<T> {
-  next: string;
+  next: string | null;
   moreResults: boolean;
   results: T[];
 }
