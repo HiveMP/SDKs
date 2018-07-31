@@ -16,7 +16,7 @@ export function implementationMethodDeclarations(values: {
   }
   let returnCode = '';
   if (values.returnTypes.syncType !== 'void') {
-    returnCode = `return JSON.parse(response.text) as ${values.returnTypes.syncType};`;
+    returnCode = `return JSON.parse(response.text, reviveValue) as ${values.returnTypes.syncType};`;
   }
   return `
     public async ${values.methodName}(req: ${values.methodName}Request): ${values.returnTypes.promiseType} {
@@ -41,7 +41,7 @@ export function implementationMethodDeclarations(values: {
         ${returnCode}
       } else {
         if (response.serverError) {
-          throw HiveMPErrorFactory.createApiError(JSON.parse(response.body) as HiveMPSystemError);
+          throw HiveMPErrorFactory.createApiError(JSON.parse(response.body, reviveValue) as HiveMPSystemError);
         } else {
           throw HiveMPErrorFactory.createClientError(response);
         }

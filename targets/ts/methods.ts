@@ -21,7 +21,7 @@ function getParameterBodyLoadingCode(spec: IMethodSpec) {
     let name = parameter.name;
     if (parameter.in == "body") {
       code += `
-          request.send(JSON.stringify(req.${name}));
+          request.send(JSON.stringify(req.${name}, replaceValue));
 `;
       break;
     }

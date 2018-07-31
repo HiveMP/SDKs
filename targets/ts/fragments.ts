@@ -123,6 +123,22 @@ export class HiveMPErrorFactory {
 
 };
 
+function reviveValue(key: string, value: any) {
+  if (key.endsWith("Utc") && typeof value === 'number') {
+    // This is a timestamp value. Restore it with moment.
+    return moment.unix(value);
+  }
+  return value;
+}
+
+function replaceValue(key: string, value: any) {
+  if (key.endsWith("Utc") && moment.isMoment(value)) {
+    // This is a timestamp value. Convert it back to UNIX UTC timestamp.
+    return value.unix();
+  }
+  return value;
+}
+
 `;
 
 export function namespaceBegin(namespace: string) {
