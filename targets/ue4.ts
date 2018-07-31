@@ -23,7 +23,10 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
     const apis = new Set<IApiSpec>();
 
     for (const apiId in documents) {
-      apis.add(loadApi(apiId, documents[apiId], generateUe4Namespace));
+      apis.add(loadApi(apiId, documents[apiId], generateUe4Namespace, (definitionSpec) => {
+        const ueType = resolveType(definitionSpec);
+        return ueType.getNameForDependencyEmit(definitionSpec);
+      }));
     }
 
     await this.makeDirectory(opts, 'Source/HiveMPSDK/Public/Generated');

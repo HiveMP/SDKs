@@ -20,9 +20,13 @@ export interface IApiSpec {
  * @param apiId The API ID.
  * @param document The Swagger API document.
  */
-export function loadApi(apiId: string, document: any, namespaceGenerator: (apiId: string, document: any) => string): IApiSpec {
+export function loadApi(
+  apiId: string, 
+  document: any, 
+  namespaceGenerator: (apiId: string, document: any) => string,
+  definitionNameGenerator: (definitionSpec: IDefinitionSpec) => string): IApiSpec {
   const namespace = namespaceGenerator(apiId, document);
-  const definitions = loadDefinitions(apiId, document, namespace);
+  const definitions = loadDefinitions(apiId, document, namespace, definitionNameGenerator);
   const methods = loadMethods(apiId, document, namespace);
   const tags = loadTags(apiId, document, namespace);
 

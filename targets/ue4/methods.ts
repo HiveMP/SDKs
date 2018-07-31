@@ -1,6 +1,7 @@
 import { IMethodSpec } from "../common/methodSpec";
 import { resolveType } from "./typing";
 import { resolve } from "path";
+import { avoidConflictingCPlusPlusNames } from "../cpp/naming";
 
 export function emitMethodResultDelegateDefinition(spec: IMethodSpec): string {
   if (spec.isWebSocket) {
@@ -100,7 +101,7 @@ U${spec.implementationName}* U${spec.implementationName}::PerformHiveCall(
   for (const parameter of spec.parameters) {
     const ueType = resolveType(parameter);
     code += `
-    , ${ueType.getCPlusPlusInType(parameter)} ${parameter.name}
+    , ${ueType.getCPlusPlusInType(parameter)} ${avoidConflictingCPlusPlusNames(parameter.name)}
 `;
   }
   code += `
@@ -114,7 +115,7 @@ U${spec.implementationName}* U${spec.implementationName}::PerformHiveCall(
   for (const parameter of spec.parameters) {
     const ueType = resolveType(parameter);
     code += `
-  Proxy->Field_${parameter.name} = ${ueType.getAssignmentFrom(parameter, parameter.name)};
+  Proxy->Field_${parameter.name} = ${ueType.getAssignmentFrom(parameter, avoidConflictingCPlusPlusNames(parameter.name))};
 `;
   }
   code += `

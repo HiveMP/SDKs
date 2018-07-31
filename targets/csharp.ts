@@ -35,7 +35,7 @@ abstract class CSharpGenerator implements TargetGenerator {
     const apis = new Set<IApiSpec>();
 
     for (const apiId in documents) {
-      apis.add(loadApi(apiId, documents[apiId], generateCSharpNamespace));
+      apis.add(loadApi(apiId, documents[apiId], generateCSharpNamespace, (definitionSpec) => definitionSpec.name));
     }
     
     const defines = fragments.getDefines(this.getDefines(), opts);

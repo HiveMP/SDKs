@@ -1,8 +1,6 @@
 import { stripDefinition } from "./definition";
 import { normalizeTypeName } from "./normalize";
 import { apiNames } from "./apiNames";
-import { avoidConflictingCPlusPlusNames } from "../cpp/naming";
-import { resolveType } from "../ue4/typing";
 
 export interface ITypeSpec {
   type?:
@@ -107,14 +105,14 @@ export function convertGeneric(context: ITypeContext): ITypeSpec {
 
 export function convertProperty(context: ITypeContextWithName): IPropertySpec {
   const def = convertGeneric(context) as IPropertySpec;
-  def.name = avoidConflictingCPlusPlusNames(context.name);
+  def.name = context.name;
   def.description = context.obj.description;
   return def;
 }
 
 export function convertParameter(context: ITypeContext): IParameterSpec {
   const def = convertGeneric(context) as IParameterSpec;
-  def.name = avoidConflictingCPlusPlusNames(context.obj.name);
+  def.name = context.obj.name;
   def.description = context.obj.description;
   def.in = context.obj.in;
   def.required = context.obj.required;
@@ -157,7 +155,7 @@ export function convertDefinition(context: ITypeContextWithName): IDefinitionSpe
  * @param document The Swagger API document.
  * @param namespace The namespace for types in this document. 
  */
-export function loadDefinitions(apiId: string, document: any, namespace: string): Map<string, IDefinitionSpec> {
+export function loadDefinitions(apiId: string, document: any, namespace: string, definitionNameFactory: (definitionSpec: IDefinitionSpec) => string): Map<string, IDefinitionSpec> {
   const definitions = new Map<string, IDefinitionSpec>();
   for (const defName in document.definitions) {
     const definitionSpec = convertDefinition({
@@ -167,9 +165,8 @@ export function loadDefinitions(apiId: string, document: any, namespace: string)
       obj: document.definitions[defName],
       name: defName,
     });
-    const ueType = resolveType(definitionSpec);
     definitions.set(
-      ueType.getNameForDependencyEmit(definitionSpec),
+      definitionNameFactory(definitionSpec),
       definitionSpec);
   }
   return definitions;

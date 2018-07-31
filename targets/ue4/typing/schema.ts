@@ -3,6 +3,7 @@ import { ITypeSpec, IDefinitionSpec, IParameterSpec, IPropertySpec } from '../..
 import { normalizeTypeName } from "../../common/normalize";
 import { escapeForMultilineComment } from "../../cpp/escape";
 import { isErrorStructure } from "../../common/error";
+import { avoidConflictingCPlusPlusNames } from "../../cpp/naming";
 
 export class SchemaType implements IUnrealEngineType {
   public doesHandleType(spec: ITypeSpec): boolean {
@@ -27,10 +28,10 @@ export class SchemaType implements IUnrealEngineType {
         case 'fields':
           return 'Parameter';
         default:
-          return property.name;
+          return avoidConflictingCPlusPlusNames(property.name);
       }
     }
-    return property.name;
+    return avoidConflictingCPlusPlusNames(property.name);
   }
 
   public getCPlusPlusInType(spec: ITypeSpec): string {

@@ -33,7 +33,7 @@ export class TypeScriptGenerator implements TargetGenerator {
     const apis = new Set<IApiSpec>();
 
     for (const apiId in documents) {
-      apis.add(loadApi(apiId, documents[apiId], generateTypeScriptNamespace));
+      apis.add(loadApi(apiId, documents[apiId], generateTypeScriptNamespace, (definitionSpec) => definitionSpec.name));
     }
     
     let code = fragments.nodeJsHeader;
