@@ -31,6 +31,7 @@ export class HiveMPError extends Error {
   public _hiveMPErrorType: string = '';
   public redirectTarget?: string;
   public apiError?: HiveMPSystemError;
+  public nestedErr?: any;
 }
 
 export interface HiveMPSystemErrorWithTimeout extends HiveMPSystemError {
@@ -119,6 +120,19 @@ export class HiveMPErrorFactory {
 
   public static isClientError(err: any): boolean {
     return err._hiveMPErrorType == 'client-error';
+  }
+
+  // ======== unknown errors =========
+
+  public static createUnknownError(nestedErr: any): Error {
+    const err = new HiveMPError('Unknown error occurred during request. Are you offline?');
+    err._hiveMPErrorType = 'unknown-error';
+    err.nestedErr = nestedErr;
+    return err;
+  }
+
+  public static isUnknownError(err: any): boolean {
+    return err._hiveMPErrorType == 'unknown-error';
   }
 
 };

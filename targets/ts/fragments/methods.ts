@@ -36,12 +36,21 @@ export function implementationMethodDeclarations(values: {
       ${values.parameterBodyLoadingCode}
       request.query(qs);
       request.set('X-API-Key', this.apiKeyFactory());
-      const response = await request;
-      if (response.ok) {
+      let response: superagent.Response | null = null;
+      let nestedErr: any = undefined;
+      try {
+        response = await request;
+      } catch (err) {
+        nestedErr = err;
+        response = err.response;
+      }
+      if (response !== undefined && response !== null && response.ok) {
         ${returnCode}
       } else {
-        if (response.serverError) {
-          throw HiveMPErrorFactory.createApiError(JSON.parse(response.body, reviveValue) as HiveMPSystemError);
+        if (response === undefined || response === null) {
+          throw HiveMPErrorFactory.createUnknownError(nestedErr);
+        } else if (response.serverError || response.clientError) {
+          throw HiveMPErrorFactory.createApiError(JSON.parse(response.text, reviveValue) as HiveMPSystemError);
         } else {
           throw HiveMPErrorFactory.createClientError(response);
         }
