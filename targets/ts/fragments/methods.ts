@@ -6,6 +6,7 @@ export function implementationMethodDeclarations(values: {
   methodOperationId: string,
   methodPath: string,
   methodHttpMethod: string,
+  methodIsFileUpload: boolean,
   parameterBodyLoadingCode: string,
   parameterQueryLoadingCode: string,
   returnTypes: IMethodReturnTypes,
@@ -17,6 +18,10 @@ export function implementationMethodDeclarations(values: {
   let returnCode = '';
   if (values.returnTypes.syncType !== 'void') {
     returnCode = `return JSON.parse(response.text, reviveValue) as ${values.returnTypes.syncType};`;
+  }
+  let contentType = 'application/json';
+  if (values.methodIsFileUpload) {
+    contentType = 'application/octet-stream';
   }
   return `
     public async ${values.methodName}(req: ${values.methodName}Request): ${values.returnTypes.promiseType} {
@@ -30,7 +35,7 @@ export function implementationMethodDeclarations(values: {
     private async __${values.methodName}(req: ${values.methodName}Request): ${values.returnTypes.promiseType} {
       const request = superagent
         .${invokeName}(this.baseUrlFactory() + '${values.methodPath}')
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', '${contentType}');
       const qs: { [id: string]: string } = {};
       ${values.parameterQueryLoadingCode}
       ${values.parameterBodyLoadingCode}

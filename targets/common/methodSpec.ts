@@ -95,6 +95,12 @@ export interface IMethodSpec {
   isWebSocket: boolean;
 
   /**
+   * Whether this method accepts a file / blob at the body content of the request
+   * instead of JSON.
+   */
+  isFileUpload: boolean;
+
+  /**
    * The supported protocol messages that clients can send to the WebSocket.
    */
   webSocketRequestMessageTypes: Set<IWebSocketProtocolType>;
@@ -143,6 +149,7 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
 
       const isClusterOnly = methodValue["x-accepted-api-key-types"].length == 1 && methodValue["x-accepted-api-key-types"][0] == "__cluster_only__";
       const isWebSocket = methodValue["x-websocket"] !== undefined && methodValue["x-websocket"];
+      const isFileUpload = methodValue["consumes"].length > 0 && methodValue["consumes"][0] == "application/octet-stream";
 
       const webSocketRequestMessageTypes = new Set<IWebSocketProtocolType>();
       const webSocketResponseMessageTypes = new Set<IWebSocketProtocolType>();
@@ -220,6 +227,7 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
         tag: tag,
         isClusterOnly: isClusterOnly,
         isWebSocket: isWebSocket,
+        isFileUpload: isFileUpload,
         webSocketRequestMessageTypes: webSocketRequestMessageTypes,
         webSocketResponseMessageTypes: webSocketResponseMessageTypes,
       });

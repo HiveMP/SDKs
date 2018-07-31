@@ -20,9 +20,15 @@ function getParameterBodyLoadingCode(spec: IMethodSpec) {
     const csType = resolveType(parameter);
     let name = parameter.name;
     if (parameter.in == "body") {
-      code += `
+      if (spec.isFileUpload) {
+        code += `
+          request.send(req.${name});
+`;
+      } else {
+        code += `
           request.send(JSON.stringify(req.${name}, replaceValue));
 `;
+      }
       break;
     }
   }
@@ -44,6 +50,7 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec) {
     methodOperationId: spec.operationId,
     methodPath: spec.path,
     methodHttpMethod: spec.method.toUpperCase(),
+    methodIsFileUpload: spec.isFileUpload,
     parameterBodyLoadingCode,
     parameterQueryLoadingCode,
     returnTypes: returnTypes,
