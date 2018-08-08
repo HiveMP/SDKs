@@ -515,6 +515,9 @@ stage("Build Tests") {
                     dir('_test_env/TypeScript') {
                         caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'TypeScriptTestUncompiled', 'tests/TypeScriptNodeJsTest/', 'dir')
 
+                        bat('dir')
+                        bat('dir tests')
+                        bat('dir tests\\TypeScriptNodeJsTest')
                         bat('pwsh tests/TypeScriptNodeJsTest/Build-TypeScriptTest.ps1 -Version ' + version + ' -Target ' + platform)
 
                         caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'CompiledTest-TypeScript', 'tests/TypeScriptNodeJsTest/')

@@ -41,7 +41,7 @@ class HIVEMPSDK_API U${spec.implementationName} : public UOnlineBlueprintCallPro
   for (const parameter of spec.parameters) {
     const ueType = resolveType(parameter);
     header += `
-    , ${ueType.getCPlusPlusInType(parameter)} ${parameter.name}
+    , ${ueType.getCPlusPlusInType(parameter)} ${avoidConflictingCPlusPlusNames(parameter.name)}
 `;
   }
   header += `
