@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-param($Target = "")
+param()
 
 $global:ErrorActionPreference = "Stop"
 

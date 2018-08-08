@@ -518,7 +518,7 @@ stage("Build Tests") {
                         bat('dir')
                         bat('dir tests')
                         bat('dir tests\\TypeScriptNodeJsTest')
-                        bat('pwsh tests/TypeScriptNodeJsTest/Build-TypeScriptTest.ps1 -Version ' + version + ' -Target ' + platform)
+                        bat('pwsh tests/TypeScriptNodeJsTest/Build-TypeScriptTest.ps1')
 
                         caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'CompiledTest-TypeScript', 'tests/TypeScriptNodeJsTest/')
                     }
