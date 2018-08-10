@@ -12,7 +12,7 @@ if (Test-Path ./assets/hivemp.tgz) {
 Push-Location ./dist/TypeScript
 try {
   $PackageJson = (Get-Content -Raw -Path ./package.json)
-  $PackageJson = $PackageJson.Replace("`"version`": `"0.0.1`"", "`"version`": `"$SdkVersion`"");
+  $PackageJson = $PackageJson.Replace("`"version`": `"0.0.1`"", "`"version`": `"$SdkVersion.0`"");
   Set-Content -Path ./package.json -Value $PackageJson
 
   yarn
