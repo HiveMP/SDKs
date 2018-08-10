@@ -95,6 +95,7 @@ stage("Setup") {
                 [
                     'targets/',
                     'sdks/',
+                    'util/',
                     'index.ts',
                     'SdkVersion.txt'
                 ]
