@@ -63,12 +63,12 @@ def preloaded = [:]
 def gitCommit = ""
 def clientConnectHash = ""
 // If changing the steps related to Client Connect build, increase this number.
-def clientConnectBuildConfigVersion = "2"
+def clientConnectBuildConfigVersion = "3"
 def mainBuildHash = ""
 // If changing the steps related to the main build, increase this number.
-def mainBuildConfigVersion = "2"
+def mainBuildConfigVersion = "3"
 def ualBuildHash = ""
-def ualBuildConfigVersion = "1"
+def ualBuildConfigVersion = "3"
 if (env.CHANGE_TARGET != null) {
     stage("Confirm") {
         input "Approve this PR build to run? Check the PR first!"
