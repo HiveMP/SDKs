@@ -1,11 +1,13 @@
 import * as hivemp from 'hivemp';
+import * as console from 'console';
+import * as process from 'process';
 
 async function test() {
   try {
     const tempSessionClient = new hivemp.TemporarySession.TemporarySessionClient("b2124be3f61adf918b6bc7e1e1abdbf8");
     const tempSession = await tempSessionClient.sessionPUT({});
 
-    const lobbyClient = new hivemp.Lobby.LobbyClient(tempSession.apiKey);
+    const lobbyClient = new hivemp.Lobby.LobbyClient(tempSession.apiKey || undefined);
     const lobby = await lobbyClient.lobbyPUT({
       name: 'Test Lobby',
       maxSessions: 4,
