@@ -84,7 +84,7 @@ def pullCacheDirectoryMultiple(gcloud, hashing, hash, entries) {
           targetDir = normDir.replaceAll("/","\\\\");
         }
         def dirHash = hashing.sha1String(normDir);
-        echo ("HASH DEBUG: '" + normDir + "' produced hash '" + dirName + "'")
+        echo ("HASH DEBUG: '" + normDir + "' produced hash '" + dirHash + "'")
 
         pullEntriesInWrappedContext(entry, unix, hash, targetDir, normDir, dirHash)
       }
@@ -97,7 +97,7 @@ def pullCacheDirectoryMultiple(gcloud, hashing, hash, entries) {
         targetDir = normDir.replaceAll("/","\\\\");
       }
       def dirHash = hashing.sha1String(normDir);
-      echo ("HASH DEBUG: '" + normDir + "' produced hash '" + dirName + "'")
+      echo ("HASH DEBUG: '" + normDir + "' produced hash '" + dirHash + "'")
 
       // Try to unstash first in case Jenkins has already cached this.
       def wasUnstashSuccessful = false
@@ -133,7 +133,7 @@ def pushCacheDirectory(gcloud, hashing, hash, id, dir) {
     targetDir = dir.replaceAll("/","\\\\");
   }
   def dirHash = hashing.sha1String(dir);
-  echo ("HASH DEBUG: '" + dir + "' produced hash '" + dirName + "'")
+  echo ("HASH DEBUG: '" + dir + "' produced hash '" + dirHash + "'")
 
   gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
     if (unix) {
