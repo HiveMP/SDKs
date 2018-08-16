@@ -464,7 +464,7 @@ if (preloaded["SDKs"]) {
             def parallelMap = [:]
             parallelMap["Stash-Test-Scripts"] =
             {
-                timeout(5) {
+                timeout(20) {
                     caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'RunUnityTest', 'tests/Run-UnityTest.ps1')
                     caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'RunUE4Test', 'tests/Run-UE4Test.ps1')
                     caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'RunTypeScriptTest', 'tests/Run-TypeScriptTest.ps1')
