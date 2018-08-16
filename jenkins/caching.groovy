@@ -135,10 +135,11 @@ def pushCacheDirectory(gcloud, hashing, hash, id, dir) {
   gcloud.wrap(serviceAccountCredential: 'jenkins-vm-gcloud') {
     if (unix) {
       sh ('pwsh -Command "Compress-Archive -Force -Path \'' + targetDir + '\' -DestinationPath _cache_store_' + dirHash + '.zip -CompressionLevel NoCompression"')
+      sh ('gsutil cp "_cache_store_' + dirHash + '.zip" "gs://redpoint-build-cache/zipped-' + hash + '/' + dirHash + '.zip"')
     } else {
       bat ('pwsh -Command "Compress-Archive -Force -Path \'' + targetDir + '\' -DestinationPath _cache_store_' + dirHash + '.zip -CompressionLevel NoCompression"')
+      bat ('gsutil cp "_cache_store_' + dirHash + '.zip" "gs://redpoint-build-cache/zipped-' + hash + '/' + dirHash + '.zip"')
     }
-    bat ('gsutil cp "_cache_store_' + dirHash + '.zip" "gs://redpoint-build-cache/zipped-' + hash + '/' + dirHash + '.zip"')
     gcloud.keySet('cache-zipped-' + hash + '-' + id, 'true')
 
     if (!env.NODE_NAME.startsWith("windows-")) {
