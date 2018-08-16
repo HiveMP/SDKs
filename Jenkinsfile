@@ -96,6 +96,7 @@ stage("Setup") {
                     'targets/',
                     'sdks/',
                     'util/',
+                    'tests/',
                     'tests/Run-UnityTest.ps1',
                     'tests/Run-UE4Test.ps1',
                     'tests/Run-TypeScriptTest.ps1',
