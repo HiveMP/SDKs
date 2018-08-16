@@ -623,7 +623,7 @@ stage("Run Tests") {
                 caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
                     [
                         id: 'CompiledTest-TypeScript', 
-                        dir: 'tests/TypescriptNodeJsTest/', 
+                        dir: 'tests/TypeScriptNodeJsTest/', 
                         targetType: 'dir',
                     ],
                     [
