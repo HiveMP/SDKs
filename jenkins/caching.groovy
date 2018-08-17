@@ -49,7 +49,7 @@ def pullEntriesInWrappedContext(entry, unix, hash, targetDir, normDir, dirHash) 
       }
     } catch (e) { }
     sh ('gsutil cp "gs://redpoint-build-cache/zipped-' + hash + '/' + dirHash + '.zip" "_cache_store_' + dirHash + '.zip"')
-    sh ('pwsh -Command "Expand-Archive -Path _cache_store_' + dirHash + '.zip -DestinationPath \'$(dirname "' + targetDir + '")/\'"')
+    sh ('pwsh -Command "Expand-Archive -Force -Path _cache_store_' + dirHash + '.zip -DestinationPath \'$(dirname "' + targetDir + '")/\'"')
   } else {
     try {
       if (entry.targetType == 'file') {
@@ -66,7 +66,7 @@ for %%F in (%filename%) do set dirname=%%~dpF
 gsutil cp "gs://redpoint-build-cache/zipped-''' + hash + '/' + dirHash + '.zip" "_cache_store_' + dirHash + '.zip"')
     bat ('set filename="' + targetDir + '''"
 for %%F in (%filename%) do set dirname=%%~dpF
-pwsh -Command "Expand-Archive -Path _cache_store_''' + dirHash + '.zip  -DestinationPath $env:dirname"')
+pwsh -Command "Expand-Archive -Force -Path _cache_store_''' + dirHash + '.zip  -DestinationPath $env:dirname"')
   }
 }
 

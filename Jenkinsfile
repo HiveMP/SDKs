@@ -5,7 +5,7 @@ def caching = evaluate readTrusted("jenkins/caching.groovy")
 def enableUnity = false;
 def enableUnrealEngine = false;
 def enableTypeScript = true;
-def enableCSharp = false;
+def enableCSharp = true;
 
 def sdkVersion = "";
 def supportedUnityVersions = [
