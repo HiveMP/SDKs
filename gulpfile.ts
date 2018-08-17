@@ -108,6 +108,11 @@ gulp.task('build-client-connect-mac64', async () => {
   await execAsync('ubuntu1804', [ 'run', 'rsync', '-av', 'Build@172.25.218.188:/Users/build/cc-dev-build/client_connect/sdk/*', './client_connect/sdk/',  ]);
 });
 
+gulp.task('clean-client-connect-mac64', async () => {
+  console.log('Cleaning source files from macOS...');
+  await execAsync('ubuntu1804', [ 'run', 'ssh', 'Build@172.25.218.188', 'rm', '-Rf', '/Users/build/cc-dev-build/' ]);
+});
+
 gulp.task('build-client-connect-linux32', async () => {
   await execAsync('ubuntu1804', [ 'run', 'pwsh', 'client_connect/Build-Arch.ps1', 'Linux32' ]);
 });

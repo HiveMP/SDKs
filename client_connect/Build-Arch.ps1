@@ -97,7 +97,7 @@ try {
 
             Write-Output "Successfully ran cctest with Steam API DLLs."
 
-            if (!($global:IsMacOS -or $global:IsLinux)) {
+            if (!$global:IsLinux) {
               if ($global:IsMacOS) {
                 Write-Output "Removing Steam API library from macOS for second test run..."
                 Remove-Item -Force libsteam_api.dylib
@@ -132,13 +132,13 @@ try {
   }
 
   if ($env:OS -eq "Windows_NT") {
-    Build-With-Target "Win32" "Windows/32-bit" @("-G", "Visual Studio 15 2017")
-    Build-With-Target "Win64" "Windows/64-bit" @("-G", "Visual Studio 15 2017 Win64")
+    Build-With-Target "Win32" "Windows/32-bit" @("-G", "Visual Studio 15 2017", "-D", "CC_PLATFORM_TARGET=Windows")
+    Build-With-Target "Win64" "Windows/64-bit" @("-G", "Visual Studio 15 2017 Win64", "-D", "CC_PLATFORM_TARGET=Windows")
   } elseif ($global:IsMacOS) {
-    Build-With-Target "Mac64" "macOS/64-bit" @("-G", "Xcode", "-D", "CMAKE_OSX_ARCHITECTURES=x86_64", "-D", "OPENSSL_INCLUDE_DIR=/usr/local/opt/openssl/include")
+    Build-With-Target "Mac64" "macOS/64-bit" @("-G", "Xcode", "-D", "CMAKE_OSX_ARCHITECTURES=x86_64", "-D", "OPENSSL_INCLUDE_DIR=/usr/local/opt/openssl/include", "-D", "CC_PLATFORM_TARGET=macOS")
   } elseif ($global:IsLinux) {
-    Build-With-Target "Linux32" "Linux/32-bit" @("-G", "Unix Makefiles", "-D", "CMAKE_BUILD_TYPE=Release", "-D", "CMAKE_TOOLCHAIN_FILE=../toolchain/Linux-i386.cmake")
-    Build-With-Target "Linux64" "Linux/64-bit" @("-G", "Unix Makefiles", "-D", "CMAKE_BUILD_TYPE=Release", "-D", "CMAKE_TOOLCHAIN_FILE=../toolchain/Linux-x86_64.cmake")
+    Build-With-Target "Linux32" "Linux/32-bit" @("-G", "Unix Makefiles", "-D", "CMAKE_BUILD_TYPE=Release", "-D", "CMAKE_TOOLCHAIN_FILE=../toolchain/Linux-i386.cmake", "-D", "CC_PLATFORM_TARGET=Linux")
+    Build-With-Target "Linux64" "Linux/64-bit" @("-G", "Unix Makefiles", "-D", "CMAKE_BUILD_TYPE=Release", "-D", "CMAKE_TOOLCHAIN_FILE=../toolchain/Linux-x86_64.cmake", "-D", "CC_PLATFORM_TARGET=Linux")
   }
 } finally {
   Pop-Location

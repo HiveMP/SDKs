@@ -115,12 +115,6 @@ abstract class CSharpGenerator implements TargetGenerator {
                   } catch { }
                   fs.renameSync(opts.outputDir + "/" + platform + "/libcchost.dylib", opts.outputDir + "/" + platform + "/libcchost.bundle");
                 }
-                if (fs.existsSync(opts.outputDir + "/" + platform + "/libsteam_api.dylib")) {
-                  try {
-                    fs.unlinkSync(opts.outputDir + "/" + platform + "/libsteam_api.bundle");
-                  } catch { }
-                  fs.renameSync(opts.outputDir + "/" + platform + "/libsteam_api.dylib", opts.outputDir + "/" + platform + "/libsteam_api.bundle");
-                }
               }
               if (err) {
                 reject(err);
