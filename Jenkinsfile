@@ -2,23 +2,23 @@ def gcloud = evaluate readTrusted("jenkins/gcloud.groovy")
 def hashing = evaluate readTrusted("jenkins/hashing.groovy")
 def caching = evaluate readTrusted("jenkins/caching.groovy")
 
-def enableUnity = true;
-def enableUnrealEngine = true;
+def enableUnity = false;
+def enableUnrealEngine = false;
 def enableTypeScript = true;
 def enableCSharp = true;
 
-def assetsStashName = 'Assets';
+def enabledTargetsString = 'Targets-';
 if (enableUnity) {
-    assetsStashName += '-Unity';
+    enabledTargetsString += '-Unity';
 }
 if (enableUnrealEngine) {
-    assetsStashName += '-UE4';
+    enabledTargetsString += '-UE4';
 }
 if (enableTypeScript) {
-    assetsStashName += '-TypeScript';
+    enabledTargetsString += '-TypeScript';
 }
 if (enableCSharp) {
-    assetsStashName += '-CSharp';
+    enabledTargetsString += '-CSharp';
 }
 
 def sdkVersion = "";
@@ -110,7 +110,7 @@ stage("Setup") {
                     'client_connect/'
                 ]
             );
-            mainBuildHash = hashing.hashEntries(
+            mainBuildHash = hashing.hashEntriesEx(
                 mainBuildConfigVersion,
                 [
                     'targets/',
@@ -122,6 +122,9 @@ stage("Setup") {
                     'tests/Run-TypeScriptTest.ps1',
                     'index.ts',
                     'SdkVersion.txt'
+                ],
+                [
+                    enabledTargetsString
                 ]
             );
             ualBuildHash = hashing.hashEntries(
@@ -146,7 +149,7 @@ stage("Detect Caches") {
         }
         parallelMap["SDKs"] = {
             def components = [
-                assetsStashName
+                'Assets'
             ];
             if (enableTypeScript) {
                 components.add('RunTypeScriptTest');
@@ -531,7 +534,7 @@ if (preloaded["SDKs"]) {
         }
         stage("Stash Assets") {
             timeout(15) {
-                caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, assetsStashName, 'assets/')
+                caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'Assets', 'assets/')
             }
         }
         stage("Generate Tests") {
