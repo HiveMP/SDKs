@@ -2,8 +2,8 @@ def gcloud = evaluate readTrusted("jenkins/gcloud.groovy")
 def hashing = evaluate readTrusted("jenkins/hashing.groovy")
 def caching = evaluate readTrusted("jenkins/caching.groovy")
 
-def enableUnity = false;
-def enableUnrealEngine = false;
+def enableUnity = true;
+def enableUnrealEngine = true;
 def enableTypeScript = true;
 def enableCSharp = true;
 
@@ -79,6 +79,7 @@ def clientConnectPlatformCaches = [
     "Linux64"
 ]
 def preloaded = [:]
+def testsAlreadyRan = [:]
 def gitCommit = ""
 def clientConnectHash = ""
 // If changing the steps related to Client Connect build, increase this number.
@@ -169,6 +170,7 @@ stage("Detect Caches") {
             parallelMap["TypeScript"] =
             {
                 caching.checkPreloaded(gcloud, preloaded, mainBuildHash, 'CompiledTest-TypeScript', 'compiled TypeScript test')
+                testsAlreadyRan['RUNTEST-' + mainBuildHash + 'CompiledTest-TypeScript'] = gcloud.keyExists('RUNTEST-' + mainBuildHash + 'CompiledTest-TypeScript')
             }
         }
         if (enableUnity) {
@@ -177,6 +179,7 @@ stage("Detect Caches") {
                     parallelMap["Unity-" + version + "-" + platform] =
                     {
                         caching.checkPreloaded(gcloud, preloaded, mainBuildHash, 'CompiledTest-Unity-' + version + '-' + platform, 'compiled Unity ' + version + ' test for ' + platform)
+                        testsAlreadyRan['RUNTEST-' + mainBuildHash + 'CompiledTest-Unity-' + version + '-' + platform] = gcloud.keyExists('RUNTEST-' + mainBuildHash + 'CompiledTest-Unity-' + version + '-' + platform)
                     }
                 }
             }
@@ -187,6 +190,7 @@ stage("Detect Caches") {
                     parallelMap["UnrealEngine-" + version + "-" + platform] =
                     {
                         caching.checkPreloaded(gcloud, preloaded, mainBuildHash, 'CompiledTest-Unreal-' + version + '-' + platform, 'compiled Unreal Engine ' + version + ' test for ' + platform)
+                        testsAlreadyRan['RUNTEST-' + mainBuildHash + 'CompiledTest-Unreal-' + version + '-' + platform] = gcloud.keyExists('RUNTEST-' + mainBuildHash + 'CompiledTest-Unreal-' + version + '-' + platform)
                     }
                 }
             }
@@ -679,22 +683,27 @@ stage("Run Tests") {
                 } else if (platform.startsWith("Win")) {
                     parallelMap["Unreal-" + version + "-" + platform] =
                     {
-                        node('windows') {
-                            timeout(30) {
-                                caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
-                                    [
-                                        id: 'CompiledTest-Unreal-' + version + '-' + platform, 
-                                        dir: 'tests/UnrealBuilds-' + version + '/' + platform + '/', 
-                                        targetType: 'dir',
-                                    ],
-                                    [
-                                        id: 'RunUE4Test', 
-                                        dir: 'tests/Run-UE4Test.ps1', 
-                                        targetType: 'file',
-                                    ],
-                                ]);
-                                bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform ' + platform
+                        if (!testsAlreadyRan['RUNTEST-' + mainBuildHash + 'CompiledTest-Unreal-' + version + '-' + platform]) {
+                            node('windows') {
+                                timeout(30) {
+                                    caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
+                                        [
+                                            id: 'CompiledTest-Unreal-' + version + '-' + platform, 
+                                            dir: 'tests/UnrealBuilds-' + version + '/' + platform + '/', 
+                                            targetType: 'dir',
+                                        ],
+                                        [
+                                            id: 'RunUE4Test', 
+                                            dir: 'tests/Run-UE4Test.ps1', 
+                                            targetType: 'file',
+                                        ],
+                                    ]);
+                                    bat 'pwsh tests/Run-UE4Test.ps1 -Version ' + version + ' -Platform ' + platform
+                                    gcloud.keySet('RUNTEST-' + mainBuildHash + 'CompiledTest-Unreal-' + version + '-' + platform, 'true')
+                                }
                             }
+                        } else {
+                            echo 'Test already passed in previous build'
                         }
                     }
                 }
@@ -704,22 +713,27 @@ stage("Run Tests") {
     if (enableTypeScript) {
         parallelMap["TypeScript"] =
         {
-            node('windows') {
-                timeout(30) {
-                    caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
-                        [
-                            id: 'CompiledTest-TypeScript', 
-                            dir: 'tests/TypeScriptNodeJsTest/', 
-                            targetType: 'dir',
-                        ],
-                        [
-                            id: 'RunTypeScriptTest', 
-                            dir: 'tests/Run-TypeScriptTest.ps1', 
-                            targetType: 'file',
-                        ],
-                    ]);
-                    bat 'pwsh tests/Run-TypeScriptTest.ps1'
+            if (!testsAlreadyRan['RUNTEST-' + mainBuildHash + 'CompiledTest-TypeScript']) {
+                node('windows') {
+                    timeout(30) {
+                        caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
+                            [
+                                id: 'CompiledTest-TypeScript', 
+                                dir: 'tests/TypeScriptNodeJsTest/', 
+                                targetType: 'dir',
+                            ],
+                            [
+                                id: 'RunTypeScriptTest', 
+                                dir: 'tests/Run-TypeScriptTest.ps1', 
+                                targetType: 'file',
+                            ],
+                        ]);
+                        bat 'pwsh tests/Run-TypeScriptTest.ps1'
+                        gcloud.keySet('RUNTEST-' + mainBuildHash + 'CompiledTest-TypeScript', 'true')
+                    }
                 }
+            } else {
+                echo 'Test already passed in previous build'
             }
         }
     }
@@ -729,25 +743,30 @@ stage("Run Tests") {
                 if (platform.startsWith("Mac")) {
                     parallelMap["Unity-" + version + "-" + platform] =
                     {
-                        node('mac') {
-                            timeout(30) {
-                                caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
-                                    [
-                                        id: 'CompiledTest-Unity-' + version + '-' + platform, 
-                                        dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
-                                        targetType: 'dir',
-                                    ],
-                                    [
-                                        id: 'RunUnityTest', 
-                                        dir: 'tests/Run-UnityTest.ps1', 
-                                        targetType: 'file',
-                                    ],
-                                ]);
-                                sh 'chmod a+x tests/Run-UnityTest.ps1'
-                                sh 'chmod -R a+rwx tests/UnityTest-' + version + '/' + platform + '/'
-                                sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
-                                sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform ' + platform
+                        if (!testsAlreadyRan['RUNTEST-' + mainBuildHash + 'CompiledTest-Unity-' + version + '-' + platform]) {
+                            node('mac') {
+                                timeout(30) {
+                                    caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
+                                        [
+                                            id: 'CompiledTest-Unity-' + version + '-' + platform, 
+                                            dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
+                                            targetType: 'dir',
+                                        ],
+                                        [
+                                            id: 'RunUnityTest', 
+                                            dir: 'tests/Run-UnityTest.ps1', 
+                                            targetType: 'file',
+                                        ],
+                                    ]);
+                                    sh 'chmod a+x tests/Run-UnityTest.ps1'
+                                    sh 'chmod -R a+rwx tests/UnityTest-' + version + '/' + platform + '/'
+                                    sh 'perl -pi -e \'s/\\r\\n|\\n|\\r/\\n/g\' tests/Run-UnityTest.ps1'
+                                    sh 'tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform ' + platform
+                                    gcloud.keySet('RUNTEST-' + mainBuildHash + 'CompiledTest-Unity-' + version + '-' + platform, 'true')
+                                }
                             }
+                        } else {
+                            echo 'Test already passed in previous build'
                         }
                     };
                 } else if (platform.startsWith("Linux")) {
@@ -755,22 +774,27 @@ stage("Run Tests") {
                 } else if (platform.startsWith("Win")) {
                     parallelMap["Unity-" + version + "-" + platform] =
                     {
-                        node('windows') {
-                            timeout(30) {
-                                caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
-                                    [
-                                        id: 'CompiledTest-Unity-' + version + '-' + platform, 
-                                        dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
-                                        targetType: 'dir',
-                                    ],
-                                    [
-                                        id: 'RunUnityTest', 
-                                        dir: 'tests/Run-UnityTest.ps1', 
-                                        targetType: 'file',
-                                    ],
-                                ]);
-                                bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform ' + platform
+                        if (!testsAlreadyRan['RUNTEST-' + mainBuildHash + 'CompiledTest-Unity-' + version + '-' + platform]) {
+                            node('windows') {
+                                timeout(30) {
+                                    caching.pullCacheDirectoryMultiple(gcloud, hashing, mainBuildHash, [
+                                        [
+                                            id: 'CompiledTest-Unity-' + version + '-' + platform, 
+                                            dir: 'tests/UnityTest-' + version + '/' + platform + '/', 
+                                            targetType: 'dir',
+                                        ],
+                                        [
+                                            id: 'RunUnityTest', 
+                                            dir: 'tests/Run-UnityTest.ps1', 
+                                            targetType: 'file',
+                                        ],
+                                    ]);
+                                    bat 'pwsh tests/Run-UnityTest.ps1 -Version ' + version + ' -Platform ' + platform
+                                    gcloud.keySet('RUNTEST-' + mainBuildHash + 'CompiledTest-Unity-' + version + '-' + platform, 'true')
+                                }
                             }
+                        } else {
+                            echo 'Test already passed in previous build'
                         }
                     }
                 }
