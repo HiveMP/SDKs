@@ -54,6 +54,8 @@ if(MSVC)
     set(STEAM_LIBRARY_NAME steam_api delayimp)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /delayload:steam_api.dll")
   endif()
+elif(APPLE)
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lazy_library steam_api")
 else()
   set(STEAM_LIBRARY_NAME steam_api)
 endif()
@@ -67,12 +69,12 @@ target_link_libraries(cchost $<TARGET_OBJECTS:libcurl> ${CURL_LIBS_EXPORTED_2} $
 message("C++ compiler is: ${CMAKE_CXX_COMPILER}")
 message("Steam library name is: ${STEAM_LIBRARY_NAME}")
 
-# On Linux and macOS, our prebuilt binaries require the presence of the Steam API DLLs. This is
-# because unlike Windows, these platforms do not support delay loading of shared libraries. Note
+# On Linux, our prebuilt binaries require the presence of the Steam API DLLs. This is
+# because unlike Windows and macOS, this platform does not support delay loading of shared libraries. Note
 # that while these platforms require the presence of the Steam API DLLs, HiveMP will still degrade
 # gracefully if Steam is not running.
 if(APPLE)
-  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../steam/osx/libsteam_api.dylib ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsteam_api.dylib COPYONLY)
+  # /../steam/osx/libsteam_api.dylib
 elseif(MSVC)
 else()
   if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")

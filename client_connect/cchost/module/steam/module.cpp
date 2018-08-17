@@ -74,20 +74,26 @@ bool try_init_steam()
 		__try
 		{
 #endif
-			did_init_steam = (SteamAPI_Init() && SteamAPI_IsSteamRunning());
-			if (did_init_steam)
-			{
-				pending_callbacks = new std::vector<HiveMPSteamManager*>();
-			}
-			has_inited_steam = true;
+			if (SteamAPI_Init == nullptr || SteamAPI_IsSteamRunning == nullptr) {
+				log_warn("unable to load Steam APIs: the steam_api DLL couldn't be loaded (this game might not support Steam)");
+				did_init_steam = false;
+				has_inited_steam = true;
+			} else {
+				did_init_steam = (SteamAPI_Init() && SteamAPI_IsSteamRunning());
+				if (did_init_steam)
+				{
+					pending_callbacks = new std::vector<HiveMPSteamManager*>();
+				}
+				has_inited_steam = true;
 
-			if (!did_init_steam)
-			{
-				log_warn("unable to load Steam APIs: Steam isn't running or otherwise failed to load");
-			}
-			else
-			{
-				log_info("successfully loaded Steam APIs");
+				if (!did_init_steam)
+				{
+					log_warn("unable to load Steam APIs: Steam isn't running or otherwise failed to load");
+				}
+				else
+				{
+					log_info("successfully loaded Steam APIs");
+				}
 			}
 #if defined(WIN32)
 		}

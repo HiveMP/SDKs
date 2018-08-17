@@ -68,8 +68,12 @@ try {
         }
         Copy-Item $PSScriptRoot/build_$Id/$Dir$($Pre)cchost$Ext $PSScriptRoot/sdk/$Id/$($Pre)cchost$Ext
         Copy-Item $PSScriptRoot/build_$Id/$($Dir)cctest$TestExt $PSScriptRoot/sdk/$Id/cctest$TestExt
-        if ($global:IsMacOS -or $global:IsLinux) {
+        if ($global:IsLinux) {
           Copy-Item $PSScriptRoot/build_$Id/$SteamDir$($Pre)steam_api$Ext $PSScriptRoot/sdk/$Id/$($Pre)steam_api$Ext
+        } elseif ($global:IsMacOS) {
+          # These are only temporarily copied so we can run cctest twice on macOS, once with Steam API library
+          # present and again without them present, since we should be successfully be delay loading them.
+          Copy-Item $PSScriptRoot/steam/osx/libsteam_api.dylib $PSScriptRoot/sdk/$Id/libsteam_api.dylib
         } else {
           # These are only temporarily copied so we can run cctest twice on Windows, once with Steam API DLLs
           # present and again without them present, since we should be successfully be delay loading them.
@@ -94,9 +98,14 @@ try {
             Write-Output "Successfully ran cctest with Steam API DLLs."
 
             if (!($global:IsMacOS -or $global:IsLinux)) {
-              Write-Output "Removing Steam API DLLs from Windows for second test run..."
-              Remove-Item -Force steam_api.dll
-              Remove-Item -Force steam_api64.dll
+              if ($global:IsMacOS) {
+                Write-Output "Removing Steam API library from macOS for second test run..."
+                Remove-Item -Force libsteam_api.dylib
+              } else {
+                Write-Output "Removing Steam API DLLs from Windows for second test run..."
+                Remove-Item -Force steam_api.dll
+                Remove-Item -Force steam_api64.dll
+              }
 
               & .\cctest$TestExt
               if ($LastExitCode -ne 0) {
