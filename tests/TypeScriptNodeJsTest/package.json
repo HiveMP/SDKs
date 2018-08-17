@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^10.7.1",
     "ts-node": "^7.0.0",
     "typescript": "^2.9.2"
   },
