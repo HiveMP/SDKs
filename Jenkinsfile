@@ -7,6 +7,20 @@ def enableUnrealEngine = false;
 def enableTypeScript = true;
 def enableCSharp = true;
 
+def assetsStashName = 'Assets';
+if (enableUnity) {
+    assetsStashName += '-Unity';
+}
+if (enableUnrealEngine) {
+    assetsStashName += '-UE4';
+}
+if (enableTypeScript) {
+    assetsStashName += '-TypeScript';
+}
+if (enableCSharp) {
+    assetsStashName += '-CSharp';
+}
+
 def sdkVersion = "";
 def supportedUnityVersions = [
     "5.4.1f": [
@@ -131,7 +145,7 @@ stage("Detect Caches") {
         }
         parallelMap["SDKs"] = {
             def components = [
-                'Assets'
+                assetsStashName
             ];
             if (enableTypeScript) {
                 components.add('RunTypeScriptTest');
@@ -513,7 +527,7 @@ if (preloaded["SDKs"]) {
         }
         stage("Stash Assets") {
             timeout(15) {
-                caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, 'Assets', 'assets/')
+                caching.pushCacheDirectory(gcloud, hashing, mainBuildHash, assetsStashName, 'assets/')
             }
         }
         stage("Generate Tests") {
