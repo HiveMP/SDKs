@@ -2,8 +2,8 @@ def gcloud = evaluate readTrusted("jenkins/gcloud.groovy")
 def hashing = evaluate readTrusted("jenkins/hashing.groovy")
 def caching = evaluate readTrusted("jenkins/caching.groovy")
 
-def enableUnity = false;
-def enableUnrealEngine = false;
+def enableUnity = true;
+def enableUnrealEngine = true;
 def enableTypeScript = true;
 def enableCSharp = true;
 
