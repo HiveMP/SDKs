@@ -38,6 +38,7 @@ enum curl_handle_state {
 };
 
 struct curl_handle_t {
+	bool finalized;
     curl_handle_state state;
 #if CLIENT_CONNECT_TARGETING_UNREAL
 #else
@@ -59,19 +60,7 @@ std::vector<struct curl_handle_t*>* pending_handles = nullptr;
 #else
 size_t _curl_write_response(void *contents, size_t size, size_t nmemb, std::string *s)
 {
-    size_t newLength = size * nmemb;
-    size_t oldLength = s->size();
-    try
-    {
-        s->resize(oldLength + newLength);
-    }
-    catch (std::bad_alloc &e)
-    {
-        // handle memory problem
-        return 0;
-    }
-
-    std::copy((char*)contents, (char*)contents + newLength, s->begin() + oldLength);
+	s->append((const char*)contents, (const size_t)(size * nmemb));
     return size * nmemb;
 }
 #endif
@@ -232,6 +221,8 @@ void js_curl_fetch(js_State* J)
 
     // set up initial handle reference
     auto handle_ref = new struct curl_handle_t();
+	handle_ref->finalized = false;
+	handle_ref->thread = nullptr;
     handle_ref->state = CHS_PENDING;
 #if CLIENT_CONNECT_TARGETING_UNREAL
 #else
@@ -287,6 +278,8 @@ void js_curl_fetch(js_State* J)
         {
             free((void*)handle_ref->requestData);
         }
+		
+		handle_ref->finalized = true;
     });
     handle->ProcessRequest();
     handle_ref->state = CHS_RUNNING;
@@ -315,6 +308,8 @@ void js_curl_fetch(js_State* J)
         {
             free((void*)handle_ref->requestData);
         }
+
+		handle_ref->finalized = true;
     });
 #endif
 
@@ -338,67 +333,80 @@ void js_tick_curl_native(js_State* J)
     {
         for (auto it = handles->begin(); it != handles->end(); )
         {
-            if ((*it)->state == CHS_SUCCESS)
-            {
-                js_getregistry(J, (*it)->resolve);
-                if (js_isundefined(J, -1))
-                {
-                    // no such registry value
-                    js_pop(J, 1);
-                }
-                else
-                {
-                    js_pushglobal(J);
+			if ((*it)->finalized)
+			{
+				if ((*it)->state == CHS_SUCCESS)
+				{
+					js_getregistry(J, (*it)->resolve);
+					if (js_isundefined(J, -1))
+					{
+						// no such registry value
+						js_pop(J, 1);
+					}
+					else
+					{
+						js_pushglobal(J);
 
-                    js_newobject(J);
-                    js_pushstring(J, (*it)->responseData.c_str());
-                    js_setproperty(J, -2, "responseText");
-                    js_pushnumber(J, (*it)->responseStatusCode);
-                    js_setproperty(J, -2, "statusCode");
+						js_newobject(J);
+						js_pushstring(J, (*it)->responseData.c_str());
+						js_setproperty(J, -2, "responseText");
+						js_pushnumber(J, (*it)->responseStatusCode);
+						js_setproperty(J, -2, "statusCode");
 
-                    if (js_pcall(J, 1) != 0)
-                    {
-                        js_debug_error_dump(J);
-                    }
-                }
-
-#if CLIENT_CONNECT_TARGETING_UNREAL
-#else
-                curl_easy_cleanup((*it)->handle);
-#endif
-                delete *it;
-                it = handles->erase(it);
-                continue;
-            }
-
-            if ((*it)->state == CHS_ERROR)
-            {
-                js_getregistry(J, (*it)->resolve);
-                if (js_isundefined(J, -1))
-                {
-                    // no such registry value
-                    js_pop(J, 1);
-                }
-                else
-                {
-                    js_pushglobal(J);
-
-                    js_newerror(J, "TODO: create error object");
-
-                    if (js_pcall(J, 1) != 0)
-                    {
-                        js_debug_error_dump(J);
-                    }
-                }
+						if (js_pcall(J, 1) != 0)
+						{
+							js_debug_error_dump(J);
+						}
+					}
 
 #if CLIENT_CONNECT_TARGETING_UNREAL
 #else
-                curl_easy_cleanup((*it)->handle);
+					curl_easy_cleanup((*it)->handle);
 #endif
-                delete *it;
-                it = handles->erase(it);
-                continue;
-            }
+					if ((*it)->thread != nullptr)
+					{
+						(*it)->thread->join();
+						delete (*it)->thread;
+					}
+					delete *it;
+					it = handles->erase(it);
+					continue;
+				}
+
+				if ((*it)->state == CHS_ERROR)
+				{
+					js_getregistry(J, (*it)->resolve);
+					if (js_isundefined(J, -1))
+					{
+						// no such registry value
+						js_pop(J, 1);
+					}
+					else
+					{
+						js_pushglobal(J);
+
+						js_newerror(J, "TODO: create error object");
+
+						if (js_pcall(J, 1) != 0)
+						{
+							js_debug_error_dump(J);
+						}
+					}
+
+#if CLIENT_CONNECT_TARGETING_UNREAL
+#else
+					curl_easy_cleanup((*it)->handle);
+#endif
+					if ((*it)->thread != nullptr)
+					{
+						(*it)->thread->join();
+						delete (*it)->thread;
+					}
+					delete *it;
+					it = handles->erase(it);
+					continue;
+				}
+			}
 
             ++it;
         }
