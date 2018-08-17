@@ -41,5 +41,81 @@ int main()
 		}
 	}
 
-    return 0;
+	call_handle = -1;
+	if (cc_is_api_hotpatched("client-connect", "serviceEnabledGET"))
+	{
+		call_handle = cc_call_api_hotpatch(
+			"client-connect",
+			"serviceEnabledGET",
+			"https://client-connect-api.hivemp.com/v1",
+			"",
+			"{}"
+		);
+	}
+	else
+	{
+		printf("serviceEnabledGET is not hotpatched");
+	}
+
+	while (cc_tick())
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(16));
+
+		if (call_handle != -1)
+		{
+			if (cc_is_api_hotpatch_call_ready(call_handle))
+			{
+				auto status_code = cc_get_api_hotpatch_status_code(call_handle);
+				auto result = cc_get_api_hotpatch_result(call_handle);
+				printf("%i - %s\n", status_code, result);
+				cc_release_api_hotpatch_result(call_handle);
+
+				if (std::string(result) != "true")
+				{
+					printf("serviceEnabledGET didn't return true");
+					return 1;
+				}
+			}
+		}
+	}
+
+	call_handle = -1;
+	if (cc_is_api_hotpatched("client-connect", "serviceTestPUT"))
+	{
+		call_handle = cc_call_api_hotpatch(
+			"client-connect",
+			"serviceTestPUT",
+			"https://client-connect-api.hivemp.com/v1",
+			"",
+			"{\"testName\":\"test-1\"}"
+		);
+	}
+	else
+	{
+		printf("serviceTestPUT is not hotpatched");
+	}
+
+	while (cc_tick())
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(16));
+
+		if (call_handle != -1)
+		{
+			if (cc_is_api_hotpatch_call_ready(call_handle))
+			{
+				auto status_code = cc_get_api_hotpatch_status_code(call_handle);
+				auto result = cc_get_api_hotpatch_result(call_handle);
+				printf("%i - %s\n", status_code, result);
+				cc_release_api_hotpatch_result(call_handle);
+
+				if (std::string(result) != "true")
+				{
+					printf("serviceTestPUT didn't return true");
+					return 1;
+				}
+			}
+		}
+	}
+
+	return 0;
 }

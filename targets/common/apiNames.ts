@@ -4,6 +4,7 @@ export const apiNames = {
   "attribute": "Attributes",
   "billing": "Billing",
   "chat": "Chat",
+  "client-connect": "Client Connect",
   "event": "Events",
   "game-server": "Game Servers",
   "integration": "Integrations",
