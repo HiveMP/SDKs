@@ -453,6 +453,7 @@ export function implementationMethodDeclarations(values: {
                   };
                   run();
               }).Then(resolve).Catch(reject));
+              return;
           }
 #endif
 

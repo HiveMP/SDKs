@@ -1,9 +1,7 @@
 ﻿using HiveMP.Api;
 using HiveMP.Lobby.Api;
 using HiveMP.TemporarySession.Api;
-using System.Net;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
+using HiveMP.ClientConnect.Api;
 using UnityEngine;
 
 public class RunTestsComponent : MonoBehaviour
@@ -23,7 +21,35 @@ public class RunTestsComponent : MonoBehaviour
             }, lobby =>
             {
                 Debug.Log("Created game lobby " + lobby.Id);
-                Application.Quit();
+
+                var serviceClient = new ServiceClient();
+                serviceClient.ServiceEnabledGETPromise(new ServiceEnabledGETRequest
+                {
+                }, result =>
+                {
+                    if (!result)
+                    {
+                        Bail(new System.Exception("HiveMP Client Connect is not enabled!"));
+                    }
+                    else
+                    {
+                        serviceClient.ServiceTestPUTPromise(new ServiceTestPUTRequest
+                        {
+                            TestName = "test-1",
+                        }, testResult =>
+                        {
+                            if (!testResult)
+                            {
+                                Bail(new System.Exception("HiveMP Client Connect test did not pass!"));
+                            }
+                            else
+                            {
+                                Debug.Log("TEST PASS");
+                                Application.Quit();
+                            }
+                        }, Bail);
+                    }
+                }, Bail);
             }, Bail);
         }, Bail);
     }
@@ -31,6 +57,7 @@ public class RunTestsComponent : MonoBehaviour
     private void Bail(System.Exception ex)
     {
         Debug.LogException(ex);
+        Debug.Log("TEST FAIL");
         Application.Quit();
     }
 }

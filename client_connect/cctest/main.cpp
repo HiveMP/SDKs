@@ -22,7 +22,7 @@ int main()
 	}
 	else
 	{
-		printf("authenticatePUT is not hotpatched");
+		printf("authenticatePUT is not hotpatched\n");
 	}
 
 	while (cc_tick())
@@ -54,7 +54,7 @@ int main()
 	}
 	else
 	{
-		printf("serviceEnabledGET is not hotpatched");
+		printf("serviceEnabledGET is not hotpatched\n");
 	}
 
 	while (cc_tick())
@@ -66,13 +66,13 @@ int main()
 			if (cc_is_api_hotpatch_call_ready(call_handle))
 			{
 				auto status_code = cc_get_api_hotpatch_status_code(call_handle);
-				auto result = cc_get_api_hotpatch_result(call_handle);
-				printf("%i - %s\n", status_code, result);
+				auto result = std::string(cc_get_api_hotpatch_result(call_handle));
+				printf("%i - %s\n", status_code, result.c_str());
 				cc_release_api_hotpatch_result(call_handle);
 
-				if (std::string(result) != "true")
+				if (result != "true")
 				{
-					printf("serviceEnabledGET didn't return true");
+					printf("serviceEnabledGET didn't return true\n");
 					return 1;
 				}
 			}
@@ -92,7 +92,7 @@ int main()
 	}
 	else
 	{
-		printf("serviceTestPUT is not hotpatched");
+		printf("serviceTestPUT is not hotpatched\n");
 	}
 
 	while (cc_tick())
@@ -104,13 +104,13 @@ int main()
 			if (cc_is_api_hotpatch_call_ready(call_handle))
 			{
 				auto status_code = cc_get_api_hotpatch_status_code(call_handle);
-				auto result = cc_get_api_hotpatch_result(call_handle);
-				printf("%i - %s\n", status_code, result);
+				auto result = std::string(cc_get_api_hotpatch_result(call_handle));
+				printf("%i - %s\n", status_code, result.c_str());
 				cc_release_api_hotpatch_result(call_handle);
 
-				if (std::string(result) != "true")
+				if (result != "true")
 				{
-					printf("serviceTestPUT didn't return true");
+					printf("serviceTestPUT didn't return true\n");
 					return 1;
 				}
 			}

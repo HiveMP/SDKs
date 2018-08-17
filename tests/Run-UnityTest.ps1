@@ -29,8 +29,12 @@ function Wait-For-Unity-Exit($path, $processId) {
       continue;
     }
     Write-Host -NoNewline $l
-    if ($l -ne $null -and $l.Contains("Created game lobby")) {
+    if ($l -ne $null -and $l.Contains("TEST PASS")) {
       $outcome = "success";
+      $running = $false;
+      break;
+    } elseif ($l -ne $null -and $l.Contains("TEST FAIL")) {
+      $outcome = "failure";
       $running = $false;
       break;
     } elseif ($l -ne $null -and $l.Contains("Exception")) {

@@ -100,7 +100,7 @@ try {
 
               & .\cctest$TestExt
               if ($LastExitCode -ne 0) {
-                Write-Error "Unable to run cctest successfully with no Steam API DLLs! Check the output above."
+                Write-Error "Unable to run cctest successfully with no Steam API DLLs! Check the output above (exit code was $LastExitCode)."
               }
 
               Write-Output "Successfully ran cctest without Steam API DLLs."
