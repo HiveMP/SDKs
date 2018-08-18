@@ -146,6 +146,10 @@ void js_curl_fetch(js_State* J)
 
 #if CLIENT_CONNECT_TARGETING_UNREAL
         handle->SetVerb(meth_str.c_str());
+		if (meth_str == "PUT" || meth_str == "POST")
+		{
+			handle->SetContentAsString(FString(requestBody));
+		}
 #else
         if (meth_str == "GET") 
         {
@@ -206,7 +210,11 @@ void js_curl_fetch(js_State* J)
             js_getindex(J, -1, i);
             log_trace("curl fetch: header=%s", js_tostring(J, -1));
 #if CLIENT_CONNECT_TARGETING_UNREAL
-            handle->SetHeader(js_tostring(J, -1), TEXT(""));
+			FString FullHeader = js_tostring(J, -1);
+			FString HeaderKey;
+			FString HeaderValue;
+			FullHeader.Split(":", &HeaderKey, &HeaderValue);
+            handle->SetHeader(HeaderKey.Trim(), HeaderValue.Trim());
 #else
             headers = curl_slist_append(headers, js_tostring(J, -1));
 #endif
