@@ -102,6 +102,26 @@ if (this->Field_${spec.name}.HasValue)
 `;
   }
 
+  public pushOntoHotpatchJson(jsonObjectVariable: string, spec: IParameterSpec): string | null {
+    return `
+if (this->Field_${spec.name}.HasValue)
+{
+  if (this->Field_${spec.name}.Value)
+  {
+    ${jsonObjectVariable}->SetBoolField(TEXT("${spec.name}"), true);
+  }
+  else
+  {
+    ${jsonObjectVariable}->SetBoolField(TEXT("${spec.name}"), false);
+  }
+}
+else
+{
+  ${jsonObjectVariable}->SetField(TEXT("${spec.name}"), MakeShareable(new FJsonValueNull()));
+}
+`;
+  }
+
   public getCustomResponseHandler(spec: ITypeSpec, logContext: string): string {
     return  `
 if (Response->GetContentAsString().Equals(TEXT("true")))

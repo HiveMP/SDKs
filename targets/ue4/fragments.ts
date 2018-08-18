@@ -84,9 +84,14 @@ export function getCppMethodCode(baseFilename: string) {
 #include "IHttpResponse.h"
 #include "HttpModule.h"
 #include "GenericPlatformHttp.h"
+#include "Runtime/Engine/Classes/Engine/World.h"
+#include "Runtime/Engine/Classes/Engine/GameInstance.h"
+#include "HiveMPBaseGameInstance.h"
 #include "../cchost/connect.impl.h"
 #include "../cchost/module/hotpatching/module.h"
 #include "../HiveMPLogging.h"
+#include "../cchost/ue4log.h"
+#include <cstdint>
 
 #define UE_LOG_HIVE(Verbosity, Format, ...) \\
 { \\

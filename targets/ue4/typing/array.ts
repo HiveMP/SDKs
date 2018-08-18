@@ -113,6 +113,26 @@ else
     return '/* NOT IMPLEMENTED: Pushing array onto query string */';
   }
 
+  public pushOntoHotpatchJson(jsonObjectVariable: string, spec: IParameterSpec): string | null {
+    return `
+if (this->Field_${spec.name}.HasValue)
+{
+  TSharedPtr<FJsonValueArray> Target;
+  ${this.emitSerializationFragment({
+    nestLevel: 0,
+    from: `this->Field_${spec.name}.Value`,
+    into: 'Target',
+    spec: spec
+  })}
+  ${jsonObjectVariable}->SetField(TEXT("${spec.name}"), Target);
+}
+else
+{
+  ${jsonObjectVariable}->SetField(TEXT("${spec.name}"), MakeShareable(new FJsonValueNull()));
+}
+`;
+  }
+
   public getCustomResponseHandler(spec: ITypeSpec): string {
     return '';
   }

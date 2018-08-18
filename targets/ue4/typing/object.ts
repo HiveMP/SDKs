@@ -77,6 +77,19 @@ ${arrayVariable}.Add(FString::Printf(TEXT("${spec.name}=%s"), *FGenericPlatformH
 `;
   }
 
+  public pushOntoHotpatchJson(jsonObjectVariable: string, spec: IParameterSpec): string | null {
+    return `
+if (this->Field_${spec.name}.HasValue)
+{
+  // TODO: Hotpatch handling.
+}
+else
+{
+  ${jsonObjectVariable}->SetField(TEXT("${spec.name}"), MakeShareable(new FJsonValueNull()));
+}
+`;
+  }
+
   public getCustomResponseHandler(spec: ITypeSpec): string {
     return '';
   }

@@ -5,6 +5,48 @@
 #include "Engine.h"
 #include "cchost/connect.impl.h"
 #include "cchost/module/hotpatching/module.h"
+#include <cstdint>
+
+void UHiveMPBaseGameInstance::Init()
+{
+	// Initialise HiveMP Client Connect.
+	cci_init(true, nullptr);
+
+	// Register the ticker for HiveMP Client Connect.
+	this->TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UHiveMPBaseGameInstance::TickClientConnect));
+
+	// Call the parent Init.
+	Super::Init();
+}
+
+void UHiveMPBaseGameInstance::Shutdown()
+{
+	// Deregister the ticker for HiveMP Client Connect.
+	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
+
+	// Call the parent Shutdown.
+	Super::Shutdown();
+}
+
+bool UHiveMPBaseGameInstance::TickClientConnect(float DeltaSeconds)
+{
+	// Update HiveMP Client Connect, processing coroutines, etc.
+	cci_tick();
+
+	// Call any callbacks for completed HiveMP Client Connect handles.
+	for (auto& Elem : this->RegisteredCallbackHandles)
+	{
+		if (js_is_api_hotpatch_call_ready(Elem.Key))
+		{
+			FString Result = FString(js_get_api_hotpatch_result(Elem.Key));
+			int32_t StatusCode = js_get_api_hotpatch_status_code(Elem.Key);
+			Elem.Value->Execute(StatusCode, Result);
+			js_release_api_hotpatch_result(Elem.Key);
+		}
+	}
+
+	return true;
+}
 
 FSocket* UHiveMPBaseGameInstance::GetSharedSocketForNetworking()
 {

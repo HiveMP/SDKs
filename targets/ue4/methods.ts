@@ -92,6 +92,14 @@ U${spec.implementationName}::U${spec.implementationName}(const FObjectInitialize
 }
 
 export function emitMethodProxyCallImplementation(spec: IMethodSpec): string {
+  let failureBroadcast = `OnFailure.Broadcast(ResultError)`;
+  let customResponseHandler = '';
+  if (spec.response !== null) {
+    const ueType = resolveType(spec.response);
+    failureBroadcast = `OnFailure.Broadcast(${ueType.getDefaultInitialiser(spec.response)}, ResultError)`;
+    customResponseHandler = ueType.getCustomResponseHandler(spec.response, `${spec.apiId} ${spec.path} ${spec.method}`);
+  }
+
   let code = `
 
 U${spec.implementationName}* U${spec.implementationName}::PerformHiveCall(
@@ -127,6 +135,163 @@ void U${spec.implementationName}::Activate()
 {
   UE_LOG_HIVE(Display, TEXT("[start] ${spec.apiId} ${spec.path} ${spec.method}"));
 
+  if (js_is_api_hotpatched("client-connect", "serviceEnabledGET"))
+  {
+	  if (this->WorldContextObject == nullptr)
+	  {
+		  UE_LOG(LogClientConnect, Error, TEXT("No world context available; HiveMP Client Connect can't operate"));
+		  return;
+	  }
+
+	  UWorld* CurrentWorld = this->WorldContextObject->GetWorld();
+	  if (CurrentWorld == nullptr)
+	  {
+		  UE_LOG(LogClientConnect, Error, TEXT("No world available; HiveMP Client Connect can't operate"));
+		  return;
+	  }
+
+	  UGameInstance* CurrentGameInstance = CurrentWorld->GetGameInstance();
+	  if (CurrentGameInstance == nullptr)
+	  {
+		  UE_LOG(LogClientConnect, Error, TEXT("No game instance available; HiveMP Client Connect can't operate"));
+		  return;
+	  }
+
+	  UHiveMPBaseGameInstance* HiveMPGameInstance = Cast<UHiveMPBaseGameInstance>(CurrentGameInstance);
+	  if (HiveMPGameInstance == nullptr)
+	  {
+		  UE_LOG(LogClientConnect, Error, TEXT("Current game instance does not inherit from UHiveMPBaseGameInstance; HiveMP Client Connect can't operate"));
+		  return;
+	  }
+    
+	  TSharedPtr<FJsonObject> HotpatchJson = MakeShareable(new FJsonObject());
+	  TSharedPtr<FJsonValue> HotpatchJsonValue = MakeShareable(new FJsonValueObject(HotpatchJson));
+	  
+`;
+for (const parameter of spec.parameters) {
+  const ueType = resolveType(parameter);
+  code += `
+${ueType.pushOntoHotpatchJson('HotpatchJson', parameter)}
+`;
+}
+  code += `
+
+	  FString EncodedParameters = "";
+	  TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&EncodedParameters);
+	  FJsonSerializer::Serialize(HotpatchJsonValue, TEXT(""), Writer);
+	  long handle = js_call_api_hotpatch(
+		  "${spec.apiId}",
+		  "${spec.operationId}",
+		  "https://${spec.apiId}-api.hivemp.com${spec.basePath}${spec.path}",
+		  TCHAR_TO_ANSI(*this->ApiKey),
+		  TCHAR_TO_ANSI(*EncodedParameters));
+
+    HiveMPGameInstance->RegisterClientConnectCallback(handle, [this](
+      uint32_t HttpStatusCode,
+      FString HttpBody,
+      TWeakObjectPtr<UObject> SelfRef)
+    {
+      UE_LOG_HIVE(Warning, TEXT("[info] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *HttpBody);
+  
+      ${customResponseHandler}
+  
+      TSharedPtr<FJsonValue> JsonValue;
+      TSharedRef<TJsonReader<TCHAR>> Reader = TJsonReaderFactory<>::Create(HttpBody);
+      if (!FJsonSerializer::Deserialize(Reader, JsonValue) || !JsonValue.IsValid())
+      {
+        struct FHiveApiError ResultError;
+        ResultError.HttpStatusCode = FNullableInt32(true, HttpStatusCode);
+        ResultError.ErrorCode = FNullableInt32(false, 0);
+        ResultError.Message = FNullableString(true, TEXT("Unable to deserialize JSON response!"));
+        ResultError.Parameter = FNullableString(false, TEXT(""));
+        UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message.Value));
+        ${failureBroadcast};
+        return;
+      }
+      
+      if (!bSucceeded || HttpStatusCode != 200)
+      {
+        const TSharedPtr<FJsonObject>* JsonObject;
+        if (JsonValue->TryGetObject(JsonObject))
+        {
+          // Parse as Hive system error.
+          FString Message, Parameter;
+          double ErrorCode;
+          auto GotMessage = (*JsonObject)->TryGetStringField(TEXT("message"), Message);
+          auto GotParameter = (*JsonObject)->TryGetStringField(TEXT("fields"), Parameter);
+          auto GotErrorCode = (*JsonObject)->TryGetNumberField(TEXT("code"), ErrorCode);
+  
+          struct FHiveApiError ResultError;
+          ResultError.HttpStatusCode = FNullableInt32(true, HttpStatusCode);
+          if (GotErrorCode)
+          {
+            ResultError.ErrorCode = FNullableInt32(true, (int32)ErrorCode);
+          }
+          else
+          {
+            ResultError.ErrorCode = FNullableInt32(false, 0);
+          }
+          if (GotMessage)
+          {
+            ResultError.Message = FNullableString(true, Message);
+          }
+          else
+          {
+            ResultError.Message = FNullableString(false, TEXT(""));
+          }
+          if (GotParameter)
+          {
+            ResultError.Parameter = FNullableString(true, Parameter);
+          }
+          else
+          {
+            ResultError.Parameter = FNullableString(false, TEXT(""));
+          }
+          UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message.Value));
+          ${failureBroadcast};
+          return;
+        }
+        else
+        {
+          struct FHiveApiError ResultError;
+          ResultError.HttpStatusCode = FNullableInt32(true, HttpStatusCode);
+          ResultError.ErrorCode = FNullableInt32(false, 0);
+          ResultError.Message = FNullableString(true, TEXT("Unable to deserialize JSON response as HiveMP system error!"));
+          ResultError.Parameter = FNullableString(false, TEXT(""));
+          UE_LOG_HIVE(Error, TEXT("[fail] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *(ResultError.Message.Value));
+          ${failureBroadcast};
+          return;
+        }
+      }
+  
+      {
+        struct FHiveApiError ResultError;
+  `;
+    if (spec.response !== null) {
+      const ueType = resolveType(spec.response);
+      code += `
+        ${ueType.getCPlusPlusInType(spec.response)} Result;
+        ${ueType.emitDeserializationFragment({
+          spec: spec.response,
+          into: 'Result',
+          from: 'JsonValue',
+          nestLevel: 0
+        })}
+        UE_LOG_HIVE(Warning, TEXT("[success] ${spec.apiId} ${spec.path} ${spec.method}"));
+        OnSuccess.Broadcast(Result, ResultError);
+  `;
+    } else {
+      code += `
+        UE_LOG_HIVE(Warning, TEXT("[success] ${spec.apiId} ${spec.path} ${spec.method}"));
+        OnSuccess.Broadcast(ResultError);
+  `;
+    }
+    code += `
+      }
+    }, TWeakObjectPtr<UObject>(this));
+	  return;
+  }
+
   TArray<FString> QueryStringElements;
 `;
   for (const parameter of spec.parameters) {
@@ -136,14 +301,6 @@ void U${spec.implementationName}::Activate()
   ${ueType.pushOntoQueryStringArray('QueryStringElements', parameter)}
 `;
     }
-  }
-
-  let failureBroadcast = `OnFailure.Broadcast(ResultError)`;
-  let customResponseHandler = '';
-  if (spec.response !== null) {
-    const ueType = resolveType(spec.response);
-    failureBroadcast = `OnFailure.Broadcast(${ueType.getDefaultInitialiser(spec.response)}, ResultError)`;
-    customResponseHandler = ueType.getCustomResponseHandler(spec.response, `${spec.apiId} ${spec.path} ${spec.method}`);
   }
 
   code += `

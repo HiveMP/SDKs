@@ -220,6 +220,19 @@ else
     return '/* NOT IMPLEMENTED: Pushing schema onto query string */';
   }
 
+  public pushOntoHotpatchJson(jsonObjectVariable: string, spec: IParameterSpec): string | null {
+    return `
+if (this->Field_${spec.name}.HasValue)
+{
+  // TODO: Hotpatch handling.
+}
+else
+{
+  ${jsonObjectVariable}->SetField(TEXT("${spec.name}"), MakeShareable(new FJsonValueNull()));
+}
+`;
+  }
+
   public getCustomResponseHandler(spec: ITypeSpec): string {
     return '';
   }

@@ -37,7 +37,7 @@ if (!$NoCleanAndSdkUnpack) {
   Add-Type -AssemblyName System.IO.Compression.FileSystem;
   $sdkName = (Get-Item $PSScriptRoot\..\assets\UnrealEngine-$Version-SDK.$SdkVersion.zip).FullName;
   echo $sdkName
-  [System.IO.Compression.ZipFile]::ExtractToDirectory($sdkName, "$PSScriptRoot\..\tests\UnrealTest-$Version\Plugins\HiveMPSDK");
+  Expand-Archive -Force -Path $sdkName -DestinationPath "$PSScriptRoot\..\tests\UnrealTest-$Version\Plugins\HiveMPSDK"
 
   echo "Copying build script..."
   Copy-Item -Force $PSScriptRoot\Build-UE4Test.ps1 "$PSScriptRoot\..\tests\UnrealTest-$Version\Build-UE4Test.ps1"

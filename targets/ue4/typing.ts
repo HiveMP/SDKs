@@ -70,6 +70,8 @@ export interface IUnrealEngineType {
   getDefaultInitialiser(spec: ITypeSpec): string;
 
   pushOntoQueryStringArray(arrayVariable: string, spec: IParameterSpec): string | null;
+
+  pushOntoHotpatchJson(jsonObjectVariable: string, spec: IParameterSpec): string | null;
   
   getCustomResponseHandler(spec: ITypeSpec, logContext: string): string;
 }

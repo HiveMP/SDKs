@@ -27,6 +27,10 @@ extern "C" {
 #include "module/process/module.h"
 #include "module/steam/module.h"
 
+#if CLIENT_CONNECT_TARGETING_UNREAL
+DEFINE_LOG_CATEGORY(LogClientConnect);
+#endif
+
 void _ccl_require(js_State *J)
 {
 	auto mod = js_tostring(J, 1);
