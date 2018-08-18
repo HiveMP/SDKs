@@ -113,6 +113,7 @@ stage("Setup") {
             mainBuildHash = hashing.hashEntriesEx(
                 mainBuildConfigVersion,
                 [
+                    'client_connect/',
                     'targets/',
                     'sdks/',
                     'util/',
