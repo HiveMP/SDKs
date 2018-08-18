@@ -86,7 +86,7 @@ def clientConnectHash = ""
 def clientConnectBuildConfigVersion = "3"
 def mainBuildHash = ""
 // If changing the steps related to the main build, increase this number.
-def mainBuildConfigVersion = "3"
+def mainBuildConfigVersion = "4"
 def ualBuildHash = ""
 def ualBuildConfigVersion = "3"
 if (env.CHANGE_TARGET != null) {
