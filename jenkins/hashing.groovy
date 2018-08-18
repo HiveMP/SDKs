@@ -19,7 +19,7 @@ def hashEntriesEx(version, entries, extra) {
       sh ('echo "$(git log --format="format:%H" -1 --follow "' + entry + '")" >> ' + id + '_hash')
     }
     extra.each { entry -> 
-      sh ('echo "' + entry + '" > ' + id + '_hash')
+      sh ('echo "' + entry + '" >> ' + id + '_hash')
     }
     return sha1(id + '_hash')
   } finally {
