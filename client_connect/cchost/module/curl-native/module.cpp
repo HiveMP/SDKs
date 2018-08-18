@@ -19,6 +19,7 @@
 #include "curl/curl.h"
 #endif
 #include <cstring>
+#include <cstdint>
 #include <thread>
 #include <vector>
 #include "../../jsutil.h"
@@ -50,7 +51,7 @@ struct curl_handle_t {
     std::string responseData;
     const char* resolve;
     const char* reject;
-    long responseStatusCode;
+    int64_t responseStatusCode;
 };
 
 std::vector<struct curl_handle_t*>* handles = nullptr;
@@ -267,7 +268,7 @@ void js_curl_fetch(js_State* J)
                 handle_ref->state = CHS_SUCCESS;
             }
 
-            log_trace("curl fetch: http-status-code=%i", handle_ref->responseStatusCode);
+            log_trace("curl fetch: http-status-code=%lli", handle_ref->responseStatusCode);
 
             handle_ref->responseData = std::string(TCHAR_TO_UTF8(*(Response->GetContentAsString())));
 
@@ -375,7 +376,7 @@ void js_tick_curl_native(js_State* J)
 
 				if ((*it)->state == CHS_ERROR)
 				{
-					js_getregistry(J, (*it)->resolve);
+					js_getregistry(J, (*it)->reject);
 					if (js_isundefined(J, -1))
 					{
 						// no such registry value

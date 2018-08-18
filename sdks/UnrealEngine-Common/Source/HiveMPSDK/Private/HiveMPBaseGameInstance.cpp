@@ -34,15 +34,26 @@ bool UHiveMPBaseGameInstance::TickClientConnect(float DeltaSeconds)
 	cci_tick();
 
 	// Call any callbacks for completed HiveMP Client Connect handles.
-	for (auto& Elem : this->RegisteredCallbackHandles)
+	TArray<int64> HandlesToRemove;
+	TArray<int64> HandlesToIterate;
+	this->RegisteredCallbackHandles.GenerateKeyArray(HandlesToIterate);
+	for (int i = 0; i < HandlesToIterate.Num(); i++)
 	{
-		if (js_is_api_hotpatch_call_ready(Elem.Key))
+		auto Handle = HandlesToIterate[i];
+		auto Delegate = this->RegisteredCallbackHandles[Handle];
+
+		if (js_is_api_hotpatch_call_ready(Handle))
 		{
-			FString Result = FString(js_get_api_hotpatch_result(Elem.Key));
-			int32_t StatusCode = js_get_api_hotpatch_status_code(Elem.Key);
-			Elem.Value->Execute(StatusCode, Result);
-			js_release_api_hotpatch_result(Elem.Key);
+			FString Result = FString(js_get_api_hotpatch_result(Handle));
+			int32_t StatusCode = js_get_api_hotpatch_status_code(Handle);
+			Delegate->Execute(StatusCode, Result);
+			js_release_api_hotpatch_result(Handle);
+			HandlesToRemove.Add(Handle);
 		}
+	}
+	for (int i = 0; i < HandlesToRemove.Num(); i++)
+	{
+		this->RegisteredCallbackHandles.Remove(HandlesToRemove[i]);
 	}
 
 	return true;

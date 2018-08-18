@@ -1,5 +1,6 @@
 import { registerApiHotpatch, IApiHotpatchRequest, IApiHotpatchResponse } from "hotpatching";
 import { HiveMP } from "./hivemp";
+import * as console from 'console';
 
 export default function hotpatch<Req, Resp>(
   id: string,
@@ -12,6 +13,7 @@ export default function hotpatch<Req, Resp>(
         response: await callback(request)
       }
     } catch (e) {
+      console.log('caught error in hotpatch: ' + JSON.stringify(e));
       if (e.responseTextIsValid) {
         return {
           code: e.httpStatusCode,

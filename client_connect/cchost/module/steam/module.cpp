@@ -31,6 +31,13 @@ extern "C" {
 #include "log.h"
 }
 #endif
+#if CLIENT_CONNECT_TARGETING_UNREAL
+#define log_warn_basic(txt) ;
+#define log_info_basic(txt) ;
+#else
+#define log_warn_basic log_warn
+#define log_info_basic log_info
+#endif
 
 enum HiveMPSteamManagerStatus
 {
@@ -75,7 +82,7 @@ bool try_init_steam()
 		{
 #endif
 			if (SteamAPI_Init == nullptr || SteamAPI_IsSteamRunning == nullptr) {
-				log_warn("unable to load Steam APIs: the steam_api DLL couldn't be loaded (this game might not support Steam)");
+				log_warn_basic("unable to load Steam APIs: the steam_api DLL couldn't be loaded (this game might not support Steam)");
 				did_init_steam = false;
 				has_inited_steam = true;
 			} else {
@@ -88,11 +95,11 @@ bool try_init_steam()
 
 				if (!did_init_steam)
 				{
-					log_warn("unable to load Steam APIs: Steam isn't running or otherwise failed to load");
+					log_warn_basic("unable to load Steam APIs: Steam isn't running or otherwise failed to load");
 				}
 				else
 				{
-					log_info("successfully loaded Steam APIs");
+					log_info_basic("successfully loaded Steam APIs");
 				}
 			}
 #if defined(WIN32)
@@ -103,13 +110,13 @@ bool try_init_steam()
 			did_init_steam = false;
 			has_inited_steam = true;
 
-			log_warn("unable to load Steam APIs: the steam_api DLL couldn't be loaded (this game might not support Steam)");
+			log_warn_basic("unable to load Steam APIs: the steam_api DLL couldn't be loaded (this game might not support Steam)");
 		}
 #endif
 #else
 		did_init_steam = false;
 		has_inited_steam = true;
-		log_warn("unable to load Steam APIs: this version of Client Connect wasn't built with Steam support");
+		log_warn_basic("unable to load Steam APIs: this version of Client Connect wasn't built with Steam support");
 #endif
 	}
 

@@ -222,18 +222,24 @@ else
 
   public pushOntoHotpatchJson(jsonObjectVariable: string, spec: IParameterSpec): string | null {
     return `
-if (this->Field_${spec.name}.HasValue)
 {
-  // TODO: Hotpatch handling.
-}
-else
-{
-  ${jsonObjectVariable}->SetField(TEXT("${spec.name}"), MakeShareable(new FJsonValueNull()));
+  TSharedPtr<FJsonValue> TargetValue;
+  ${this.emitSerializationFragment({
+    nestLevel: 0,
+    from: `this->Field_${spec.name}`,
+    into: 'TargetValue',
+    spec: spec
+  })}
+  ${jsonObjectVariable}->SetField(TEXT("${spec.name}"), TargetValue);
 }
 `;
   }
 
   public getCustomResponseHandler(spec: ITypeSpec): string {
+    return '';
+  }
+
+  public getCustomHotpatchResponseHandler(spec: ITypeSpec): string {
     return '';
   }
 }

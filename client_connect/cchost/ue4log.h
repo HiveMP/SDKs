@@ -3,17 +3,27 @@
 #pragma once
 
 #include "EngineMinimal.h"
+#include "LogVerbosity.h"
+#include <cstdio>
+#include <cstdlib>
+#include <cstdarg>
 
 DECLARE_LOG_CATEGORY_EXTERN(LogClientConnect, Log, All);
 
-// TODO: Wire up these logging macros to UE4 properly.
+#define transpose_ue4_log(verbosity, fmt, ...) \
+{ \
+	char* buf = (char*)malloc(4096); \
+	snprintf(buf, 4096, fmt, __VA_ARGS__); \
+	UE_LOG(LogClientConnect, verbosity, TEXT("%s"), UTF8_TO_TCHAR(buf)); \
+	free(buf); \
+}
 
-#define log_trace(fmt, ...) UE_LOG(LogClientConnect, VeryVerbose, TEXT(fmt), __VA_ARGS__);
-#define log_debug(fmt, ...) UE_LOG(LogClientConnect, Verbose, TEXT(fmt), __VA_ARGS__);
-#define log_info(fmt, ...)  UE_LOG(LogClientConnect, Log, TEXT(fmt), __VA_ARGS__);
-#define log_warn(fmt, ...)  UE_LOG(LogClientConnect, Warning, TEXT(fmt), __VA_ARGS__);
-#define log_error(fmt, ...) UE_LOG(LogClientConnect, Error, TEXT(fmt), __VA_ARGS__);
-#define log_fatal(fmt, ...) UE_LOG(LogClientConnect, Error, TEXT(fmt), __VA_ARGS__);
+#define log_trace(fmt, ...) transpose_ue4_log(Log, fmt, __VA_ARGS__);
+#define log_debug(fmt, ...) transpose_ue4_log(Log, fmt, __VA_ARGS__);
+#define log_info(fmt, ...)  transpose_ue4_log(Log, fmt, __VA_ARGS__);
+#define log_warn(fmt, ...)  transpose_ue4_log(Warning, fmt, __VA_ARGS__);
+#define log_error(fmt, ...) transpose_ue4_log(Error, fmt, __VA_ARGS__);
+#define log_fatal(fmt, ...) transpose_ue4_log(Error, fmt, __VA_ARGS__);
 
 #define log_set_udata(...) ;
 #define log_set_lock(...) ;

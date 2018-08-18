@@ -112,4 +112,8 @@ else
   public getCustomResponseHandler(spec: ITypeSpec): string {
     return '';
   }
+
+  public getCustomHotpatchResponseHandler(spec: ITypeSpec): string {
+    return '';
+  }
 }

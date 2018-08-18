@@ -8,7 +8,7 @@
 #include "Runtime/Engine/Classes/Engine/GameInstance.h"
 #include "HiveMPBaseGameInstance.generated.h"
 
-DECLARE_DELEGATE_TwoParams(FClientConnectCallback, uint32_t, FString)
+DECLARE_DELEGATE_TwoParams(FClientConnectCallback, int32_t, FString)
 
 UCLASS()
 class UHiveMPBaseGameInstance : public UGameInstance

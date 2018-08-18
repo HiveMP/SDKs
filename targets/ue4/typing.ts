@@ -74,6 +74,8 @@ export interface IUnrealEngineType {
   pushOntoHotpatchJson(jsonObjectVariable: string, spec: IParameterSpec): string | null;
   
   getCustomResponseHandler(spec: ITypeSpec, logContext: string): string;
+
+  getCustomHotpatchResponseHandler(spec: ITypeSpec, logContext: string): string;
 }
 
 export function resolveType(spec: ITypeSpec): IUnrealEngineType {

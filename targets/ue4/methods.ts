@@ -94,10 +94,12 @@ U${spec.implementationName}::U${spec.implementationName}(const FObjectInitialize
 export function emitMethodProxyCallImplementation(spec: IMethodSpec): string {
   let failureBroadcast = `OnFailure.Broadcast(ResultError)`;
   let customResponseHandler = '';
+  let customHotpatchResponseHandler = '';
   if (spec.response !== null) {
     const ueType = resolveType(spec.response);
     failureBroadcast = `OnFailure.Broadcast(${ueType.getDefaultInitialiser(spec.response)}, ResultError)`;
     customResponseHandler = ueType.getCustomResponseHandler(spec.response, `${spec.apiId} ${spec.path} ${spec.method}`);
+    customHotpatchResponseHandler = ueType.getCustomHotpatchResponseHandler(spec.response, `${spec.apiId} ${spec.path} ${spec.method}`);
   }
 
   let code = `
@@ -135,7 +137,7 @@ void U${spec.implementationName}::Activate()
 {
   UE_LOG_HIVE(Display, TEXT("[start] ${spec.apiId} ${spec.path} ${spec.method}"));
 
-  if (js_is_api_hotpatched("client-connect", "serviceEnabledGET"))
+  if (js_is_api_hotpatched("${spec.apiId}", "${spec.operationId}"))
   {
 	  if (this->WorldContextObject == nullptr)
 	  {
@@ -182,18 +184,18 @@ ${ueType.pushOntoHotpatchJson('HotpatchJson', parameter)}
 	  long handle = js_call_api_hotpatch(
 		  "${spec.apiId}",
 		  "${spec.operationId}",
-		  "https://${spec.apiId}-api.hivemp.com${spec.basePath}${spec.path}",
+		  "https://${spec.apiId}-api.hivemp.com${spec.basePath}",
 		  TCHAR_TO_ANSI(*this->ApiKey),
 		  TCHAR_TO_ANSI(*EncodedParameters));
 
     HiveMPGameInstance->RegisterClientConnectCallback(handle, [this](
-      uint32_t HttpStatusCode,
+      int32_t HttpStatusCode,
       FString HttpBody,
       TWeakObjectPtr<UObject> SelfRef)
     {
       UE_LOG_HIVE(Warning, TEXT("[info] ${spec.apiId} ${spec.path} ${spec.method}: %s"), *HttpBody);
   
-      ${customResponseHandler}
+      ${customHotpatchResponseHandler}
   
       TSharedPtr<FJsonValue> JsonValue;
       TSharedRef<TJsonReader<TCHAR>> Reader = TJsonReaderFactory<>::Create(HttpBody);
@@ -209,7 +211,7 @@ ${ueType.pushOntoHotpatchJson('HotpatchJson', parameter)}
         return;
       }
       
-      if (!bSucceeded || HttpStatusCode != 200)
+      if (HttpStatusCode != 200)
       {
         const TSharedPtr<FJsonObject>* JsonObject;
         if (JsonValue->TryGetObject(JsonObject))

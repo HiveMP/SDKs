@@ -140,4 +140,23 @@ else if (Response->GetContentAsString().Equals(TEXT("false")))
 }
 `
   }
+
+  public getCustomHotpatchResponseHandler(spec: ITypeSpec, logContext: string): string {
+    return `
+if (HttpBody.Equals(TEXT("true")))
+{
+  struct FHiveApiError ResultError;
+  UE_LOG_HIVE(Warning, TEXT("[success] ${logContext}"));
+  OnSuccess.Broadcast(FNullableBoolean(true, true), ResultError);
+  return;
+}
+else if (HttpBody.Equals(TEXT("false")))
+{
+  struct FHiveApiError ResultError;
+  UE_LOG_HIVE(Warning, TEXT("[success] ${logContext}"));
+  OnSuccess.Broadcast(FNullableBoolean(true, false), ResultError);
+  return;
+}
+`
+  }
 }

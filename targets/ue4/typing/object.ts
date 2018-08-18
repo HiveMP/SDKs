@@ -79,18 +79,26 @@ ${arrayVariable}.Add(FString::Printf(TEXT("${spec.name}=%s"), *FGenericPlatformH
 
   public pushOntoHotpatchJson(jsonObjectVariable: string, spec: IParameterSpec): string | null {
     return `
-if (this->Field_${spec.name}.HasValue)
 {
-  // TODO: Hotpatch handling.
-}
-else
-{
-  ${jsonObjectVariable}->SetField(TEXT("${spec.name}"), MakeShareable(new FJsonValueNull()));
+  TSharedPtr<FJsonValue> ObjectJsonValue;
+  TSharedRef<TJsonReader<TCHAR>> ObjectReader = TJsonReaderFactory<>::Create(this->Field_${spec.name});
+  if (!FJsonSerializer::Deserialize(ObjectReader, ObjectJsonValue) || !ObjectJsonValue.IsValid())
+  {
+    ${jsonObjectVariable}->SetField(TEXT("${spec.name}"), MakeShareable(new FJsonValueNull()));
+  }
+  else
+  {
+    ${jsonObjectVariable}->SetField(TEXT("${spec.name}"), ObjectJsonValue);
+  }
 }
 `;
   }
 
   public getCustomResponseHandler(spec: ITypeSpec): string {
+    return '';
+  }
+
+  public getCustomHotpatchResponseHandler(spec: ITypeSpec): string {
     return '';
   }
 }
