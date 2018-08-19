@@ -837,16 +837,16 @@ node('linux') {
                 }
                 parallelMap['Unity ZIP GitHub'] =
                 {
-                    sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f assets/Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unity as a ZIP archive"')
+                    sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f assets/Unity-SDK.' + sdkVersion + '.zip -l "HiveMP SDK for Unity as a ZIP archive"')
                 }
                 parallelMap['Unity Package GitHub'] =
                 {
-                    sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage -f assets/Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage -l "HiveMP SDK as a Unity package"')
+                    sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage -f assets/Unity-SDK.' + sdkVersion + '.unitypackage -l "HiveMP SDK as a Unity package"')
                 }
-                supportedUnrealVersions.each { version ->
+                supportedUnrealVersions.each { version, platforms ->
                     parallelMap['UE' + version + ' GitHub'] =
                     {
-                        sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f assets/UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -l "HiveMP SDK for Unreal Engine ' + version + '"')
+                        sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f assets/UnrealEngine-' + version + '-SDK.' + sdkVersion + '.zip -l "HiveMP SDK for Unreal Engine ' + version + '"')
                     };
                 }
                 parallelMap['TypeScript GitHub'] =
@@ -856,7 +856,7 @@ node('linux') {
                 parallelMap['TypeScript NPM'] =
                 {
                     withCredentials([string(credentialsId: 'npm-publish-key', variable: 'NPM_TOKEN')]) {
-                        sh('npm publish assets/hivemp.tgz')
+                        sh('npm publish ./assets/hivemp.tgz --access public')
                     }
                 }
                 parallel (parallelMap)
