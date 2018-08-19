@@ -818,7 +818,7 @@ node('linux') {
         timeout(60) {
             stage("Publish (Prepare)") {
                 caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'Assets', 'assets/', 'dir')
-                sh('\$GITHUB_RELEASE release --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + gitCommitAppend ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This release is being created by the build server." -p')
+                sh('\$GITHUB_RELEASE release --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + gitCommitAppend + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This release is being created by the build server." -p')
             }
             stage("Publish (Upload)") {                
                 def parallelMap = [:]
