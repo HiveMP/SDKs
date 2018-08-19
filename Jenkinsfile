@@ -808,15 +808,17 @@ stage("Run Tests") {
     parallel (parallelMap)
 }
 def targetRepo = 'SDKs-PR-Releases'
+def gitCommitAppend = ''
 if (env.BRANCH_NAME == 'master') {
     targetRepo = 'SDKs';
+    gitCommitAppend = ' -c ' + gitCommit;
 }
 node('linux') {
     withCredentials([string(credentialsId: 'HiveMP-Deploy', variable: 'GITHUB_TOKEN')]) {
         timeout(60) {
             stage("Publish (Prepare)") {
                 caching.pullCacheDirectory(gcloud, hashing, mainBuildHash, 'Assets', 'assets/', 'dir')
-                sh('\$GITHUB_RELEASE release --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -c ' + gitCommit + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This release is being created by the build server." -p')
+                sh('\$GITHUB_RELEASE release --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + gitCommitAppend ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This release is being created by the build server." -p')
             }
             stage("Publish (Upload)") {                
                 def parallelMap = [:]
