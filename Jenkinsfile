@@ -855,7 +855,7 @@ node('linux') {
                 }
                 parallelMap['TypeScript NPM'] =
                 {
-                    withCredentials([string(credentialsId: 'npm-publish-key', variable: 'NPM_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'npm-publish-key', variable: 'npm_config_//registry.npmjs.org/:_authToken')]) {
                         sh('npm publish ./assets/hivemp.tgz --access public')
                     }
                 }
