@@ -9,10 +9,15 @@ if (Test-Path ./assets/hivemp.tgz) {
   Remove-Item ./assets/hivemp.tgz
 }
 
+$BuildVersion = "0"
+if ($null -ne $env:BUILD_NUMBER) {
+  $BuildVersion = "$env:BUILD_NUMBER"
+}
+
 Push-Location ./dist/TypeScript
 try {
   $PackageJson = (Get-Content -Raw -Path ./package.json)
-  $PackageJson = $PackageJson.Replace("`"version`": `"0.0.1`"", "`"version`": `"$SdkVersion.0`"");
+  $PackageJson = $PackageJson.Replace("`"version`": `"0.0.1`"", "`"version`": `"$SdkVersion.$BuildVersion`"");
   Set-Content -Path ./package.json -Value $PackageJson
 
   yarn

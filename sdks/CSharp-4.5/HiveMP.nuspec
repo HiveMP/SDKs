@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-    <metadata>
+    <metadata minClientVersion="3.3">
         <id>HiveMP</id>
         <version>0.1.0</version>
         <authors>Redpoint Games Pty Ltd</authors>
@@ -8,6 +8,7 @@
         <language>en-US</language>
         <projectUrl>https://hivemp.com/</projectUrl>
         <licenseUrl>https://opensource.org/licenses/MIT</licenseUrl>
+        <iconUrl>https://hivemp.com/img/HiveSphereBlue.png</iconUrl>
         <description>
 Ship your next title faster with HiveMP. With everything from multiplayer APIs to business tools, HiveMP supports you through from development to release.
 
@@ -20,11 +21,26 @@ This is the official .NET SDK for HiveMP. It supports .NET 3.5 and .NET Standard
             <files include="Linux32\*" buildAction="None" copyToOutput="true" />
             <files include="Linux64\*" buildAction="None" copyToOutput="true" />
         </contentFiles>
+        <dependencies>
+            <group>
+                <dependency id="Newtonsoft.Json" version="10.0.3" />
+            </group>
+            <group targetFramework="net35">
+                <dependency id="Newtonsoft.Json" version="10.0.3" />
+                <dependency id="SuperSocket.ClientEngine.Core" version="0.10.0" />
+                <dependency id="WebSocket4Net" version="0.15.2" />
+            </group>
+        </dependencies>
     </metadata>
     <files>
         <file src="..\CSharp-3.5\bin\Release\HiveMP.dll" target="lib\net35\" />
         <file src="..\CSharp-3.5\bin\Release\HiveMP.pdb" target="lib\net35\" />
         <file src="bin\Release\netstandard2.0\HiveMP.dll" target="lib\netstandard2.0\" />
         <file src="bin\Release\netstandard2.0\HiveMP.pdb" target="lib\netstandard2.0\" />
+        <file src="Win32\*" target="contentFiles\Win32" />
+        <file src="Win64\*" target="contentFiles\Win64" />
+        <file src="Mac64\*" target="contentFiles\Mac64" />
+        <file src="Linux32\*" target="contentFiles\Linux32" />
+        <file src="Linux64\*" target="contentFiles\Linux64" />
     </files>
 </package>

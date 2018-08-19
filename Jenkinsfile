@@ -827,7 +827,7 @@ node('linux') {
                     sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n CSharp-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -f assets/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -l "HiveMP SDK for C# (.NET Framework 3.5 and .NET Standard 2.0)"')
                 }
                 if (env.BRANCH_NAME == 'master') {
-                    // These only operate for master branch because they push to other services.
+                    // This only operates for master branch because it pushes to other services.
                     parallelMap['C# NuGet'] =
                     {
                         withCredentials([string(credentialsId: 'nuget-api-key', variable: 'NUGET_API_KEY')]) {
@@ -853,10 +853,13 @@ node('linux') {
                 {
                     sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n hivemp.' + sdkVersion + '.' + env.BUILD_NUMBER + '.tgz -f assets/hivemp.tgz -l "HiveMP SDK for Node.js / TypeScript"')
                 }
-                parallelMap['TypeScript NPM'] =
-                {
-                    withCredentials([string(credentialsId: 'npm-publish-key', variable: 'npm_config_//registry.npmjs.org/:_authToken')]) {
-                        sh('npm publish ./assets/hivemp.tgz --access public')
+                if (env.BRANCH_NAME == 'master') {
+                    // This only operates for master branch because it pushes to other services.
+                    parallelMap['TypeScript NPM'] =
+                    {
+                        withCredentials([string(credentialsId: 'npm-publish-key', variable: 'npm_config_//registry.npmjs.org/:_authToken')]) {
+                            sh('npm publish ./assets/hivemp.tgz --access public')
+                        }
                     }
                 }
                 parallel (parallelMap)
