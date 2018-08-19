@@ -2,13 +2,19 @@ cmake_minimum_required(VERSION 3.8)
 project(client_connect)
 
 # Set up the default Client Connect target platform
-message("CC_PLATFORM_TARGET is set to: ${CC_PLATFORM_TARGET}")
 if("${CC_PLATFORM_TARGET}" STREQUAL "Windows")
 elseif("${CC_PLATFORM_TARGET}" STREQUAL "macOS")
 elseif("${CC_PLATFORM_TARGET}" STREQUAL "Linux")
 else()
-  message(FATAL_ERROR "CC_PLATFORM_TARGET must be Windows, macOS or Linux (set to: '${CC_PLATFORM_TARGET}')")
+  if(MSVC)
+    set(CC_PLATFORM_TARGET "Windows")
+  elseif(APPLE)
+    set(CC_PLATFORM_TARGET "macOS")
+  else()
+    set(CC_PLATFORM_TARGET "Linux")
+  endif()
 endif()
+message("CC_PLATFORM_TARGET is set to: ${CC_PLATFORM_TARGET}")
 
 # This should hopefully also set for curl
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
