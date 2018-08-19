@@ -859,6 +859,7 @@ node('linux') {
                         sh('npm publish assets/hivemp.tgz')
                     }
                 }
+                parallel (parallelMap)
             }
             stage('Publish (Finalise)') {
                 sh('\$GITHUB_RELEASE edit --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n "HiveMP SDKs ' + sdkVersion + '.' + env.BUILD_NUMBER + '" -d "This is an automated release of the HiveMP SDKs. Refer to the [HiveMP documentation](https://hivemp.com/documentation/) for information on how to use these SDKs."')
