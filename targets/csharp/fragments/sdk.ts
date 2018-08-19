@@ -432,7 +432,7 @@ Rx77b+JypsJMRA==".Replace("\\r\\n", "").Replace("\\n", "")));
         private class ClientConnect${platform}Platform : IClientConnect
         {
             [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-            private static extern void cc_init();
+            private static extern void cc_init(bool log_stderr, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStr)] string log_path);
             [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
             private static extern void cc_tick();
             [System.Runtime.InteropServices.DllImport("${path}", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
@@ -453,7 +453,7 @@ Rx77b+JypsJMRA==".Replace("\\r\\n", "").Replace("\\n", "")));
             
             public void Init()
             {
-                cc_init();
+                cc_init(true, null);
             }
 
             public void Tick()
