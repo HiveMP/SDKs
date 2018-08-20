@@ -104,10 +104,13 @@ stage("Setup") {
             sh 'git submodule foreach --recursive git clean -xdf'
             sdkVersion = readFile 'SdkVersion.txt'
             sdkVersion = sdkVersion.trim()
-            clientConnectHash = hashing.hashEntries(
+            clientConnectHash = hashing.hashEntriesEx(
                 clientConnectBuildConfigVersion,
                 [
                     'client_connect/'
+                ],
+                [
+                    sdkVersion
                 ]
             );
             mainBuildHash = hashing.hashEntriesEx(
@@ -125,7 +128,8 @@ stage("Setup") {
                     'SdkVersion.txt'
                 ],
                 [
-                    enabledTargetsString
+                    enabledTargetsString,
+                    sdkVersion
                 ]
             );
             ualBuildHash = hashing.hashEntries(
