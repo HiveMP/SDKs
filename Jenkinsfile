@@ -831,7 +831,7 @@ node('linux') {
                     parallelMap['C# NuGet'] =
                     {
                         withCredentials([string(credentialsId: 'nuget-api-key', variable: 'NUGET_API_KEY')]) {
-                            sh('nuget push -ApiKey %NUGET_API_KEY% -Source nuget.org -NonInteractive assets/HiveMP.nupkg')
+                            sh('dotnet nuget push -k %NUGET_API_KEY% -s nuget.org assets/HiveMP.nupkg')
                         }
                     }
                 }
