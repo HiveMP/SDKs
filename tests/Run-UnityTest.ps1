@@ -45,8 +45,13 @@ function Wait-For-Unity-Exit($path, $processId) {
       $outcome = "failure";
       $running = $false;
       break;
+    } elseif ($l -ne $null -and $l.Contains("The remote server returned an error: (500) Internal Server Error")) {
+      # Temporary failure
+      $outcome = "retry";
+      $running = $false;
+      break;
     } elseif ((Get-Process | where -FilterScript {$_.Id -eq $processId}).Count -eq 0) {
-      # Game exited but we didn't see "Created game lobby"
+      # Game exited but we didn't see "TEST PASS"
       $outcome = "failure";
       $running = $false;
       break;

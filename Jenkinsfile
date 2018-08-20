@@ -499,7 +499,7 @@ if (preloaded["SDKs"]) {
                 parallelMap["CSharp"] = {
                     timeout(10) {
                         bat 'pwsh util/Fetch-NuGet-4.5.ps1'
-                        bat ('cd dist/CSharp-4.5 && nuget pack -Version ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -NonInteractive -Verbosity detailed -OutputDirectory ..\\..\\assets HiveMP.nuspec')
+                        bat ('cd dist/CSharp-4.5 && nuget pack -Version ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -NonInteractive -Verbosity detailed -OutputDirectory ..\\..\\assets -OutputFileNamesWithoutVersion HiveMP.nuspec')
                     }
                 };
             }
@@ -824,29 +824,29 @@ node('linux') {
                 def parallelMap = [:]
                 parallelMap['C# GitHub'] =
                 {
-                    sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n CSharp-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -f assets/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -l "HiveMP SDK for C# (.NET Framework 3.5 and .NET Standard 2.0)"')
+                    sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg -f assets/HiveMP.nupkg -l "HiveMP SDK for C# (.NET Framework 3.5 and .NET Standard 2.0)"')
                 }
                 if (env.BRANCH_NAME == 'master') {
                     // This only operates for master branch because it pushes to other services.
                     parallelMap['C# NuGet'] =
                     {
                         withCredentials([string(credentialsId: 'nuget-api-key', variable: 'NUGET_API_KEY')]) {
-                            sh('nuget push -ApiKey %NUGET_API_KEY% -Source nuget.org -NonInteractive assets/HiveMP.' + sdkVersion + '.' + env.BUILD_NUMBER + '.nupkg')
+                            sh('nuget push -ApiKey %NUGET_API_KEY% -Source nuget.org -NonInteractive assets/HiveMP.nupkg')
                         }
                     }
                 }
                 parallelMap['Unity ZIP GitHub'] =
                 {
-                    sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f assets/Unity-SDK.' + sdkVersion + '.zip -l "HiveMP SDK for Unity as a ZIP archive"')
+                    sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n HiveMP-Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f assets/Unity-SDK.' + sdkVersion + '.zip -l "HiveMP SDK for Unity as a ZIP archive"')
                 }
                 parallelMap['Unity Package GitHub'] =
                 {
-                    sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage -f assets/Unity-SDK.' + sdkVersion + '.unitypackage -l "HiveMP SDK as a Unity package"')
+                    sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n HiveMP-Unity-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.unitypackage -f assets/Unity-SDK.' + sdkVersion + '.unitypackage -l "HiveMP SDK as a Unity package"')
                 }
                 supportedUnrealVersions.each { version, platforms ->
                     parallelMap['UE' + version + ' GitHub'] =
                     {
-                        sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f assets/UnrealEngine-' + version + '-SDK.' + sdkVersion + '.zip -l "HiveMP SDK for Unreal Engine ' + version + '"')
+                        sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n HiveMP-UnrealEngine-' + version + '-SDK.' + sdkVersion + '.' + env.BUILD_NUMBER + '.zip -f assets/UnrealEngine-' + version + '-SDK.' + sdkVersion + '.zip -l "HiveMP SDK for Unreal Engine ' + version + '"')
                     };
                 }
                 parallelMap['TypeScript GitHub'] =
