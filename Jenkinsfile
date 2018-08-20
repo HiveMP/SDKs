@@ -853,15 +853,16 @@ node('linux') {
                 {
                     sh('\$GITHUB_RELEASE upload --user HiveMP --repo ' + targetRepo + ' --tag ' + sdkVersion + '.' + env.BUILD_NUMBER + ' -n hivemp.' + sdkVersion + '.' + env.BUILD_NUMBER + '.tgz -f assets/hivemp.tgz -l "HiveMP SDK for Node.js / TypeScript"')
                 }
-                if (env.BRANCH_NAME == 'master') {
-                    // This only operates for master branch because it pushes to other services.
-                    parallelMap['TypeScript NPM'] =
-                    {
-                        withCredentials([string(credentialsId: 'npm-publish-key', variable: 'npm_config_//registry.npmjs.org/:_authToken')]) {
-                            sh('npm publish ./assets/hivemp.tgz --access public')
-                        }
-                    }
-                }
+                // Not working yet because NPM is borked and won't let us publish the package.
+                // if (env.BRANCH_NAME == 'master') {
+                //     // This only operates for master branch because it pushes to other services.
+                //     parallelMap['TypeScript NPM'] =
+                //     {
+                //         withCredentials([string(credentialsId: 'npm-publish-key', variable: 'npm_config_//registry.npmjs.org/:_authToken')]) {
+                //             sh('npm publish ./assets/hivemp.tgz --access public')
+                //         }
+                //     }
+                // }
                 parallel (parallelMap)
             }
             stage('Publish (Finalise)') {
