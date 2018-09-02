@@ -3,6 +3,7 @@ import { ITypeSpec, IDefinitionSpec, IPropertySpec, IParameterSpec } from '../co
 import { ArrayType } from './typing/array';
 import { BooleanType } from './typing/boolean';
 import { ByteArrayType } from './typing/byteArray';
+import { EnumType } from './typing/enum';
 import { FloatType } from './typing/float';
 import { IntegerType } from './typing/integer';
 import { StringType } from './typing/string';
@@ -15,6 +16,7 @@ const types: ITypeScriptType[] = [
   new ArrayType(),
   new BooleanType(),
   new ByteArrayType(),
+  new EnumType(),
   new FloatType(),
   new IntegerType(),
   new MapType(),

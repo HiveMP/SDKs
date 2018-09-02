@@ -1,15 +1,16 @@
 import { ITypeScriptType } from "../typing";
 import { ITypeSpec, IDefinitionSpec, IParameterSpec } from '../../common/typeSpec';
 
-export class StringType implements ITypeScriptType {
+export class EnumType implements ITypeScriptType {
   public doesHandleType(spec: ITypeSpec): boolean {
     return spec.type === 'string' &&
       spec.format !== 'byte' &&
-      spec.enum === undefined;
+      spec.enum !== undefined;
   }
 
   public getTypeScriptType(spec: ITypeSpec): string {
-    return 'string';
+    const enums = spec.enum.map((value) => '\'' + value.replace('\\', '\\\\').replace('\'', '\\\'') + '\'');
+    return enums.join(' | ');
   }
 
   public emitInterfaceDefinition(spec: IDefinitionSpec): string {

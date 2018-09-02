@@ -19,6 +19,7 @@ export interface ITypeSpec {
   apiFriendlyName?: string;
   document?: any;
   name?: string;
+  enum?: string[];
 }
 
 export interface IParameterSpec extends ITypeSpec {
