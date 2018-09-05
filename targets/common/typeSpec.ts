@@ -79,6 +79,7 @@ export function convertGeneric(context: ITypeContext): ITypeSpec {
         type: context.obj.type,
         document: context.document,
         format: context.obj.format,
+        enum: context.obj.enum,
       };
     }
   }
