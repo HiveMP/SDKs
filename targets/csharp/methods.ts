@@ -433,9 +433,8 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
             return base.WaitForDisconnect();
         }
 
-        protected override HiveMP.Api.HiveMPPromise HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value)
+        protected override void HandleMessage(string protocolId, Newtonsoft.Json.Linq.JToken value)
         {
-            return new HiveMP.Api.HiveMPPromise(() => {});
         }
 #endif
     }
