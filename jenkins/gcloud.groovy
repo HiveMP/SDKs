@@ -69,14 +69,18 @@ def wrap(java.util.LinkedHashMap config, org.jenkinsci.plugins.workflow.cps.CpsC
 }
 
 def installGCloudKvIfNeeded() {
-    if (!this.gcloudKvInstalled.containsKey(env.NODE_NAME)) {
-        if (isUnix()) {
-            sh 'yarn global add @redpointgames/gcloud-kv@0.3.5'
-        } else {
-            bat 'npm i -g @redpointgames/gcloud-kv@0.3.5'
+    echo("Acquiring lock to check if gcloud-kv is available...")
+    lock('gcloud-kv-check-' + env.NODE_NAME) {
+        if (!this.gcloudKvInstalled.containsKey(env.NODE_NAME)) {
+            if (isUnix()) {
+                sh 'yarn global add @redpointgames/gcloud-kv@0.3.5'
+            } else {
+                bat 'npm i -g @redpointgames/gcloud-kv@0.3.5'
+            }
+            this.gcloudKvInstalled[env.NODE_NAME] = true
         }
-        this.gcloudKvInstalled[env.NODE_NAME] = true
     }
+    echo("gcloud-kv presence check complete.")
 }
 
 def keyExists(key) {
