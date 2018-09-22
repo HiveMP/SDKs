@@ -54,7 +54,9 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
         const dependencies = ueType.getDependenciesBaseFilenames(definitionValue);
         let structureHeader = fragments.getCppStructHeader(
           dependencies,
-          baseFilename);
+          baseFilename,
+          ueType,
+          definitionValue);
         let structureCode = fragments.getCppStructCode(baseFilename);
         if (structure !== null) {
           structureHeader += structure;
@@ -66,6 +68,26 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
 
         await this.writeFileContent(opts, 'Source/HiveMPSDK/Public/Generated/' + baseFilename + '.h', structureHeader);
         await this.writeFileContent(opts, 'Source/HiveMPSDK/Private/Generated/' + baseFilename + '.cpp', structureCode);
+
+        if (ueType.requiresArrayContainerImplementation(definitionValue)) {
+          let arrayContainerHeader = fragments.getCppStructArrayContainerHeader(
+            dependencies,
+            baseFilename);
+          let arrayContainerCode = fragments.getCppStructArrayContainerCode(baseFilename);
+          let arrayContainerBPLHeader = fragments.getCppStructArrayContainerBPLHeader(
+            dependencies,
+            baseFilename);
+          let arrayContainerBPLCode = fragments.getCppStructArrayContainerBPLCode(baseFilename);
+
+          arrayContainerHeader += ueType.emitStructureArrayContainerDefinition(definitionValue);
+          arrayContainerBPLHeader += ueType.emitStructureArrayContainerBPLDefinition(definitionValue);
+          arrayContainerBPLCode += ueType.emitStructureArrayContainerBPLImplementation(definitionValue);
+
+          await this.writeFileContent(opts, 'Source/HiveMPSDK/Public/Generated/ArrayContainer_' + baseFilename + '.h', arrayContainerHeader);
+          await this.writeFileContent(opts, 'Source/HiveMPSDK/Private/Generated/ArrayContainer_' + baseFilename + '.cpp', arrayContainerCode);
+          await this.writeFileContent(opts, 'Source/HiveMPSDK/Public/Generated/ArrayContainerBPL_' + baseFilename + '.h', arrayContainerBPLHeader);
+          await this.writeFileContent(opts, 'Source/HiveMPSDK/Private/Generated/ArrayContainerBPL_' + baseFilename + '.cpp', arrayContainerBPLCode);
+        }
       }
       
       for (const method of api.methods) {

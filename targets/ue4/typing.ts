@@ -65,6 +65,14 @@ export interface IUnrealEngineType {
 
   emitSerializationFragment(info: ISerializationInfo): string;
 
+  requiresArrayContainerImplementation(spec: IDefinitionSpec): boolean;
+
+  emitStructureArrayContainerDefinition(spec: IDefinitionSpec): string | null;
+
+  emitStructureArrayContainerBPLDefinition(spec: IDefinitionSpec): string | null;
+
+  emitStructureArrayContainerBPLImplementation(spec: IDefinitionSpec): string | null;
+
   getAssignmentFrom(spec: ITypeSpec, variable: string): string;
 
   getDefaultInitialiser(spec: ITypeSpec): string;

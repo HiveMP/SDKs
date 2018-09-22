@@ -70,12 +70,18 @@ export class SchemaType implements IUnrealEngineType {
     return spec.properties.map(value => resolveType(value).getBaseFilenameForDependencyEmit(value)).filter(x => x !== null);
   }
 
+  private getContainerClassName(spec: IDefinitionSpec): string {
+    return `UHive${this.getNamespace(spec)}_ArrayContainer_${normalizeTypeName(spec.schema)}`;
+  }
+
   public emitStructureDefinition(spec: IDefinitionSpec): string | null {
     const friendlyName = isErrorStructure(spec.schema) ? '' : spec.apiFriendlyName + ', ';
     let structDeclName = 'struct HIVEMPSDK_API FHive' + this.getNamespace(spec) + '_' + normalizeTypeName(spec.schema);
     if (isErrorStructure(spec.schema) && spec.schema === 'HiveMPSystemError') {
       structDeclName = 'struct HIVEMPSDK_API FHiveApiError';
     }
+
+    const containerClassName = this.getContainerClassName(spec);
 
     let structure = `
 USTRUCT(BlueprintType, meta=(DisplayName="${spec.name} (${friendlyName}HiveMP)"))
@@ -97,16 +103,101 @@ ${structDeclName}
     }
     for (const property of spec.properties) {
       const ueType = resolveType(property);
+      let cPlusPlusType = this.isSelfReferencingArrayProperty(spec, property) ? (containerClassName + '*') : ueType.getCPlusPlusInType(property);
       structure += `
   /** ${escapeForMultilineComment(property.description)} */
   UPROPERTY(EditAnywhere, BlueprintReadWrite)
-  ${ueType.getCPlusPlusInType(property)} ${this.translateSpecialPropertyName(spec, property)};
+  ${cPlusPlusType} ${this.translateSpecialPropertyName(spec, property)};
 `;
     }
     structure += `
 };
 `;
+
+    if (this.isSelfReferencingWithArrays(spec)) {
+      structure = `
+class ${containerClassName};
+`;
+    }
+
     return structure;
+  }
+
+  public isSelfReferencingArrayProperty(spec: IDefinitionSpec, property: IPropertySpec): boolean {
+    if (property.type === 'array') {
+      if (resolveType(property.items).getCPlusPlusInType(property.items) == this.getCPlusPlusInType(spec)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public isSelfReferencingWithArrays(spec: IDefinitionSpec): boolean {
+    for (const property of spec.properties) {
+      if (this.isSelfReferencingArrayProperty(spec, property)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  public requiresArrayContainerImplementation(spec: IDefinitionSpec): boolean {
+    return this.isSelfReferencingWithArrays(spec);
+  }
+
+  public emitStructureArrayContainerDefinition(spec: IDefinitionSpec): string | null {
+    const containerClassName = this.getContainerClassName(spec);
+    return `
+UCLASS()
+class HIVEMPSDK_API ${containerClassName} : public UObject
+{
+	GENERATED_BODY()
+
+public:
+
+  UPROPERTY()
+	TArray<${this.getCPlusPlusInType(spec)}> _Data;
+};
+`;
+  }
+
+  public emitStructureArrayContainerBPLDefinition(spec: IDefinitionSpec): string | null {
+    const containerClassName = this.getContainerClassName(spec);
+    return `
+UCLASS()
+class HIVEMPSDK_API ${containerClassName}_BPL : public UBlueprintFunctionLibrary
+{
+	GENERATED_BODY()
+
+public:
+
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "ToArrayContainer (${spec.name})", Keywords = "array cast convert from create"), Category = "HiveMP|Utilities")
+  static ${containerClassName}* Conv_${spec.name}sTo${spec.name}ArrayContainer(const TArray<${this.getCPlusPlusInType(spec)}>& InArray);
+
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "FromArrayContainer (${spec.name})", Keywords = "array cast convert from create"), Category = "HiveMP|Utilities")
+  static TArray<${this.getCPlusPlusInType(spec)}> Conv_${spec.name}ArrayContainerTo${spec.name}s(const ${containerClassName}* InContainer);
+
+};
+`;
+  }
+
+  public emitStructureArrayContainerBPLImplementation(spec: IDefinitionSpec): string | null {
+    const containerClassName = this.getContainerClassName(spec);
+    return `
+${containerClassName}* ${containerClassName}_BPL::Conv_${spec.name}sTo${spec.name}ArrayContainer(const TArray<${this.getCPlusPlusInType(spec)}>& InArray)
+{
+  auto Container = NewObject<${containerClassName}>();
+  Container->_Data = InArray;
+  return Container;
+}
+
+TArray<${this.getCPlusPlusInType(spec)}> ${containerClassName}_BPL::Conv_${spec.name}ArrayContainerTo${spec.name}s(const ${containerClassName}* InContainer)
+{
+  TArray<${this.getCPlusPlusInType(spec)}> Arr;
+  Arr.Append(InContainer->_Data);
+  return Arr;
+}
+`;
   }
 
   public emitDeserializationHeader(spec: IDefinitionSpec): string | null {
@@ -130,10 +221,15 @@ ${this.getCPlusPlusInType(spec)} DeserializeFHive${this.getNamespace(spec)}_${sp
       code += `
   const TSharedPtr<FJsonValue> ${name} = obj->TryGetField(TEXT("${property.name}"));
 `;
+      if (this.isSelfReferencingArrayProperty(spec, property)) {
+        code += `
+  Target.${this.translateSpecialPropertyName(spec, property)} = NewObject<${this.getContainerClassName(spec)}>();
+`;
+      }
       code += ueType.emitDeserializationFragment({
         spec: property,
         from: name,
-        into: `Target.${this.translateSpecialPropertyName(spec, property)}`,
+        into: `Target.${this.translateSpecialPropertyName(spec, property)}` + (this.isSelfReferencingArrayProperty(spec, property) ? '->_Data' : ''),
         nestLevel: 0,
       });
     }
@@ -177,12 +273,23 @@ TSharedPtr<FJsonObject> SerializeFHive${this.getNamespace(spec)}_${spec.normaliz
       code += `
   TSharedPtr<FJsonValue> ${name};
 `;
+      if (this.isSelfReferencingArrayProperty(spec, property)) {
+        code += `
+  if (obj.${this.translateSpecialPropertyName(spec, property)} != nullptr)
+  {
+`;
+      }
       code += ueType.emitSerializationFragment({
         spec: property,
         into: name,
-        from: `obj.${this.translateSpecialPropertyName(spec, property)}`,
+        from: `obj.${this.translateSpecialPropertyName(spec, property)}` + (this.isSelfReferencingArrayProperty(spec, property) ? '->_Data' : ''),
         nestLevel: 0,
       });
+      if (this.isSelfReferencingArrayProperty(spec, property)) {
+        code += `
+  }
+`;
+      }
       code += `
   Target->SetField(TEXT("${property.name}"), ${name});
 `;

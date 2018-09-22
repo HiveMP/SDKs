@@ -1,3 +1,6 @@
+import { IDefinitionSpec } from "../common/typeSpec";
+import { IUnrealEngineType } from "./typing";
+
 export const cppHeader = `
 #pragma once
 
@@ -36,7 +39,7 @@ struct FHiveApiError
 
 `;
 
-export function getCppStructHeader(dependencies: string[], baseFilename: string) {
+export function getCppStructHeader(dependencies: string[], baseFilename: string, ueType: IUnrealEngineType, definitionValue: IDefinitionSpec) {
   return `
 #pragma once
 
@@ -46,16 +49,57 @@ export function getCppStructHeader(dependencies: string[], baseFilename: string)
 #include "JsonSerializer.h"
 #include "Base64.h"
 #include "HiveMPNullables.h"
-${dependencies.map(x => `#include "${x}.h"
+${dependencies.filter(x => x != baseFilename).map(x => `#include "${x}.h"
 `).join("")}
 #include "${baseFilename}.generated.h"
 
 `;
 }
 
-export function getCppStructCode(baseFilename: string) {
+export function getCppStructCode(baseFilename: string, ueType: IUnrealEngineType, definitionValue: IDefinitionSpec) {
   return `
 #include "${baseFilename}.h"
+${ueType.requiresArrayContainerImplementation(definitionValue) ? `#include "ArrayContainer_${baseFilename}.h"` : ''}
+
+`;
+}
+
+export function getCppStructArrayContainerHeader(dependencies: string[], baseFilename: string) {
+  return `
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "${baseFilename}.h"
+#include "ArrayContainer_${baseFilename}.generated.h"
+
+`;
+}
+
+export function getCppStructArrayContainerCode(baseFilename: string) {
+  return `
+#include "ArrayContainer_${baseFilename}.h"
+
+`;
+}
+
+export function getCppStructArrayContainerBPLHeader(dependencies: string[], baseFilename: string) {
+  return `
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "${baseFilename}.h"
+#include "ArrayContainer_${baseFilename}.h"
+#include "ArrayContainerBPL_${baseFilename}.generated.h"
+
+`;
+}
+
+export function getCppStructArrayContainerBPLCode(baseFilename: string) {
+  return `
+#include "ArrayContainerBPL_${baseFilename}.h"
 
 `;
 }

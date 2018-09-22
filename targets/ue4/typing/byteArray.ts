@@ -78,6 +78,22 @@ else
 }
 `;
   }
+  
+  public requiresArrayContainerImplementation(spec: IDefinitionSpec): boolean {
+    return false;
+  }
+
+  public emitStructureArrayContainerDefinition(spec: IDefinitionSpec): string | null {
+    return null;
+  }
+
+  public emitStructureArrayContainerBPLDefinition(spec: IDefinitionSpec): string | null {
+    return null;
+  }
+
+  public emitStructureArrayContainerBPLImplementation(spec: IDefinitionSpec): string | null {
+    return null;
+  }
 
   public getAssignmentFrom(spec: ITypeSpec, variable: string): string {
     return `FNullableByteArray(${variable}.HasValue, TArray<uint8>(${variable}.Value))`;

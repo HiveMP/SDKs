@@ -62,6 +62,22 @@ export class MapType implements IUnrealEngineType {
 // Don't know how to handle
 `;
   }
+  
+  public requiresArrayContainerImplementation(spec: IDefinitionSpec): boolean {
+    return false;
+  }
+
+  public emitStructureArrayContainerDefinition(spec: IDefinitionSpec): string | null {
+    return null;
+  }
+
+  public emitStructureArrayContainerBPLDefinition(spec: IDefinitionSpec): string | null {
+    return null;
+  }
+
+  public emitStructureArrayContainerBPLImplementation(spec: IDefinitionSpec): string | null {
+    return null;
+  }
 
   public getAssignmentFrom(spec: ITypeSpec, variable: string): string {
     return variable;
