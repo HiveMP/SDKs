@@ -117,6 +117,8 @@ ${structDeclName}
     if (this.isSelfReferencingWithArrays(spec)) {
       structure = `
 class ${containerClassName};
+
+${structure}
 `;
     }
 

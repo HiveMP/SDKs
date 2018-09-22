@@ -57,7 +57,10 @@ export abstract class UnrealEngineGenerator implements TargetGenerator {
           baseFilename,
           ueType,
           definitionValue);
-        let structureCode = fragments.getCppStructCode(baseFilename);
+        let structureCode = fragments.getCppStructCode(
+          baseFilename,
+          ueType,
+          definitionValue);
         if (structure !== null) {
           structureHeader += structure;
           structureHeader += ueType.emitDeserializationHeader(definitionValue);
