@@ -1,9 +1,11 @@
 import { IMethodSpec } from "../common/methodSpec";
 import { resolveType } from "./typing";
+import { ITypeSpec } from "../common/typeSpec";
 
 export interface IMethodReturnTypes {
   syncType: string;
   promiseType: string;
+  originalResponse: ITypeSpec;
 }
 
 export function getReturnTypes(spec: IMethodSpec): IMethodReturnTypes {
@@ -17,5 +19,6 @@ export function getReturnTypes(spec: IMethodSpec): IMethodReturnTypes {
   return {
     syncType: syncType,
     promiseType: promiseResolve,
+    originalResponse: spec.response,
   };
 }

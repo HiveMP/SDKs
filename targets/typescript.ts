@@ -45,6 +45,8 @@ export class TypeScriptGenerator implements TargetGenerator {
         if (!isErrorStructure(definition.name)) {
           const csType = resolveType(definition);
           code += csType.emitInterfaceDefinition(definition);
+          code += csType.emitDeserializationImplementation(definition);
+          code += csType.emitSerializationImplementation(definition);
         }
       }
 

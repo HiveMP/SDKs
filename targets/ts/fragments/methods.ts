@@ -1,4 +1,5 @@
 import { IMethodReturnTypes } from "../return";
+import { resolveType } from "../typing";
 
 export function implementationMethodDeclarations(values: {
   apiId: string,
@@ -17,7 +18,22 @@ export function implementationMethodDeclarations(values: {
   }
   let returnCode = '';
   if (values.returnTypes.syncType !== 'void') {
-    returnCode = `return JSON.parse(response.text, reviveValue) as ${values.returnTypes.syncType};`;
+    const type = resolveType(values.returnTypes.originalResponse);
+    returnCode = `
+{
+  let result: ${values.returnTypes.syncType} | null = null;
+  ${type.emitSerializationFragment({
+    spec: values.returnTypes.originalResponse,
+    into: 'result',
+    from: `JSON.parse(response.text)`,
+    nestLevel: 0,
+  })}
+  if (result === null) {
+    throw HiveMPErrorFactory.createUnknownError(new Error('Unexpected null response from API'));
+  }
+  return result;
+}
+`;
   }
   let contentType = 'application/json';
   if (values.methodIsFileUpload) {
@@ -55,7 +71,7 @@ export function implementationMethodDeclarations(values: {
         if (response === undefined || response === null) {
           throw HiveMPErrorFactory.createUnknownError(nestedErr);
         } else if (response.serverError || response.clientError) {
-          throw HiveMPErrorFactory.createApiError(JSON.parse(response.text, reviveValue) as HiveMPSystemError);
+          throw HiveMPErrorFactory.createApiError(deserialize_HiveMPSystemError(response.text) as HiveMPSystemError);
         } else {
           throw HiveMPErrorFactory.createClientError(response);
         }

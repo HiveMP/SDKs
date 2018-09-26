@@ -10,10 +10,12 @@
   ],
   "typings": "dist/types/index.d.ts",
   "dependencies": {
+    "base64-arraybuffer": "^0.1.5",
     "moment": "^2.22.2",
     "superagent": "^3.8.3"
   },
   "devDependencies": {
+    "@types/base64-arraybuffer": "^0.1.0",
     "@types/node": "^10.5.4",
     "@types/superagent": "^3.8.2",
     "pkgsign": "^0.1.3",

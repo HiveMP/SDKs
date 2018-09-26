@@ -2,6 +2,7 @@ import { IMethodSpec } from "../common/methodSpec";
 import { getReturnTypes } from "./return";
 import * as fragments from './fragments';
 import { resolveType } from "./typing";
+import { normalizeTypeName } from "../common/normalize";
 
 function getParameterQueryLoadingCode(spec: IMethodSpec) {
   let code = '';
@@ -19,6 +20,7 @@ function getParameterBodyLoadingCode(spec: IMethodSpec) {
   for (const parameter of spec.parameters) {
     const csType = resolveType(parameter);
     let name = parameter.name;
+    const type = resolveType(parameter);
     if (parameter.in == "body") {
       if (spec.isFileUpload) {
         code += `
@@ -26,7 +28,14 @@ function getParameterBodyLoadingCode(spec: IMethodSpec) {
 `;
       } else {
         code += `
-          request.send(JSON.stringify(req.${name}, replaceValue));
+          let bodyObj = null;
+          ${type.emitSerializationFragment({
+            spec: parameter,
+            into: 'bodyObj',
+            from: `req.${name}`,
+            nestLevel: 0,
+          })}
+          request.send(JSON.stringify(bodyObj));
 `;
       }
       break;
