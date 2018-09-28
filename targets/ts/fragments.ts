@@ -1,12 +1,14 @@
+import { getB64Import } from './context';
 export { clientPrefix, clientSuffix } from './fragments/client';
 export { implementationMethodDeclarations } from './fragments/methods';
 
-export const nodeJsHeader = `
+export function getNodeJsHeader() {
+  return `
 // tslint:disable
 
 import * as superagent from 'superagent';
 import * as moment from 'moment';
-import { encode as encodeb64, decode as decodeb64 } from 'base64-arraybuffer';
+${getB64Import()}
 
 export interface IHiveMPClient {
   apiKeyFactory: () => string;
@@ -141,6 +143,7 @@ export class HiveMPErrorFactory {
 };
 
 `;
+}
 
 export function namespaceBegin(namespace: string) {
   return `

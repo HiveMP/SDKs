@@ -1,6 +1,8 @@
 import { ITypeScriptType, resolveType, IDeserializationInfo, ISerializationInfo } from "../typing";
 import { ITypeSpec, IDefinitionSpec, IParameterSpec } from '../../common/typeSpec';
 import { normalizeTypeName } from "../../common/normalize";
+import { usedDeserializer, usedSerializer } from "../context";
+import { isErrorStructure } from "../error";
 
 export class SchemaType implements ITypeScriptType {
   public doesHandleType(spec: ITypeSpec): boolean {
@@ -14,6 +16,19 @@ export class SchemaType implements ITypeScriptType {
     }
 
     return normalizeTypeName(spec.schema);
+  }
+
+  public getFullNamespaceTypeScriptType(spec: ITypeSpec): string {
+    if (isErrorStructure(spec.schema)) {
+      return normalizeTypeName(spec.schema);
+    }
+
+    if (spec.schema.startsWith('PaginatedResults[')) {
+      // We provide this as a generic type in TypeScript.
+      return spec.schema.replace(/\[/g, '<' + spec.namespace + '.').replace(/\]/g, '>');
+    }
+
+    return spec.namespace + '.' + normalizeTypeName(spec.schema);
   }
 
   public emitInterfaceDefinition(spec: IDefinitionSpec): string {
@@ -49,9 +64,16 @@ export interface ${className} {
     return code;
   }
 
+  private getSerializerName(spec: ITypeSpec) {
+    if (isErrorStructure(spec.schema)) {
+      return spec.schema;
+    }
+    return `${spec.namespace}_${normalizeTypeName(spec.schema)}`;
+  }
+
   public emitDeserializationImplementation(spec: IDefinitionSpec): string | null {
     let impl = `
-function deserialize_${spec.normalizedName}(val: any): ${this.getTypeScriptType(spec)} | null {
+function deserialize_${this.getSerializerName(spec)}(val: any): ${this.getFullNamespaceTypeScriptType(spec)} | null {
   if (val === null) {
     return null;
   }
@@ -86,14 +108,15 @@ function deserialize_${spec.normalizedName}(val: any): ${this.getTypeScriptType(
   }
 
   public emitDeserializationFragment(info: IDeserializationInfo): string {
+    usedDeserializer(info.spec);
     return `
-${info.into} = deserialize_${normalizeTypeName(info.spec.schema)}(${info.from});
+${info.into} = deserialize_${this.getSerializerName(info.spec)}(${info.from});
 `;
   }
 
   public emitSerializationImplementation(spec: IDefinitionSpec): string | null {
     let impl = `
-function serialize_${spec.normalizedName}(val: ${this.getTypeScriptType(spec)} | null): any {
+function serialize_${this.getSerializerName(spec)}(val: ${this.getFullNamespaceTypeScriptType(spec)} | null): any {
   if (val === null) {
     return null;
   }
@@ -128,8 +151,9 @@ function serialize_${spec.normalizedName}(val: ${this.getTypeScriptType(spec)} |
   }
 
   public emitSerializationFragment(info: ISerializationInfo): string {
+    usedSerializer(info.spec);
     return `
-${info.into} = ${info.from};
+${info.into} = serialize_${this.getSerializerName(info.spec)}(${info.from});
 `;
   }
 

@@ -29,12 +29,14 @@ function getParameterBodyLoadingCode(spec: IMethodSpec) {
       } else {
         code += `
           let bodyObj = null;
-          ${type.emitSerializationFragment({
-            spec: parameter,
-            into: 'bodyObj',
-            from: `req.${name}`,
-            nestLevel: 0,
-          })}
+          if (req.${name} !== undefined) {
+            ${type.emitSerializationFragment({
+              spec: parameter,
+              into: 'bodyObj',
+              from: `req.${name}`,
+              nestLevel: 0,
+            })}
+          }
           request.send(JSON.stringify(bodyObj));
 `;
       }

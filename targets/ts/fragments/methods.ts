@@ -22,10 +22,11 @@ export function implementationMethodDeclarations(values: {
     returnCode = `
 {
   let result: ${values.returnTypes.syncType} | null = null;
-  ${type.emitSerializationFragment({
+  let rawResult: any = JSON.parse(response.text);
+  ${type.emitDeserializationFragment({
     spec: values.returnTypes.originalResponse,
     into: 'result',
-    from: `JSON.parse(response.text)`,
+    from: `rawResult`,
     nestLevel: 0,
   })}
   if (result === null) {
@@ -71,7 +72,7 @@ export function implementationMethodDeclarations(values: {
         if (response === undefined || response === null) {
           throw HiveMPErrorFactory.createUnknownError(nestedErr);
         } else if (response.serverError || response.clientError) {
-          throw HiveMPErrorFactory.createApiError(deserialize_HiveMPSystemError(response.text) as HiveMPSystemError);
+          throw HiveMPErrorFactory.createApiError(deserialize_HiveMPSystemError(JSON.parse(response.text)) as HiveMPSystemError);
         } else {
           throw HiveMPErrorFactory.createClientError(response);
         }

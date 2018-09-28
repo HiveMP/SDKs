@@ -27,7 +27,7 @@ export class ArrayType implements ITypeScriptType {
   const ${arrayName} = ${info.from};
   if (${arrayName} !== null && ${arrayName} !== undefined) {
     ${info.into} = [];
-    for (let i = 0; i < ${arrayName}; i++) {
+    for (let i = 0; i < ${arrayName}.length; i++) {
       let ${itemName} = null;
       ${itemType.emitDeserializationFragment({
         spec: info.spec.items,

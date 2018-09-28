@@ -10,6 +10,7 @@ import { emitCommonErrorStructures, isErrorStructure } from './ts/error';
 import { resolveType } from './ts/typing';
 import { generateTypeScriptNamespace } from './ts/namespace';
 import { emitClient } from './ts/clients';
+import * as context from './ts/context';
 
 export class TypeScriptGenerator implements TargetGenerator {
   get name(): string {
@@ -35,8 +36,14 @@ export class TypeScriptGenerator implements TargetGenerator {
     for (const apiId in documents) {
       apis.add(loadApi(apiId, documents[apiId], generateTypeScriptNamespace, (definitionSpec) => definitionSpec.name));
     }
+
+    for (const api of apis) {
+      for (const definition of api.definitions.values()) {
+        context.registerType(definition);
+      }
+    }
     
-    let code = fragments.nodeJsHeader;
+    let code = '';
     code += emitCommonErrorStructures(apis.values().next().value);
     for (const api of apis) {
       code += fragments.namespaceBegin(api.namespace);
@@ -45,8 +52,6 @@ export class TypeScriptGenerator implements TargetGenerator {
         if (!isErrorStructure(definition.name)) {
           const csType = resolveType(definition);
           code += csType.emitInterfaceDefinition(definition);
-          code += csType.emitDeserializationImplementation(definition);
-          code += csType.emitSerializationImplementation(definition);
         }
       }
 
@@ -59,6 +64,10 @@ export class TypeScriptGenerator implements TargetGenerator {
      
       code += fragments.namespaceEnd;
     }
+
+    code += context.emitSerializerAndDeserializerImplementations();
+
+    code = fragments.getNodeJsHeader() + code;
 
     await this.writeFileContent(opts, 'index.ts', code);
 
