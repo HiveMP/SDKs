@@ -161,6 +161,14 @@ namespace HiveMP.Api
                         delay = Math.Min(30000, delay);
                         continue;
                     }
+                    catch (HttpRequestException ex) when (ex.Message.Contains("An error occurred while sending the request"))
+                    {
+                        // We were unable to communicate with the server, retry later.
+                        await Task.Delay(delay);
+                        delay *= 2;
+                        delay = Math.Min(30000, delay);
+                        continue;
+                    }
                     catch (TaskCanceledException)
                     {
                         var t = Task.Delay(delay);
