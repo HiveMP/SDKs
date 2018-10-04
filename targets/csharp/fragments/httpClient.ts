@@ -176,7 +176,7 @@ namespace HiveMP.Api
 
                         // This is only applicable to the staging environment, and won't occur in production.
                         // It is only required in the C# language SDK.
-                        if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable && responseData.Contains("@<head><title>503 Service Temporarily Unavailable</title></head>"))
+                        if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable && responseData.Contains("<head><title>503 Service Temporarily Unavailable</title></head>"))
                         {
                             var t = Task.Delay(delay);
                             await t;
