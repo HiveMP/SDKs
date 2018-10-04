@@ -158,7 +158,7 @@ export function implementationMethodDeclarations(values: {
                               {
                                   Code = 0,
                                   Message = "Could not deserialize the response body.",
-                                  Fields = "RESPONSE:\n\n" + @ref.BodyJson + "\n\nEXCEPTION MESSAGE:\n\n" + exception_.Message,
+                                  Fields = "RESPONSE:\\n\\n" + @ref.BodyJson + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception_.Message,
                               });
                       }
 
@@ -168,7 +168,7 @@ export function implementationMethodDeclarations(values: {
                               {
                                   Code = 0,
                                   Message = "Could not deserialize the response body.",
-                                  Fields = "RESPONSE:\n\n" + @ref.BodyJson + "\n\nDESERIALIZED RESULT WAS NULL",
+                                  Fields = "RESPONSE:\\n\\n" + @ref.BodyJson + "\\n\\nDESERIALIZED RESULT WAS NULL",
                               });
                       }
 
@@ -239,7 +239,7 @@ export function implementationMethodDeclarations(values: {
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
-                                      Fields = "RESPONSE:\n\n" + responseData_ + "\n\nEXCEPTION MESSAGE:\n\n" + exception_.Message,
+                                      Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception_.Message,
                                   });
                           }
 
@@ -249,7 +249,7 @@ export function implementationMethodDeclarations(values: {
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
-                                      Fields = "RESPONSE:\n\n" + responseData_ + "\n\nDESERIALIZED RESULT WAS NULL",
+                                      Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nDESERIALIZED RESULT WAS NULL",
                                   });
                           }
   
@@ -326,7 +326,7 @@ export function implementationMethodDeclarations(values: {
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
-                                      Fields = "RESPONSE:\n\n" + responseData_ + "\n\nEXCEPTION MESSAGE:\n\n" + exception_.Message,
+                                      Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception_.Message,
                                   });
                           }
 
@@ -336,7 +336,7 @@ export function implementationMethodDeclarations(values: {
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
-                                      Fields = "RESPONSE:\n\n" + responseData_ + "\n\nDESERIALIZED RESULT WAS NULL",
+                                      Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nDESERIALIZED RESULT WAS NULL",
                                   });
                           }
 
@@ -431,7 +431,7 @@ export function implementationMethodDeclarations(values: {
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
-                                      Fields = "RESPONSE:\n\n" + @ref.BodyJson + "\n\nEXCEPTION MESSAGE:\n\n" + exception_.Message,
+                                      Fields = "RESPONSE:\\n\\n" + @ref.BodyJson + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception_.Message,
                                   }));
                               return;
                           }
@@ -442,7 +442,7 @@ export function implementationMethodDeclarations(values: {
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
-                                      Fields = "RESPONSE:\n\n" + @ref.BodyJson + "\n\nDESERIALIZED RESULT WAS NULL",
+                                      Fields = "RESPONSE:\\n\\n" + @ref.BodyJson + "\\n\\nDESERIALIZED RESULT WAS NULL",
                                   }));
                               return;
                           }
@@ -545,7 +545,7 @@ export function implementationMethodDeclarations(values: {
                           {
                               Code = 0,
                               Message = "Could not deserialize the response body.",
-                              Fields = "RESPONSE:\n\n" + responseData_ + "\n\nEXCEPTION MESSAGE:\n\n" + exception_.Message,
+                              Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception_.Message,
                           });
                   }
 
@@ -555,7 +555,7 @@ export function implementationMethodDeclarations(values: {
                           {
                               Code = 0,
                               Message = "Could not deserialize the response body.",
-                              Fields = "RESPONSE:\n\n" + responseData_ + "\n\nDESERIALIZED RESULT WAS NULL",
+                              Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nDESERIALIZED RESULT WAS NULL",
                           });
                   }
 
