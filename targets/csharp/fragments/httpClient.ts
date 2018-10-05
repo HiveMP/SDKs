@@ -171,8 +171,7 @@ namespace HiveMP.Api
                     }
                     catch (TaskCanceledException)
                     {
-                        var t = Task.Delay(delay);
-                        await t;
+                        await Task.Delay(delay);
                         delay *= 2;
                         delay = Math.Min(30000, delay);
                         continue;
@@ -186,8 +185,7 @@ namespace HiveMP.Api
                         // It is only required in the C# language SDK.
                         if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable && responseData.Contains("<head><title>503 Service Temporarily Unavailable</title></head>"))
                         {
-                            var t = Task.Delay(delay);
-                            await t;
+                            await Task.Delay(delay);
                             delay *= 2;
                             delay = Math.Min(30000, delay);
                             continue;
@@ -213,10 +211,16 @@ namespace HiveMP.Api
 
                         if (result.Code == 6001)
                         {
-                            var t = Task.Delay(delay);
-                            await t;
+                            await Task.Delay(delay);
                             delay *= 2;
                             delay = Math.Min(30000, delay);
+                            continue;
+                        }
+
+                        if (result.Code == 6002 && result.Data.RetryAfterSeconds != null)
+                        {
+                            // We have been rate limited, back off according to RetryAfterSeconds.
+                            await Task.Delay((int)(result.Data.RetryAfterSeconds.Value * 1000));
                             continue;
                         }
                     }
