@@ -26,12 +26,34 @@ const types: ITypeScriptType[] = [
   new TimestampType(),
 ];
 
+export interface IDeserializationInfo {
+  spec: ITypeSpec;
+  from: string;
+  into: string;
+  nestLevel: number;
+}
+
+export interface ISerializationInfo {
+  spec: ITypeSpec;
+  from: string;
+  into: string;
+  nestLevel: number;
+}
+
 export interface ITypeScriptType {
   doesHandleType(spec: ITypeSpec): boolean;
 
   getTypeScriptType(spec: ITypeSpec): string;
 
   emitInterfaceDefinition(spec: IDefinitionSpec): string | null;
+
+  emitDeserializationImplementation(spec: IDefinitionSpec): string | null;
+
+  emitDeserializationFragment(info: IDeserializationInfo): string;
+
+  emitSerializationImplementation(spec: IDefinitionSpec): string | null;
+
+  emitSerializationFragment(info: ISerializationInfo): string;
 
   pushOntoQueryStringArray(spec: IParameterSpec): string | null;
 }

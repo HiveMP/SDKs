@@ -161,10 +161,17 @@ namespace HiveMP.Api
                         delay = Math.Min(30000, delay);
                         continue;
                     }
+                    catch (HttpRequestException ex) when (ex.Message.Contains("An error occurred while sending the request"))
+                    {
+                        // We were unable to communicate with the server, retry later.
+                        await Task.Delay(delay);
+                        delay *= 2;
+                        delay = Math.Min(30000, delay);
+                        continue;
+                    }
                     catch (TaskCanceledException)
                     {
-                        var t = Task.Delay(delay);
-                        await t;
+                        await Task.Delay(delay);
                         delay *= 2;
                         delay = Math.Min(30000, delay);
                         continue;
@@ -173,6 +180,17 @@ namespace HiveMP.Api
                     if (!response.IsSuccessStatusCode)
                     {
                         var responseData = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                        // This is only applicable to the staging environment, and won't occur in production.
+                        // It is only required in the C# language SDK.
+                        if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable && responseData.Contains("<head><title>503 Service Temporarily Unavailable</title></head>"))
+                        {
+                            await Task.Delay(delay);
+                            delay *= 2;
+                            delay = Math.Min(30000, delay);
+                            continue;
+                        }
+                        
                         var result = default(HiveMPSystemError);
                         try
                         {
@@ -193,10 +211,16 @@ namespace HiveMP.Api
 
                         if (result.Code == 6001)
                         {
-                            var t = Task.Delay(delay);
-                            await t;
+                            await Task.Delay(delay);
                             delay *= 2;
                             delay = Math.Min(30000, delay);
+                            continue;
+                        }
+
+                        if (result.Code == 6002 && result.Data.RetryAfterSeconds != null)
+                        {
+                            // We have been rate limited, back off according to RetryAfterSeconds.
+                            await Task.Delay((int)(result.Data.RetryAfterSeconds.Value * 1000));
                             continue;
                         }
                     }

@@ -1,11 +1,14 @@
+import { getB64Import } from './context';
 export { clientPrefix, clientSuffix } from './fragments/client';
 export { implementationMethodDeclarations } from './fragments/methods';
 
-export const nodeJsHeader = `
+export function getNodeJsHeader() {
+  return `
 // tslint:disable
 
 import * as superagent from 'superagent';
 import * as moment from 'moment';
+${getB64Import()}
 
 export interface IHiveMPClient {
   apiKeyFactory: () => string;
@@ -17,8 +20,8 @@ export interface IHiveMPClient {
 
 export interface PaginatedResults<T> {
   next: string | null;
-  moreResults: boolean;
-  results: T[];
+  moreResults: boolean | null;
+  results: (T | null)[] | null;
 }
 
 export interface HiveMPInvocationWrapper<T> {
@@ -139,23 +142,8 @@ export class HiveMPErrorFactory {
 
 };
 
-function reviveValue(key: string, value: any) {
-  if (key.endsWith("Utc") && typeof value === 'number') {
-    // This is a timestamp value. Restore it with moment.
-    return moment.unix(value);
-  }
-  return value;
-}
-
-function replaceValue(key: string, value: any) {
-  if (key.endsWith("Utc") && moment.isMoment(value)) {
-    // This is a timestamp value. Convert it back to UNIX UTC timestamp.
-    return value.unix();
-  }
-  return value;
-}
-
 `;
+}
 
 export function namespaceBegin(namespace: string) {
   return `

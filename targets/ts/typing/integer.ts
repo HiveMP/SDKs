@@ -1,4 +1,4 @@
-import { ITypeScriptType } from "../typing";
+import { ITypeScriptType, IDeserializationInfo, ISerializationInfo } from "../typing";
 import { ITypeSpec, IDefinitionSpec, IParameterSpec } from '../../common/typeSpec';
 
 export class IntegerType implements ITypeScriptType {
@@ -16,6 +16,26 @@ export class IntegerType implements ITypeScriptType {
 
   public emitInterfaceDefinition(spec: IDefinitionSpec): string {
     return null;
+  }
+
+  public emitDeserializationImplementation(spec: IDefinitionSpec): string | null {
+    return null;
+  }
+
+  public emitDeserializationFragment(info: IDeserializationInfo): string {
+    return `
+${info.into} = ${info.from};
+`;
+  }
+
+  public emitSerializationImplementation(spec: IDefinitionSpec): string | null {
+    return null;
+  }
+
+  public emitSerializationFragment(info: ISerializationInfo): string {
+    return `
+${info.into} = ${info.from};
+`;
   }
 
   public pushOntoQueryStringArray(spec: IParameterSpec): string | null {

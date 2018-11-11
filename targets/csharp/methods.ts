@@ -39,7 +39,7 @@ function getClientConnectResponseHandler(returnTypes: IMethodReturnTypes) {
                       {
                           Code = 0,
                           Message = "Could not deserialize the response body.",
-                          Fields = string.Empty,
+                          Fields = "RESPONSE:\\n\\n" + @ref.BodyJson + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception.Message,
                       }));
               }
               return;
@@ -64,7 +64,7 @@ function getClientConnectResponseHandlerAsync(returnTypes: IMethodReturnTypes) {
                       {
                           Code = 0,
                           Message = "Could not deserialize the response body.",
-                          Fields = string.Empty,
+                          Fields = "RESPONSE:\\n\\n" + @ref.BodyJson + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception.Message,
                       });
               }
 `;
@@ -88,7 +88,7 @@ function getHttpResponseHandler(returnTypes: IMethodReturnTypes) {
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
-                                      Fields = string.Empty,
+                                      Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception.Message,
                                   });
                           }
 `;
