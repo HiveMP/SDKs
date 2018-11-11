@@ -276,7 +276,11 @@ void js_curl_fetch(js_State* J)
                 handle_ref->state = CHS_SUCCESS;
             }
 
-            log_trace("curl fetch: http-status-code=%lli", handle_ref->responseStatusCode);
+#if defined(__GNUC__) || defined(__clang__)
+            log_trace("curl fetch: http-status-code=%li", handle_ref->responseStatusCode);
+#else
+			log_trace("curl fetch: http-status-code=%lli", handle_ref->responseStatusCode);
+#endif
 
             handle_ref->responseData = std::string(TCHAR_TO_UTF8(*(Response->GetContentAsString())));
 
