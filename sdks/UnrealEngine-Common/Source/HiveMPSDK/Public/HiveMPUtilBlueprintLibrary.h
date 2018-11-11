@@ -6,7 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Net/OnlineBlueprintCallProxyBase.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "DelegateCombinations.h"
+#include "Delegates/DelegateCombinations.h"
 #include "OnlineSubsystem.h"
 #include "HiveMPNullables.h"
 #include "Generated/Struct_nat_punchthrough_NATEndpoint.h"
