@@ -22,7 +22,12 @@ THIRD_PARTY_INCLUDES_END
 #include <string>
 #include <vector>
 #if defined(WIN32)
-#include <Windows.h>
+#if defined(CLIENT_CONNECT_TARGETING_UNREAL) && CLIENT_CONNECT_TARGETING_UNREAL
+#include <MinWindows.h>
+#else
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 #endif
 #if CLIENT_CONNECT_TARGETING_UNREAL
 #include "../../ue4log.h"

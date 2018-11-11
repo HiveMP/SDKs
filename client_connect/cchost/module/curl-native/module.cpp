@@ -214,7 +214,7 @@ void js_curl_fetch(js_State* J)
 			FString HeaderKey;
 			FString HeaderValue;
 			FullHeader.Split(":", &HeaderKey, &HeaderValue);
-            handle->SetHeader(HeaderKey.Trim(), HeaderValue.Trim());
+            handle->SetHeader(HeaderKey.TrimStartAndEnd(), HeaderValue.TrimStartAndEnd());
 #else
             headers = curl_slist_append(headers, js_tostring(J, -1));
 #endif

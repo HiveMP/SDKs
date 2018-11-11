@@ -1,6 +1,11 @@
 #include "module.h"
 #if defined(_WIN32)
+#if defined(CLIENT_CONNECT_TARGETING_UNREAL) && CLIENT_CONNECT_TARGETING_UNREAL
+#include <MinWindows.h>
+#else
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#endif
 #else
 #include <cstdlib>
 #endif

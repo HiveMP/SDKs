@@ -13,7 +13,7 @@
 
 #ifdef LOAD_ROOT_CERTIFICATES_FROM_WIN32_STORE
 #include <stdio.h>
-#include <windows.h>
+#include <MinWindows.h>
 #include <wincrypt.h>
 #include <cryptuiapi.h>
 #include <iostream>
