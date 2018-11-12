@@ -1,7 +1,7 @@
 // Copyright Redpoint Games 2017 MIT Licensed
 
-#include "WebSocket.h"
 #include "HiveMPWebSocketContext.h"
+#include "WebSocket.h"
 #include "WebSocketBase.h"
 #include "WebSocketContext.h"
 

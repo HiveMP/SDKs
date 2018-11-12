@@ -6,17 +6,36 @@
 * original repository, as outlined in https://github.com/feixuwu/UEWebsocket/issues/15.
 */
 
+#include "WebSocketBase.h"
 #include "WebSocket.h"
 #include <iostream>
-#include "WebSocketBase.h"
 
 #if PLATFORM_UWP
 #elif PLATFORM_HTML5
 #else
 #define UI UI_ST
+
+// Remove UE4 definition of TEXT macro.
+#if defined(TEXT)
+#undef TEXT
+#endif
+
+#if defined(WIN32) || defined(_WIN32)
+#if !PLATFORM_UWP
+#include <MinWindows.h>
+#endif
+#endif
+
 THIRD_PARTY_INCLUDES_START
 #include "libwebsockets.h"
 THIRD_PARTY_INCLUDES_END
+
+// Restore UE4 definition of TEXT macro.
+#if defined(TEXT)
+#undef TEXT
+#endif
+#define TEXT(x) TEXT_PASTE(x)
+
 #undef UI
 #endif
 

@@ -6,14 +6,12 @@
 * original repository, as outlined in https://github.com/feixuwu/UEWebsocket/issues/15.
 */
 
-#include "WebSocket.h"
 #include "WebSocketContext.h"
-#include "UObjectGlobals.h"
+#include "WebSocket.h"
 #include "WebSocketBase.h"
 
 #ifdef LOAD_ROOT_CERTIFICATES_FROM_WIN32_STORE
 #include <stdio.h>
-#include <MinWindows.h>
 #include <wincrypt.h>
 #include <cryptuiapi.h>
 #include <iostream>

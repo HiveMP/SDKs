@@ -13,6 +13,8 @@ public class WebSocket : ModuleRules
 
     public WebSocket(ReadOnlyTargetRules Target) : base(Target)
     {
+        PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{

@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "UObject/NoExportTypes.h"
 #include "Delegates/DelegateCombinations.h"
 #include "WebSocketBase.generated.h"
 
