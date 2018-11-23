@@ -10,6 +10,7 @@ export const apiNames = {
   "integration": "Integrations",
   "licensing": "Licensing",
   "lobby": "Game Lobbies",
+  "matchmaking": "Matchmaking",
   "nat-punchthrough": "NAT Punchthrough",
   "netcode": "netcode.io",
   "pos": "Point of Sale",
