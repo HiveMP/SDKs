@@ -5,7 +5,7 @@ import { camelCase } from "../naming";
 export class ByteArrayType implements ICSharpType {
   public doesHandleType(spec: ITypeSpec): boolean {
     return spec.type === 'string' &&
-      spec.format === 'byte';
+      (spec.format === 'byte' || spec.format === 'binary');
   }
   
   public getCSharpType(spec: ITypeSpec): string {

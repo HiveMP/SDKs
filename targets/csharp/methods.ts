@@ -71,11 +71,57 @@ function getClientConnectResponseHandlerAsync(returnTypes: IMethodReturnTypes) {
   }
 }
 
-function getHttpResponseHandler(returnTypes: IMethodReturnTypes) {
+function getLegacyHttpClientResponseHandler(returnTypes: IMethodReturnTypes) {
   if (returnTypes.syncType === 'void') {
     return '';
+  } else if (returnTypes.syncType === 'System.IO.Stream') {
+    return `
+                          var memoryStream = new System.IO.MemoryStream();
+                          response_.GetResponseStream().CopyTo(memoryStream);
+                          memoryStream.Seek(0, System.IO.SeekOrigin.Begin);
+                          return memoryStream;
+`;
   } else {
     return `
+                          string responseData_;
+                          using (var reader = new System.IO.StreamReader(response_.GetResponseStream()))
+                          {
+                              responseData_ = reader.ReadToEnd();
+                          }
+
+                          var result_ = default(${returnTypes.syncType}); 
+                          try
+                          {
+                              result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<${returnTypes.syncType}>(responseData_);
+                              return result_; 
+                          } 
+                          catch (System.Exception exception) 
+                          {
+                              throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                                  {
+                                      Code = 0,
+                                      Message = "Could not deserialize the response body.",
+                                      Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception.Message,
+                                  });
+                          }
+`;
+  }
+}
+
+function getHttpClientResponseHandler(returnTypes: IMethodReturnTypes) {
+  if (returnTypes.syncType === 'void') {
+    return '';
+  } else if (returnTypes.syncType === 'System.IO.Stream') {
+    return `
+                          var memoryStream = new System.IO.MemoryStream();
+                          await (await response_.Content.ReadAsStreamAsync()).CopyToAsync(memoryStream);
+                          memoryStream.Seek(0, System.IO.SeekOrigin.Begin);
+                          return memoryStream;
+`;
+  } else {
+    return `
+                          var responseData_ = await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
+
                           var result_ = default(${returnTypes.syncType}); 
                           try
                           {
@@ -116,15 +162,44 @@ function getParameterQueryLoadingCode(spec: IMethodSpec) {
   return code;
 }
 
-function getParameterBodyLoadingCode(spec: IMethodSpec) {
+function getParameterBodyLoadingCodeHttpClient(spec: IMethodSpec) {
   let code = '';
   for (const parameter of spec.parameters) {
     const csType = resolveType(parameter);
     let name = camelCase(parameter.name);
     if (parameter.in == "body") {
-      code += `
-          content_ = Newtonsoft.Json.JsonConvert.SerializeObject(arguments.${name});
+      if (parameter.format != "binary") {
+        code += `
+          content_ = new System.Net.Http.StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(arguments.${name}), System.Text.Encoding.UTF8, "application/json");
 `;
+      } else {
+        code += `
+          content_ = new System.Net.Http.ByteArrayContent(arguments.${name});
+`;
+      }
+      break;
+    }
+  }
+  return code;
+}
+
+function getParameterBodyLoadingCodeLegacyHttpClient(spec: IMethodSpec) {
+  let code = '';
+  for (const parameter of spec.parameters) {
+    const csType = resolveType(parameter);
+    let name = camelCase(parameter.name);
+    if (parameter.in == "body") {
+      if (parameter.format != "binary") {
+        code += `
+          content_ = System.Text.Encoding.UTF8.GetBytes(Newtonsoft.Json.JsonConvert.SerializeObject(arguments.${name}));
+          contentType_ = "application/json";
+`;
+      } else {
+        code += `
+          content_ = arguments.${name};
+          contentType_ = "application/octet-stream";
+`;
+      }
       break;
     }
   }
@@ -161,7 +236,8 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec) {
   const methodDescription = escapeForXmlComment(spec.description, "        /// ");
   const methodNameEscaped = escapeForXmlComment(methodName, " ");
 
-  const parameterBodyLoadingCode = getParameterBodyLoadingCode(spec);
+  const parameterBodyLoadingCodeHttpClient = getParameterBodyLoadingCodeHttpClient(spec);
+  const parameterBodyLoadingCodeLegacyHttpClient = getParameterBodyLoadingCodeLegacyHttpClient(spec);
   const parameterQueryLoadingCode = getParameterQueryLoadingCode(spec);
 
   const parameterDeclarations = getParametersFromMethodParameters(spec.parameters);
@@ -175,7 +251,8 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec) {
 
   const clientConnectResponseHandler = getClientConnectResponseHandler(returnTypes);
   const clientConnectResponseHandlerAsync = getClientConnectResponseHandlerAsync(returnTypes);
-  const httpResponseHandler = getHttpResponseHandler(returnTypes);
+  const httpClientResponseHandler = getHttpClientResponseHandler(returnTypes);
+  const legacyHttpClientResponseHandler = getLegacyHttpClientResponseHandler(returnTypes);
 
   let implementor = fragments.implementationMethodDeclarations;
   if (spec.isWebSocket) {
@@ -191,14 +268,16 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec) {
     methodOperationId: spec.operationId,
     methodPath: spec.path,
     methodHttpMethod: spec.method.toUpperCase(),
-    parameterBodyLoadingCode,
+    parameterBodyLoadingCodeHttpClient,
+    parameterBodyLoadingCodeLegacyHttpClient,
     parameterQueryLoadingCode,
     returnTypes: returnTypes,
     returnSyncPrefix,
     promiseReturnStore,
     promiseReturnType,
     promiseResolve,
-    httpResponseHandler,
+    httpClientResponseHandler,
+    legacyHttpClientResponseHandler,
     legacyParameterXmlComments,
     parameterDeclarations,
     parameterDeclarationsSuffix,
