@@ -18,6 +18,11 @@ export function getReturnTypes(spec: IMethodSpec): IMethodReturnTypes {
     asyncReturnValue = 'System.Threading.Tasks.Task<' + returnValue + '>';
     promiseResolve = 'System.Action<' + returnValue + '>';
   }
+  if (spec.binaryResponseHandling !== undefined) {
+    returnValue = 'System.IO.Stream';
+    asyncReturnValue = 'System.Threading.Tasks.Task<System.IO.Stream>';
+    promiseResolve = 'System.Action<System.IO.Stream>';
+  }
   if (spec.isWebSocket) {
     const name = camelCase(spec.operationId);
     returnValue = name + 'Socket';

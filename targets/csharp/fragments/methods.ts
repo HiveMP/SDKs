@@ -81,14 +81,16 @@ export function implementationMethodDeclarations(values: {
   methodOperationId: string,
   methodPath: string,
   methodHttpMethod: string,
-  parameterBodyLoadingCode: string,
+  parameterBodyLoadingCodeHttpClient: string,
+  parameterBodyLoadingCodeLegacyHttpClient: string,
   parameterQueryLoadingCode: string,
   returnTypes: IMethodReturnTypes,
   returnSyncPrefix: string,
   promiseReturnStore: string,
   promiseReturnType: string,
   promiseResolve: string,
-  httpResponseHandler: string,
+  httpClientResponseHandler: string,
+  legacyHttpClientResponseHandler: string,
   legacyParameterXmlComments: string,
   parameterDeclarations: string,
   parameterDeclarationsSuffix: string,
@@ -193,21 +195,16 @@ export function implementationMethodDeclarations(values: {
                   var url_ = urlBuilder_.ToString();
                   PrepareRequest(client_, url_);
                   
-                  string content_ = null;
-                  System.Net.Http.StringContent stringContent_ = null;
-                  ${values.parameterBodyLoadingCode}
+                  System.Net.Http.HttpContent content_ = null;
+                  ${values.parameterBodyLoadingCodeHttpClient}
                   if (content_ == null)
                   {
-                      stringContent_ = new System.Net.Http.StringContent(string.Empty);
-                  }
-                  else
-                  {
-                      stringContent_ = new System.Net.Http.StringContent(content_, System.Text.Encoding.UTF8, "application/json");
+                      content_ = new System.Net.Http.StringContent(string.Empty);
                   }
                   
                   if ("${values.methodHttpMethod}" != "GET" && "${values.methodHttpMethod}" != "DELETE")
                   {
-                      request_.Content = stringContent_;
+                      request_.Content = content_;
                   }
                   request_.Method = new System.Net.Http.HttpMethod("${values.methodHttpMethod}");
                   request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
@@ -222,8 +219,23 @@ export function implementationMethodDeclarations(values: {
                       var status_ = ((int)response_.StatusCode).ToString();
                       if (status_ == "200") 
                       {
-                          var responseData_ = await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
-                          ${values.httpResponseHandler}
+                          ${values.httpClientResponseHandler}
+                      }
+                      else if (status_ == "301" || status_ == "302")
+                      {
+                          using (var redirectedRequest = new System.Net.Http.HttpRequestMessage())
+                          {
+                              request_.Method = new System.Net.Http.HttpMethod("GET");
+                              request_.RequestUri = new System.Uri(System.Linq.Enumerable.First(headers_["Location"]), System.UriKind.Absolute);
+                              request_.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("*/*"));
+                              response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+
+                              headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers, h_ => h_.Key, h_ => h_.Value);
+                              foreach (var item_ in response_.Content.Headers)
+                                  headers_[item_.Key] = item_.Value;
+                          
+                              ${values.httpClientResponseHandler}
+                          }
                       }
                       else
                       {
@@ -273,8 +285,9 @@ export function implementationMethodDeclarations(values: {
                       var url_ = urlBuilder_.ToString();
                       PrepareRequest(client_, url_);
 
-                      string content_ = null;
-                      ${values.parameterBodyLoadingCode}
+                      byte[] content_ = null;
+                      string contentType_ = "application/json";
+                      ${values.parameterBodyLoadingCodeLegacyHttpClient}
                       
                       var request_ = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(url_);
                       request_.Method = "${values.methodHttpMethod}";
@@ -284,13 +297,13 @@ export function implementationMethodDeclarations(values: {
 
                       if (request_.Method != "GET" && request_.Method != "DELETE")
                       {
-                          request_.ContentType = "application/json";
+                          request_.ContentType = contentType_;
         
                           // This will actually start the request, so we can't send any more headers
                           // after opening the request stream.
-                          using (var writer = new System.IO.StreamWriter(request_.GetRequestStream()))
+                          using (var requestStream = request_.GetRequestStream())
                           {
-                              writer.Write(content_ ?? string.Empty);
+                              requestStream.Write(content_ ?? new byte[0]);
                           }
                       }
 
@@ -300,13 +313,19 @@ export function implementationMethodDeclarations(values: {
                       var status_ = ((int)response_.StatusCode).ToString();
                       if (status_ == "200") 
                       {
-                          string responseData_;
-                          using (var reader = new System.IO.StreamReader(response_.GetResponseStream()))
-                          {
-                              responseData_ = reader.ReadToEnd();
-                          }
+                          ${values.legacyHttpClientResponseHandler}
+                      }
+                      else if (status_ == "301" || status_ == "302")
+                      {
+                          request_ = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(headers_["Location"]);
+                          request_.Method = "GET";
+                          request_.ContentLength = 0;
+                          request_.Accept = "*/*";
 
-                          ${values.httpResponseHandler}
+                          response_ = client_.ExecuteRequest(request_);
+                          headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers.AllKeys, h_ => h_, h_ => response_.Headers[h_]);
+
+                          ${values.legacyHttpClientResponseHandler}
                       }
                       else
                       {
@@ -492,8 +511,9 @@ export function implementationMethodDeclarations(values: {
               var url_ = urlBuilder_.ToString();
               PrepareRequest(client_, url_);
 
-              string content_ = null;
-              ${values.parameterBodyLoadingCode}
+              byte[] content_ = null;
+              string contentType_ = "application/json";
+              ${values.parameterBodyLoadingCodeLegacyHttpClient}
               
               var request_ = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(url_);
               request_.Method = "${values.methodHttpMethod}";
@@ -503,13 +523,13 @@ export function implementationMethodDeclarations(values: {
 
               if (request_.Method != "GET" && request_.Method != "DELETE")
               {
-                  request_.ContentType = "application/json";
+                  request_.ContentType = contentType_;
 
                   // This will actually start the request, so we can't send any more headers
                   // after opening the request stream.
-                  using (var writer = new System.IO.StreamWriter(request_.GetRequestStream()))
+                  using (var requestStream = request_.GetRequestStream())
                   {
-                      writer.Write(content_ ?? string.Empty);
+                      requestStream.Write(content_ ?? new byte[0]);
                   }
               }
 
@@ -519,13 +539,19 @@ export function implementationMethodDeclarations(values: {
               var status_ = ((int)response_.StatusCode).ToString();
               if (status_ == "200") 
               {
-                  string responseData_;
-                  using (var reader = new System.IO.StreamReader(response_.GetResponseStream()))
-                  {
-                      responseData_ = reader.ReadToEnd();
-                  }
+                  ${values.legacyHttpClientResponseHandler}
+              }
+              else if (status_ == "301" || status_ == "302")
+              {
+                  request_ = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(headers_["Location"]);
+                  request_.Method = "GET";
+                  request_.ContentLength = 0;
+                  request_.Accept = "*/*";
 
-                  ${values.httpResponseHandler}
+                  response_ = client_.ExecuteRequest(request_);
+                  headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers.AllKeys, h_ => h_, h_ => response_.Headers[h_]);
+                  
+                  ${values.legacyHttpClientResponseHandler}
               }
               else
               {
@@ -580,14 +606,16 @@ export function implementationWebSocketMethodDeclarations(values: {
   methodOperationId: string,
   methodPath: string,
   methodHttpMethod: string,
-  parameterBodyLoadingCode: string,
+  parameterBodyLoadingCodeHttpClient: string,
+  parameterBodyLoadingCodeLegacyHttpClient: string,
   parameterQueryLoadingCode: string,
   returnTypes: IMethodReturnTypes,
   returnSyncPrefix: string,
   promiseReturnStore: string,
   promiseReturnType: string,
   promiseResolve: string,
-  httpResponseHandler: string,
+  httpClientResponseHandler: string,
+  legacyHttpClientResponseHandler: string,
   legacyParameterXmlComments: string,
   parameterDeclarations: string,
   parameterDeclarationsSuffix: string,

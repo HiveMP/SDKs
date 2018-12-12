@@ -109,6 +109,11 @@ export interface IMethodSpec {
    * The supported protocol messages that clients may receive from the WebSocket.
    */
   webSocketResponseMessageTypes: Set<IWebSocketProtocolType>;
+
+  /**
+   * Whether this method returns binary data, and if so, the method used to return that data.
+   */
+  binaryResponseHandling: "redirect" | "direct" | undefined;
 }
 
 export interface IWebSocketProtocolType {
@@ -150,6 +155,7 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
       const isClusterOnly = methodValue["x-accepted-api-key-types"].length == 1 && methodValue["x-accepted-api-key-types"][0] == "__cluster_only__";
       const isWebSocket = methodValue["x-websocket"] !== undefined && methodValue["x-websocket"];
       const isFileUpload = methodValue["consumes"].length > 0 && methodValue["consumes"][0] == "application/octet-stream";
+      const binaryResponseHandling = methodValue["x-binary-response-handling"];
 
       const webSocketRequestMessageTypes = new Set<IWebSocketProtocolType>();
       const webSocketResponseMessageTypes = new Set<IWebSocketProtocolType>();
@@ -230,6 +236,7 @@ export function loadMethods(apiId: string, document: any, namespace: string): Se
         isFileUpload: isFileUpload,
         webSocketRequestMessageTypes: webSocketRequestMessageTypes,
         webSocketResponseMessageTypes: webSocketResponseMessageTypes,
+        binaryResponseHandling: binaryResponseHandling,
       });
     }
   }
