@@ -3,6 +3,7 @@ import { TargetOptions } from "./TargetOptions";
 
 export interface TargetGenerator {
   readonly name: string;
+  readonly supportsMultitargeting: boolean;
   generate(documents: {[id: string]: swagger.Document}, opts: TargetOptions): Promise<void>;
 }
 

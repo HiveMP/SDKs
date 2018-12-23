@@ -17,6 +17,10 @@ export class TypeScriptGenerator implements TargetGenerator {
     return 'TypeScript';
   }
 
+  get supportsMultitargeting(): boolean {
+    return false;
+  }
+
   private writeFileContent(opts: TargetOptions, filename: string, code: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       fs.writeFile(path.join(opts.outputDir, filename), code, (err) => {
@@ -34,7 +38,7 @@ export class TypeScriptGenerator implements TargetGenerator {
     const apis = new Set<IApiSpec>();
 
     for (const apiId in documents) {
-      apis.add(loadApi(apiId, documents[apiId], generateTypeScriptNamespace, (definitionSpec) => definitionSpec.name));
+      apis.add(loadApi(apiId, '', documents[apiId], generateTypeScriptNamespace, (definitionSpec) => definitionSpec.name));
     }
 
     for (const api of apis) {

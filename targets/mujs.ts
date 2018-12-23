@@ -11,6 +11,10 @@ export class MuJsTypeScriptGenerator implements TargetGenerator {
     return 'MuJS-TypeScript';
   }
 
+  get supportsMultitargeting(): boolean {
+    return false;
+  }
+
   static stripDefinition(s: string): string {
     if (s.startsWith('#/definitions/')) {
       return s.substr('#/definitions/'.length).replace(/(\[|\])/g, '');

@@ -14,6 +14,10 @@ import { emitControllerAndImplementation } from './csharp/controllers';
 abstract class CSharpGenerator implements TargetGenerator {
   abstract get name(): string;
 
+  get supportsMultitargeting(): boolean {
+    return true;
+  }
+
   abstract getDefines(): string;
   
   abstract postGenerate(opts: TargetOptions): Promise<void>;
@@ -34,8 +38,11 @@ abstract class CSharpGenerator implements TargetGenerator {
   async generate(documents: {[id: string]: swagger.Document}, opts: TargetOptions): Promise<void> {
     const apis = new Set<IApiSpec>();
 
-    for (const apiId in documents) {
-      apis.add(loadApi(apiId, documents[apiId], generateCSharpNamespace, (definitionSpec) => definitionSpec.name));
+    for (const apiIdAndVersion in documents) {
+      const s = apiIdAndVersion.split(':', 2);
+      const apiId = s[0];
+      const apiVersion = s[1];
+      apis.add(loadApi(apiId, apiVersion, documents[apiIdAndVersion], generateCSharpNamespace, (definitionSpec) => definitionSpec.name));
     }
     
     const defines = fragments.getDefines(this.getDefines(), opts);

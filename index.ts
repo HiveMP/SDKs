@@ -57,7 +57,11 @@ program
   )
   .option(
     '-c, --enable-client-connect',
-    'enable experimental Client Connect support if this target allows it'
+    'enable Client Connect support if this target allows it'
+  )
+  .option(
+    '-m, --enable-multitargeting',
+    'enable generating code for all available versions, instead of just the latest version'
   )
   .option(
     '--client-connect-sdk-path <dir>',
@@ -85,17 +89,41 @@ program
           let documents: {[id: string]: swagger.Document} = {};
           let documentPromises = [];
           for (let api of apis) {
-            documentPromises.push((async(api: string) => {
-              let swaggerUri = endpoint.replace('{api}', api) + '/swagger.json';
+            if (target.supportsMultitargeting && options.enableMultitargeting) {
+              documentPromises.push((async(api: string) => {
+                let swaggerUri = endpoint.replace('{api}', api) + '/metadata.json';
+                console.log('downloading \'' + swaggerUri + '\'...');
+                let metadataContent = await fetch(swaggerUri);
+                let metadata = JSON.parse(await metadataContent.text());
+                
+                for (const version of metadata.allVersions) {
+                  let swaggerUri = endpoint.replace('{api}', api) + '/' + version + '/swagger.json';
+                  console.log('downloading \'' + swaggerUri + '\'...');
+                  let documentContent = await fetch(swaggerUri);
+                  let document = JSON.parse(await documentContent.text());
+                  documents[api + ':' + version] = document as swagger.Document;
+                }
+              })(api));
+            } else if (target.supportsMultitargeting) {
+              let swaggerUri = endpoint.replace('{api}', api) + '/metadata.json';
+              console.log('downloading \'' + swaggerUri + '\'...');
+              let metadataContent = await fetch(swaggerUri);
+              let metadata = JSON.parse(await metadataContent.text());
+
+              swaggerUri = endpoint.replace('{api}', api) + '/' + metadata.latestVersion + '/swagger.json';
               console.log('downloading \'' + swaggerUri + '\'...');
               let documentContent = await fetch(swaggerUri);
               let document = JSON.parse(await documentContent.text());
-              /*if (!swagger.validateDocument(document)) {
-                console.error('unable to validate document at ' + swaggerUri);
-                process.exit(1);
-              }*/
-              documents[api] = document as swagger.Document;
-            })(api));
+              documents[api + ':' + metadata.latestVersion] = document as swagger.Document;
+            } else {
+              documentPromises.push((async(api: string) => {
+                let swaggerUri = endpoint.replace('{api}', api) + '/latest/swagger.json';
+                console.log('downloading \'' + swaggerUri + '\'...');
+                let documentContent = await fetch(swaggerUri);
+                let document = JSON.parse(await documentContent.text());
+                documents[api] = document as swagger.Document;
+              })(api));
+            }
           }
           await Promise.all(documentPromises);
   

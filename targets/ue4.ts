@@ -19,11 +19,15 @@ import { emitMethodWebSocketDeclaration, emitMethodWebSocketDefinition, emitMeth
 export abstract class UnrealEngineGenerator implements TargetGenerator {
   abstract get name(): string;
 
+  get supportsMultitargeting(): boolean {
+    return false;
+  }
+
   async generate(documents: {[id: string]: swagger.Document}, opts: TargetOptions): Promise<void> {
     const apis = new Set<IApiSpec>();
 
     for (const apiId in documents) {
-      apis.add(loadApi(apiId, documents[apiId], generateUe4Namespace, (definitionSpec) => {
+      apis.add(loadApi(apiId, '', documents[apiId], generateUe4Namespace, (definitionSpec) => {
         const ueType = resolveType(definitionSpec);
         return ueType.getNameForDependencyEmit(definitionSpec);
       }));
