@@ -38,28 +38,44 @@ abstract class CSharpGenerator implements TargetGenerator {
   async generate(documents: {[id: string]: swagger.Document}, opts: TargetOptions): Promise<void> {
     const apis = new Set<IApiSpec>();
 
+    const calculateNamespace = (str: string) => {
+      if (opts.isolatedNamespace) {
+        return str.replace(/^HiveMP\./g, 'HiveMPIsolated.');
+      } else {
+        return str;
+      }
+    }
+
+    const loadApiNamespace = (apiId: string, apiVersion: string, document: any) => {
+      const result = generateCSharpNamespace(apiId, apiVersion, document);
+      return calculateNamespace(result);
+    }
+
     for (const apiIdAndVersion in documents) {
       const s = apiIdAndVersion.split(':', 2);
       const apiId = s[0];
       const apiVersion = s[1];
-      apis.add(loadApi(apiId, apiVersion, documents[apiIdAndVersion], generateCSharpNamespace, (definitionSpec) => definitionSpec.name));
+      apis.add(loadApi(apiId, apiVersion, documents[apiIdAndVersion], loadApiNamespace, (definitionSpec) => definitionSpec.name));
     }
     
     const defines = fragments.getDefines(this.getDefines(), opts);
 
+    const genericNamespace = calculateNamespace('HiveMP.Api');
+
     let code = fragments.getCodePrefix(defines);
-    code += fragments.namespaceBegin('HiveMP.Api');
-    code += emitCommonErrorStructures(apis.values().next().value);
+    code += fragments.namespaceBegin(genericNamespace);
+    code += emitCommonErrorStructures(genericNamespace, apis.values().next().value);
     code += fragments.namespaceEnd;
     for (const api of apis) {
-      code += fragments.namespaceBegin(api.namespace);
+      code += fragments.namespaceBegin(calculateNamespace(api.namespace));
       for (const definition of api.definitions.values()) {
         const csType = resolveType(definition);
-        code += csType.emitStructureDefinition(definition);
+        code += csType.emitStructureDefinition(genericNamespace, definition);
       }
 
       for (const tag of api.tags.values()) {
         code += emitControllerAndImplementation(
+          genericNamespace, 
           api,
           tag,
           opts);
@@ -67,13 +83,19 @@ abstract class CSharpGenerator implements TargetGenerator {
       code += fragments.namespaceEnd;
     }
 
-    const httpClientClass = fragments.getHttpClientClass(defines);
-    const hiveExceptionClass = fragments.getExceptionClass(defines);
-    const hivePromiseSchedulerSettingsClass = fragments.getPromiseSchedulerSettingsClass(defines);
-    const hivePromiseMainThreadReturnClass = fragments.getPromiseMainThreadReturnClass(defines);
-    const hiveUnityMonoBehaviourClass = fragments.getPromiseUnityMonoBehaviourClass(defines);
-    const hiveSocketClass = fragments.getWebSocketClass(defines);
-    const hiveSdk = fragments.getSdk(defines);
+    const httpClientClass = fragments.getHttpClientClass(genericNamespace, defines);
+    const hiveExceptionClass = fragments.getExceptionClass(genericNamespace, defines);
+    const hivePromiseSchedulerSettingsClass = fragments.getPromiseSchedulerSettingsClass(genericNamespace, defines);
+    const hivePromiseMainThreadReturnClass = fragments.getPromiseMainThreadReturnClass(genericNamespace, defines);
+    const hiveUnityMonoBehaviourClass = fragments.getPromiseUnityMonoBehaviourClass(genericNamespace, defines);
+    const hiveSocketClass = fragments.getWebSocketClass(genericNamespace, defines);
+    const hiveSdk = fragments.getSdk(genericNamespace, defines);
+    const hivePromise = fragments.getPromiseClass(genericNamespace);
+    const hivePromiseGeneric = fragments.getPromiseGenericClass(genericNamespace);
+    const hivePromiseDelegate = fragments.getPromiseDelegateClass(genericNamespace);
+    const hivePromiseDelegateGeneric = fragments.getPromiseDelegateGenericClass(genericNamespace);
+    const hivePromiseScheduler = fragments.getPromiseSchedulerClass(genericNamespace);
+    const hiveBaseClient = fragments.getBaseClientInterface(genericNamespace);
 
     await this.writeFileContent(opts, 'HiveMP.cs', code);
     await this.writeFileContent(opts, 'RetryableHttpClient.cs', httpClientClass);
@@ -83,21 +105,12 @@ abstract class CSharpGenerator implements TargetGenerator {
     await this.writeFileContent(opts, 'HiveMPUnityMonoBehaviour.cs', hiveUnityMonoBehaviourClass);
     await this.writeFileContent(opts, 'HiveMPWebSocket.cs', hiveSocketClass);
     await this.writeFileContent(opts, 'HiveMPSDK.cs', hiveSdk);
-
-    await new Promise<void>((resolve, reject) => {
-      fs.mkdirp(opts.outputDir, (err) => {
-        if (err) {
-          reject(err);
-        }
-        let src = "sdks/CSharp-Common";
-        fs.copy(src, opts.outputDir, { overwrite: true }, (err) => {
-          if (err) {
-            reject(err);
-          }
-          resolve();
-        });
-      });
-    });
+    await this.writeFileContent(opts, 'HiveMPPromise.cs', hivePromise);
+    await this.writeFileContent(opts, 'HiveMPPromise_T.cs', hivePromiseGeneric);
+    await this.writeFileContent(opts, 'HiveMPPromiseDelegate.cs', hivePromiseDelegate);
+    await this.writeFileContent(opts, 'HiveMPPromiseDelegate_T.cs', hivePromiseDelegateGeneric);
+    await this.writeFileContent(opts, 'HiveMPPromiseScheduler.cs', hivePromiseScheduler)
+    await this.writeFileContent(opts, 'HiveMPBaseClient.cs', hiveBaseClient);
 
     if (opts.enableClientConnect) {
       // Copy Client Connect SDK binaries.

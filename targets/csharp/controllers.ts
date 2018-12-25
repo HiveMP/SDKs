@@ -1,25 +1,20 @@
 import { IApiSpec } from "../common/apiSpec";
-import { camelCase } from "./naming";
-import { IMethodSpec } from "../common/methodSpec";
-import { resolveType } from "./typing";
-import { escapeForXmlComment } from "./escape";
 import * as fragments from './fragments';
-import { getReturnTypes } from "./return";
 import { emitInterfaceMethodDeclarations, emitImplementationMethodDeclarations, emitRequestClassForMethod, emitWebSocketClassForMethod } from "./methods";
 import { TargetOptions } from "../TargetOptions";
 
-export function emitControllerAndImplementation(api: IApiSpec, tag: string, opts: TargetOptions) {
+export function emitControllerAndImplementation(genericNamespace: string, api: IApiSpec, tag: string, opts: TargetOptions) {
   let startupCode = '';
   if (!(tag == 'Files' && api.apiId == 'client-connect')) {
     startupCode = `
   static ${tag}Client()
   {
-      HiveMP.Api.HiveMPSDK.EnsureInited();
+      ${genericNamespace}.HiveMPSDK.EnsureInited();
   }`;
   }
 
   // Declare interface for client.
-  let code = fragments.interfacePrefix(tag);
+  let code = fragments.interfacePrefix(genericNamespace, tag);
   for (const method of api.methods) {
     if (method.tag !== tag) {
       continue;
@@ -28,12 +23,13 @@ export function emitControllerAndImplementation(api: IApiSpec, tag: string, opts
       continue;
     }
 
-    code += emitInterfaceMethodDeclarations(method);
+    code += emitInterfaceMethodDeclarations(genericNamespace, method);
   }
   code += fragments.interfaceSuffix;
 
   // Declare implementation for client.
   code += fragments.implementationPrefix({
+    genericNamespace, 
     tag: tag,
     startupCode: startupCode,
     apiId: api.apiId,
@@ -48,7 +44,7 @@ export function emitControllerAndImplementation(api: IApiSpec, tag: string, opts
       continue;
     }
 
-    code += emitImplementationMethodDeclarations(method);
+    code += emitImplementationMethodDeclarations(genericNamespace, method);
   }
   code += fragments.implementationSuffix;
   
@@ -61,7 +57,7 @@ export function emitControllerAndImplementation(api: IApiSpec, tag: string, opts
       continue;
     }
 
-    code += emitRequestClassForMethod(method);
+    code += emitRequestClassForMethod(genericNamespace, method);
   }
 
   // Declare WebSocket classes.
@@ -76,7 +72,7 @@ export function emitControllerAndImplementation(api: IApiSpec, tag: string, opts
       continue;
     }
 
-    code += emitWebSocketClassForMethod(method);
+    code += emitWebSocketClassForMethod(genericNamespace, method);
   }
 
   return code;

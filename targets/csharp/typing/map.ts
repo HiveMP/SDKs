@@ -7,19 +7,19 @@ export class MapType implements ICSharpType {
       spec.mapValue !== undefined;
   }
   
-  public getCSharpType(spec: ITypeSpec): string {
-    return 'System.Collections.Generic.Dictionary<string, ' + resolveType(spec.mapValue).getCSharpType(spec.mapValue) + '>';
+  public getCSharpType(genericNamespace: string, spec: ITypeSpec): string {
+    return 'System.Collections.Generic.Dictionary<string, ' + resolveType(spec.mapValue).getCSharpType(genericNamespace, spec.mapValue) + '>';
   }
 
-  public getNonNullableCSharpType(spec: ITypeSpec): string {
-    return this.getCSharpType(spec);
+  public getNonNullableCSharpType(genericNamespace: string, spec: ITypeSpec): string {
+    return this.getCSharpType(genericNamespace, spec);
   }
 
-  public emitStructureDefinition(spec: IDefinitionSpec): string | null {
+  public emitStructureDefinition(genericNamespace: string, spec: IDefinitionSpec): string | null {
     return null;
   }
 
-  public pushOntoQueryStringArray(spec: IParameterSpec): string | null {
+  public pushOntoQueryStringArray(genericNamespace: string, spec: IParameterSpec): string | null {
     return null;
   }
 }

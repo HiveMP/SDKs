@@ -4,4 +4,5 @@ export interface TargetOptions {
   enableClientConnect: boolean;
   clientConnectSdkPath: string;
   skipSupportingFiles: boolean;
+  isolatedNamespace: boolean;
 }

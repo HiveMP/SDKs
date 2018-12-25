@@ -60,6 +60,10 @@ program
     'treat the provided endpoint as a local folder'
   )
   .option(
+    '-i, --isolated-namespace', 
+    'use an alternate namespace for generated code where supported'
+  )
+  .option(
     '--include-cluster-only',
     'include API calls that can only be made with intracluster API keys'
   )
@@ -162,6 +166,7 @@ program
               enableClientConnect: options.enableClientConnect,
               clientConnectSdkPath: options.clientConnectSdkPath,
               skipSupportingFiles: options.skipSupportingFiles,
+              isolatedNamespace: options.isolatedNamespace,
             });
           found = true;
           break;

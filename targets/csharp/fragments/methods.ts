@@ -73,6 +73,7 @@ export function interfaceWebSocketMethodDeclarations(values: {
 }
 
 export function implementationMethodDeclarations(values: {
+  genericNamespace: string,
   apiId: string,
   methodName: string,
   methodNameEscaped: string,
@@ -122,13 +123,13 @@ export function implementationMethodDeclarations(values: {
       public async ${values.returnTypes.asyncType} ${values.methodName}Async(${values.methodName}Request arguments, System.Threading.CancellationToken cancellationToken)
       {
 #if ENABLE_CLIENT_CONNECT_SDK
-          if (HiveMP.Api.HiveMPSDK.ClientConnect != null && 
-              HiveMP.Api.HiveMPSDK.ClientConnect.IsApiHotpatched("${values.apiId}", "${values.methodOperationId}"))
+          if (${values.genericNamespace}.HiveMPSDK.ClientConnect != null && 
+              ${values.genericNamespace}.HiveMPSDK.ClientConnect.IsApiHotpatched("${values.apiId}", "${values.methodOperationId}"))
           {
               int delay = 1000;
               while (true)
               {
-                  var @ref = await HiveMP.Api.HiveMPSDK.RunHotpatchWithTask(
+                  var @ref = await ${values.genericNamespace}.HiveMPSDK.RunHotpatchWithTask(
                       "${values.apiId}", 
                       "${values.methodOperationId}",
                       BaseUrl,
@@ -141,10 +142,10 @@ export function implementationMethodDeclarations(values: {
                   }
                   else
                   {
-                      var result_ = default(HiveMP.Api.HiveMPSystemError); 
+                      var result_ = default(${values.genericNamespace}.HiveMPSystemError); 
                       try
                       {
-                          result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(@ref.BodyJson);
+                          result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<${values.genericNamespace}.HiveMPSystemError>(@ref.BodyJson);
                           if (result_.Code >= 6000 && result_.Code < 7000)
                           {
                               // Retry after delay.
@@ -156,25 +157,25 @@ export function implementationMethodDeclarations(values: {
                       } 
                       catch (System.Exception exception_) 
                       {
-                          throw new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
+                          throw ConvertException(new ${values.genericNamespace}.HiveMPException(@ref.HttpStatusCode, new ${values.genericNamespace}.HiveMPSystemError
                               {
                                   Code = 0,
                                   Message = "Could not deserialize the response body.",
                                   Fields = "RESPONSE:\\n\\n" + @ref.BodyJson + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception_.Message,
-                              });
+                              }));
                       }
 
                       if (result_ == null)
                       {
-                          throw new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
+                          throw ConvertException(new ${values.genericNamespace}.HiveMPException(@ref.HttpStatusCode, new ${values.genericNamespace}.HiveMPSystemError
                               {
                                   Code = 0,
                                   Message = "Could not deserialize the response body.",
                                   Fields = "RESPONSE:\\n\\n" + @ref.BodyJson + "\\n\\nDESERIALIZED RESULT WAS NULL",
-                              });
+                              }));
                       }
 
-                      throw new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, result_);
+                      throw ConvertException(new ${values.genericNamespace}.HiveMPException(@ref.HttpStatusCode, result_));
                   }
               }
           }
@@ -185,7 +186,7 @@ export function implementationMethodDeclarations(values: {
           ${values.parameterQueryLoadingCode}
           urlBuilder_.Length--;
   
-          var client_ = new HiveMP.Api.RetryableHttpClient();
+          var client_ = new ${values.genericNamespace}.RetryableHttpClient();
           try
           {
 #if HAS_HTTPCLIENT
@@ -240,32 +241,32 @@ export function implementationMethodDeclarations(values: {
                       else
                       {
                           var responseData_ = await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
-                          var result_ = default(HiveMP.Api.HiveMPSystemError); 
+                          var result_ = default(${values.genericNamespace}.HiveMPSystemError); 
                           try
                           {
-                              result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(responseData_);
+                              result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<${values.genericNamespace}.HiveMPSystemError>(responseData_);
                           } 
                           catch (System.Exception exception_) 
                           {
-                              throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                              throw ConvertException(new ${values.genericNamespace}.HiveMPException((int)response_.StatusCode, new ${values.genericNamespace}.HiveMPSystemError
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
                                       Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception_.Message,
-                                  });
+                                  }));
                           }
 
                           if (result_ == null)
                           {
-                              throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                              throw ConvertException(new ${values.genericNamespace}.HiveMPException((int)response_.StatusCode, new ${values.genericNamespace}.HiveMPSystemError
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
                                       Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nDESERIALIZED RESULT WAS NULL",
-                                  });
+                                  }));
                           }
   
-                          throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_);
+                          throw ConvertException(new ${values.genericNamespace}.HiveMPException((int)response_.StatusCode, result_));
                       }
                   }
                   finally
@@ -334,32 +335,32 @@ export function implementationMethodDeclarations(values: {
                           {
                               responseData_ = reader.ReadToEnd();
                           }
-                          var result_ = default(HiveMP.Api.HiveMPSystemError); 
+                          var result_ = default(${values.genericNamespace}.HiveMPSystemError); 
                           try
                           {
-                              result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(responseData_);
+                              result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<${values.genericNamespace}.HiveMPSystemError>(responseData_);
                           } 
                           catch (System.Exception exception_) 
                           {
-                              throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                              throw ConvertException(new ${values.genericNamespace}.HiveMPException((int)response_.StatusCode, new ${values.genericNamespace}.HiveMPSystemError
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
                                       Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception_.Message,
-                                  });
+                                  }));
                           }
 
                           if (result_ == null)
                           {
-                              throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                              throw ConvertException(new ${values.genericNamespace}.HiveMPException((int)response_.StatusCode, new ${values.genericNamespace}.HiveMPSystemError
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
                                       Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nDESERIALIZED RESULT WAS NULL",
-                                  });
+                                  }));
                           }
 
-                          throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_);
+                          throw ConvertException(new ${values.genericNamespace}.HiveMPException((int)response_.StatusCode, result_));
                       }
                   });
               }
@@ -367,7 +368,7 @@ export function implementationMethodDeclarations(values: {
               {
                   if (ex.InnerExceptions.Count == 1)
                   {
-                      if (ex.InnerExceptions[0] is HiveMP.Api.HiveMPException)
+                      if (ex.InnerExceptions[0] is ${values.genericNamespace}.HiveMPException)
                       {
                           // Rethrow the HiveMPException without it being wrapped in AggregateException.
                           throw ex.InnerExceptions[0];
@@ -399,16 +400,16 @@ export function implementationMethodDeclarations(values: {
       public void ${values.methodName}Promise(${values.methodName}Request arguments, ${values.returnTypes.promiseType} resolve, System.Action<System.Exception> reject)
       {
 #if ENABLE_CLIENT_CONNECT_SDK
-          if (HiveMP.Api.HiveMPSDK.ClientConnect != null && 
-              HiveMP.Api.HiveMPSDK.ClientConnect.IsApiHotpatched("${values.apiId}", "${values.methodOperationId}"))
+          if (${values.genericNamespace}.HiveMPSDK.ClientConnect != null && 
+              ${values.genericNamespace}.HiveMPSDK.ClientConnect.IsApiHotpatched("${values.apiId}", "${values.methodOperationId}"))
           {
-              HiveMP.Api.HiveMPPromiseScheduler.ExecuteWithMainThreadCallbacks(new ${values.promiseReturnType}((resolve_, reject_) =>
+              ${values.genericNamespace}.HiveMPPromiseScheduler.ExecuteWithMainThreadCallbacks(new ${values.promiseReturnType}((resolve_, reject_) =>
               {
                   int delay = 1000;
-                  System.Action<HiveMP.Api.HiveMPSDK.HotpatchRef> then = null;
+                  System.Action<${values.genericNamespace}.HiveMPSDK.HotpatchRef> then = null;
                   System.Action run = () =>
                   {
-                      HiveMP.Api.HiveMPSDK.RunHotpatchWithPromise(
+                      ${values.genericNamespace}.HiveMPSDK.RunHotpatchWithPromise(
                           "${values.apiId}", 
                           "${values.methodOperationId}",
                           BaseUrl,
@@ -424,10 +425,10 @@ export function implementationMethodDeclarations(values: {
                       }
                       else
                       {
-                          var result_ = default(HiveMP.Api.HiveMPSystemError); 
+                          var result_ = default(${values.genericNamespace}.HiveMPSystemError); 
                           try
                           {
-                              result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(@ref.BodyJson);
+                              result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<${values.genericNamespace}.HiveMPSystemError>(@ref.BodyJson);
                               if (result_.Code >= 6000 && result_.Code < 7000)
                               {
                                   // Retry after delay.
@@ -446,7 +447,7 @@ export function implementationMethodDeclarations(values: {
                           } 
                           catch (System.Exception exception_) 
                           {
-                              reject_(new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
+                              reject_(new ${values.genericNamespace}.HiveMPException(@ref.HttpStatusCode, new ${values.genericNamespace}.HiveMPSystemError
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
@@ -457,7 +458,7 @@ export function implementationMethodDeclarations(values: {
     
                           if (result_ == null)
                           {
-                              reject_(new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
+                              reject_(new ${values.genericNamespace}.HiveMPException(@ref.HttpStatusCode, new ${values.genericNamespace}.HiveMPSystemError
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
@@ -466,7 +467,7 @@ export function implementationMethodDeclarations(values: {
                               return;
                           }
     
-                          reject_(new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, result_));
+                          reject_(new ${values.genericNamespace}.HiveMPException(@ref.HttpStatusCode, result_));
                           return;
                       }
                   };
@@ -476,7 +477,7 @@ export function implementationMethodDeclarations(values: {
           }
 #endif
 
-          HiveMP.Api.HiveMPPromiseScheduler.ExecuteWithMainThreadCallbacks(new ${values.promiseReturnType}((resolve_, reject_) =>
+          ${values.genericNamespace}.HiveMPPromiseScheduler.ExecuteWithMainThreadCallbacks(new ${values.promiseReturnType}((resolve_, reject_) =>
           {
               try
               {
@@ -504,7 +505,7 @@ export function implementationMethodDeclarations(values: {
           ${values.parameterQueryLoadingCode}
           urlBuilder_.Length--;
   
-          var client_ = new HiveMP.Api.RetryableHttpClient();
+          var client_ = new ${values.genericNamespace}.RetryableHttpClient();
           try
           {
               PrepareRequest(client_, urlBuilder_);
@@ -560,32 +561,32 @@ export function implementationMethodDeclarations(values: {
                   {
                       responseData_ = reader.ReadToEnd();
                   }
-                  var result_ = default(HiveMP.Api.HiveMPSystemError); 
+                  var result_ = default(${values.genericNamespace}.HiveMPSystemError); 
                   try
                   {
-                      result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<HiveMP.Api.HiveMPSystemError>(responseData_);
+                      result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<${values.genericNamespace}.HiveMPSystemError>(responseData_);
                   } 
                   catch (System.Exception exception_) 
                   {
-                      throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                      throw ConvertException(new ${values.genericNamespace}.HiveMPException((int)response_.StatusCode, new ${values.genericNamespace}.HiveMPSystemError
                           {
                               Code = 0,
                               Message = "Could not deserialize the response body.",
                               Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception_.Message,
-                          });
+                          }));
                   }
 
                   if (result_ == null)
                   {
-                      throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                      throw ConvertException(new ${values.genericNamespace}.HiveMPException((int)response_.StatusCode, new ${values.genericNamespace}.HiveMPSystemError
                           {
                               Code = 0,
                               Message = "Could not deserialize the response body.",
                               Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nDESERIALIZED RESULT WAS NULL",
-                          });
+                          }));
                   }
 
-                  throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, result_);
+                  throw ConvertException(new ${values.genericNamespace}.HiveMPException((int)response_.StatusCode, result_));
               }
           }
           finally

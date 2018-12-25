@@ -21,7 +21,7 @@ function getRequestClassConstruction(spec: IMethodSpec) {
   return createRequest;
 }
 
-function getClientConnectResponseHandler(returnTypes: IMethodReturnTypes) {
+function getClientConnectResponseHandler(genericNamespace: string, returnTypes: IMethodReturnTypes) {
   if (returnTypes.syncType === 'void') {
     return `
               resolve_();
@@ -35,7 +35,7 @@ function getClientConnectResponseHandler(returnTypes: IMethodReturnTypes) {
               } 
               catch (System.Exception exception) 
               {
-                  reject_(new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
+                  reject_(new ${genericNamespace}.HiveMPException(@ref.HttpStatusCode, new ${genericNamespace}.HiveMPSystemError
                       {
                           Code = 0,
                           Message = "Could not deserialize the response body.",
@@ -47,7 +47,7 @@ function getClientConnectResponseHandler(returnTypes: IMethodReturnTypes) {
   }
 }
 
-function getClientConnectResponseHandlerAsync(returnTypes: IMethodReturnTypes) {
+function getClientConnectResponseHandlerAsync(genericNamespace: string, returnTypes: IMethodReturnTypes) {
   if (returnTypes.syncType === 'void') {
     return `
               return;
@@ -60,18 +60,18 @@ function getClientConnectResponseHandlerAsync(returnTypes: IMethodReturnTypes) {
               } 
               catch (System.Exception exception) 
               {
-                  throw new HiveMP.Api.HiveMPException(@ref.HttpStatusCode, new HiveMP.Api.HiveMPSystemError
+                  throw ConvertException(new ${genericNamespace}.HiveMPException(@ref.HttpStatusCode, new ${genericNamespace}.HiveMPSystemError
                       {
                           Code = 0,
                           Message = "Could not deserialize the response body.",
                           Fields = "RESPONSE:\\n\\n" + @ref.BodyJson + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception.Message,
-                      });
+                      }));
               }
 `;
   }
 }
 
-function getLegacyHttpClientResponseHandler(returnTypes: IMethodReturnTypes) {
+function getLegacyHttpClientResponseHandler(genericNamespace: string, returnTypes: IMethodReturnTypes) {
   if (returnTypes.syncType === 'void') {
     return '';
   } else if (returnTypes.syncType === 'System.IO.Stream') {
@@ -97,18 +97,18 @@ function getLegacyHttpClientResponseHandler(returnTypes: IMethodReturnTypes) {
                           } 
                           catch (System.Exception exception) 
                           {
-                              throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                              throw ConvertException(new ${genericNamespace}.HiveMPException((int)response_.StatusCode, new ${genericNamespace}.HiveMPSystemError
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
                                       Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception.Message,
-                                  });
+                                  }));
                           }
 `;
   }
 }
 
-function getHttpClientResponseHandler(returnTypes: IMethodReturnTypes) {
+function getHttpClientResponseHandler(genericNamespace: string, returnTypes: IMethodReturnTypes) {
   if (returnTypes.syncType === 'void') {
     return '';
   } else if (returnTypes.syncType === 'System.IO.Stream') {
@@ -130,12 +130,12 @@ function getHttpClientResponseHandler(returnTypes: IMethodReturnTypes) {
                           } 
                           catch (System.Exception exception) 
                           {
-                              throw new HiveMP.Api.HiveMPException((int)response_.StatusCode, new HiveMP.Api.HiveMPSystemError
+                              throw ConvertException(new ${genericNamespace}.HiveMPException((int)response_.StatusCode, new ${genericNamespace}.HiveMPSystemError
                                   {
                                       Code = 0,
                                       Message = "Could not deserialize the response body.",
                                       Fields = "RESPONSE:\\n\\n" + responseData_ + "\\n\\nEXCEPTION MESSAGE:\\n\\n" + exception.Message,
-                                  });
+                                  }));
                           }
 `;
   }
@@ -151,12 +151,12 @@ function getLegacyParameterXmlComments(spec: IMethodSpec) {
   return code;
 }
 
-function getParameterQueryLoadingCode(spec: IMethodSpec) {
+function getParameterQueryLoadingCode(genericNamespace: string, spec: IMethodSpec) {
   let code = '';
   for (const parameter of spec.parameters) {
     if (parameter.in == "query") {
       const csType = resolveType(parameter);
-      code += (csType.pushOntoQueryStringArray(parameter) || '');
+      code += (csType.pushOntoQueryStringArray(genericNamespace, parameter) || '');
     }
   }
   return code;
@@ -206,9 +206,9 @@ function getParameterBodyLoadingCodeLegacyHttpClient(spec: IMethodSpec) {
   return code;
 }
 
-export function emitInterfaceMethodDeclarations(spec: IMethodSpec) {
+export function emitInterfaceMethodDeclarations(genericNamespace: string, spec: IMethodSpec) {
   const methodName = camelCase(spec.operationId);
-  const returnTypes = getReturnTypes(spec);
+  const returnTypes = getReturnTypes(genericNamespace, spec);
 
   const methodSummary = escapeForXmlComment(spec.summary, "        /// ");
   const methodDescription = escapeForXmlComment(spec.description, "        /// ");
@@ -228,9 +228,9 @@ export function emitInterfaceMethodDeclarations(spec: IMethodSpec) {
   });
 }
 
-export function emitImplementationMethodDeclarations(spec: IMethodSpec) {
+export function emitImplementationMethodDeclarations(genericNamespace: string, spec: IMethodSpec) {
   const methodName = camelCase(spec.operationId);
-  const returnTypes = getReturnTypes(spec);
+  const returnTypes = getReturnTypes(genericNamespace, spec);
 
   const methodSummary = escapeForXmlComment(spec.summary, "        /// ");
   const methodDescription = escapeForXmlComment(spec.description, "        /// ");
@@ -238,21 +238,21 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec) {
 
   const parameterBodyLoadingCodeHttpClient = getParameterBodyLoadingCodeHttpClient(spec);
   const parameterBodyLoadingCodeLegacyHttpClient = getParameterBodyLoadingCodeLegacyHttpClient(spec);
-  const parameterQueryLoadingCode = getParameterQueryLoadingCode(spec);
+  const parameterQueryLoadingCode = getParameterQueryLoadingCode(genericNamespace, spec);
 
-  const parameterDeclarations = getParametersFromMethodParameters(spec.parameters);
+  const parameterDeclarations = getParametersFromMethodParameters(genericNamespace, spec.parameters);
   const parameterDeclarationsSuffix = parameterDeclarations != '' ? ', ' : '';
   const returnSyncPrefix = returnTypes.syncType == 'void' ? '' : 'return ';
   const promiseReturnStore = returnTypes.syncType == 'void' ? '' : 'var store = ';
-  const promiseReturnType = returnTypes.syncType == 'void' ? 'HiveMP.Api.HiveMPPromise' : `HiveMP.Api.HiveMPPromise<${returnTypes.syncType}>`;
+  const promiseReturnType = returnTypes.syncType == 'void' ? `${genericNamespace}.HiveMPPromise` : `${genericNamespace}.HiveMPPromise<${returnTypes.syncType}>`;
   const promiseResolve = returnTypes.syncType == 'void' ? 'resolve_();' : 'resolve_(store);';
   const requestClassConstruction = getRequestClassConstruction(spec);
   const legacyParameterXmlComments = getLegacyParameterXmlComments(spec);
 
-  const clientConnectResponseHandler = getClientConnectResponseHandler(returnTypes);
-  const clientConnectResponseHandlerAsync = getClientConnectResponseHandlerAsync(returnTypes);
-  const httpClientResponseHandler = getHttpClientResponseHandler(returnTypes);
-  const legacyHttpClientResponseHandler = getLegacyHttpClientResponseHandler(returnTypes);
+  const clientConnectResponseHandler = getClientConnectResponseHandler(genericNamespace, returnTypes);
+  const clientConnectResponseHandlerAsync = getClientConnectResponseHandlerAsync(genericNamespace, returnTypes);
+  const httpClientResponseHandler = getHttpClientResponseHandler(genericNamespace, returnTypes);
+  const legacyHttpClientResponseHandler = getLegacyHttpClientResponseHandler(genericNamespace, returnTypes);
 
   let implementor = fragments.implementationMethodDeclarations;
   if (spec.isWebSocket) {
@@ -260,6 +260,7 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec) {
   }
 
   return implementor({
+    genericNamespace,
     apiId: spec.apiId,
     methodName,
     methodNameEscaped,
@@ -287,7 +288,7 @@ export function emitImplementationMethodDeclarations(spec: IMethodSpec) {
   });
 }
 
-export function emitRequestClassForMethod(spec: IMethodSpec) {
+export function emitRequestClassForMethod(genericNamespace: string, spec: IMethodSpec) {
   const name = camelCase(spec.operationId);
   let code = `
     [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
@@ -302,7 +303,7 @@ export function emitRequestClassForMethod(spec: IMethodSpec) {
         /// ${escapeForXmlComment(parameter.description, "        /// ")}
         /// </summary>
         [Newtonsoft.Json.JsonProperty("${parameter.name}")]
-        public ${csType.getCSharpType(parameter)} ${parameterName} { get; set; }
+        public ${csType.getCSharpType(genericNamespace, parameter)} ${parameterName} { get; set; }
 `;
   }
   code += `
@@ -311,11 +312,11 @@ export function emitRequestClassForMethod(spec: IMethodSpec) {
   return code;
 }
 
-export function emitWebSocketClassForMethod(spec: IMethodSpec) {
+export function emitWebSocketClassForMethod(genericNamespace: string, spec: IMethodSpec) {
   const name = camelCase(spec.operationId);
   let code = `
     [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
-    public sealed class ${name}Socket : HiveMP.Api.HiveMPWebSocket
+    public sealed class ${name}Socket : ${genericNamespace}.HiveMPWebSocket
     {
 #if HAS_TASKS
         public ${name}Socket(System.Net.WebSockets.ClientWebSocket webSocket) : base(webSocket)
@@ -336,7 +337,7 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// <summary>
         /// (The SDK does not generate this description yet)
         /// </summary>
-        public async System.Threading.Tasks.Task Send${protocolName}(${csType.getCSharpType(requestMessage.type)} message, System.Threading.CancellationToken? cancellationToken = null)
+        public async System.Threading.Tasks.Task Send${protocolName}(${csType.getCSharpType(genericNamespace, requestMessage.type)} message, System.Threading.CancellationToken? cancellationToken = null)
         {
             var serializedMessage = Newtonsoft.Json.JsonConvert.SerializeObject(new {
                 type = "${requestMessage.protocolMessageId}",
@@ -361,12 +362,12 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// <summary>
         /// (The SDK does not generate this description yet)
         /// </summary>
-        public event System.Func<${csType.getCSharpType(responseMessage.type)}, System.Threading.CancellationToken, System.Threading.Tasks.Task> On${protocolName};
+        public event System.Func<${csType.getCSharpType(genericNamespace, responseMessage.type)}, System.Threading.CancellationToken, System.Threading.Tasks.Task> On${protocolName};
 #else
         /// <summary>
         /// (The SDK does not generate this description yet)
         /// </summary>
-        public event System.Action<${csType.getCSharpType(responseMessage.type)}> On${protocolName};
+        public event System.Action<${csType.getCSharpType(genericNamespace, responseMessage.type)}> On${protocolName};
 #endif
 `;
   }
@@ -409,7 +410,7 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
       code += `
                 case "${responseMessage.protocolMessageId}":
                 {
-                    var message = value.ToObject<${csType.getCSharpType(responseMessage.type)}>();
+                    var message = value.ToObject<${csType.getCSharpType(genericNamespace, responseMessage.type)}>();
                     var handler = On${protocolName};
                     if (handler == null)
                     {
@@ -419,7 +420,7 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
                     var handlerTasks = new System.Threading.Tasks.Task[invocationList.Length];
                     for (var i = 0; i < invocationList.Length; i++)
                     {
-                        handlerTasks[i] = ((System.Func<${csType.getCSharpType(responseMessage.type)}, System.Threading.CancellationToken, System.Threading.Tasks.Task>)invocationList[i])(message, cancellationToken);
+                        handlerTasks[i] = ((System.Func<${csType.getCSharpType(genericNamespace, responseMessage.type)}, System.Threading.CancellationToken, System.Threading.Tasks.Task>)invocationList[i])(message, cancellationToken);
                     }
                     await System.Threading.Tasks.Task.WhenAll(handlerTasks);
                     break;
@@ -450,7 +451,7 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// events will continue to fire while this method is called (but it is not required
         /// to call this method to get events to fire).
         /// </summary>
-        public HiveMP.Api.HiveMPPromise WaitForDisconnect()
+        public ${genericNamespace}.HiveMPPromise WaitForDisconnect()
         {
             return base.WaitForDisconnect();
         }
@@ -466,17 +467,17 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
       code += `
                 case "${responseMessage.protocolMessageId}":
                 {
-                    var message = value.ToObject<${csType.getCSharpType(responseMessage.type)}>();
+                    var message = value.ToObject<${csType.getCSharpType(genericNamespace, responseMessage.type)}>();
                     var handler = On${protocolName};
                     if (handler == null)
                     {
                         return;
                     }
                     var invocationList = handler.GetInvocationList();
-                    var handlerTasks = new HiveMP.Api.HiveMPPromise[invocationList.Length];
+                    var handlerTasks = new ${genericNamespace}.HiveMPPromise[invocationList.Length];
                     for (var i = 0; i < invocationList.Length; i++)
                     {
-                        ((System.Action<${csType.getCSharpType(responseMessage.type)}>)invocationList[i])(message);
+                        ((System.Action<${csType.getCSharpType(genericNamespace, responseMessage.type)}>)invocationList[i])(message);
                     }
                     return;
                 }
@@ -507,7 +508,7 @@ export function emitWebSocketClassForMethod(spec: IMethodSpec) {
         /// <summary>
         /// Wait until the WebSocket is closed by the server.
         /// </summary>
-        public HiveMP.Api.HiveMPPromise WaitForDisconnect()
+        public ${genericNamespace}.HiveMPPromise WaitForDisconnect()
         {
             return base.WaitForDisconnect();
         }

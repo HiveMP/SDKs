@@ -1,7 +1,7 @@
 import { IParameterSpec } from "../common/typeSpec";
 import { resolveType } from "./typing";
 
-export function getParametersFromMethodParameters(parameters: Set<IParameterSpec>): string {
+export function getParametersFromMethodParameters(genericNamespace: string, parameters: Set<IParameterSpec>): string {
   let parametersArr = [];
   if (parameters != null) {
     for (const parameter of parameters) {
@@ -11,7 +11,7 @@ export function getParametersFromMethodParameters(parameters: Set<IParameterSpec
       }
       const csType = resolveType(parameter);
       parametersArr.push(
-        csType.getCSharpType(parameter) +
+        csType.getCSharpType(genericNamespace, parameter) +
         " @" + 
         name
       );

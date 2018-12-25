@@ -7,37 +7,37 @@ export class BooleanType implements ICSharpType {
     return spec.type === 'boolean';
   }
   
-  public getCSharpType(spec: ITypeSpec): string {
+  public getCSharpType(genericNamespace: string, spec: ITypeSpec): string {
     return 'bool?';
   }
 
-  public getNonNullableCSharpType(spec: ITypeSpec): string {
+  public getNonNullableCSharpType(genericNamespace: string, spec: ITypeSpec): string {
     return 'bool';
   }
 
-  public emitStructureDefinition(spec: IDefinitionSpec): string | null {
+  public emitStructureDefinition(genericNamespace: string, spec: IDefinitionSpec): string | null {
     return null;
   }
 
-  public pushOntoQueryStringArray(spec: IParameterSpec): string | null {
+  public pushOntoQueryStringArray(genericNamespace: string, spec: IParameterSpec): string | null {
     const name = camelCase(spec.name);
     let code = '';
     if (spec.required) {
       code += `
 if (!arguments.${name}.HasValue)
 {
-    throw new HiveMP.Api.HiveMPException(400, new HiveMP.Api.HiveMPSystemError
+    throw ConvertException(new ${genericNamespace}.HiveMPException(400, new ${genericNamespace}.HiveMPSystemError
     {
         Code = 1003,
         Message = "The parameter '${spec.name}' is missing or invalid",
         Fields = "You must provide a value for this parameter, but none was given",
-        Data = new HiveMP.Api.HiveMPSystemErrorData
+        Data = new ${genericNamespace}.HiveMPSystemErrorData
         {
             ParameterName = "${spec.name}",
             ParameterIsMissing = true,
             ParameterInvalidReason = "You must provide a value for this parameter, but none was given",
         }
-    });
+    }));
 }`;
     }
     code += `

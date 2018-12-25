@@ -1,4 +1,4 @@
-export function getSdk(defines: string[]) {
+export function getSdk(genericNamespace: string, defines: string[]) {
   const clientConnectPlatforms = [
     'Win32',
     'Win64',
@@ -25,7 +25,7 @@ using System.Linq;
 using UnityEngine;
 #endif
 
-namespace HiveMP.Api
+namespace ${genericNamespace}
 {
     public static class HiveMPSDK
     {

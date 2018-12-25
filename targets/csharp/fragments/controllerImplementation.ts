@@ -1,4 +1,5 @@
 export function implementationPrefix(values: {
+    genericNamespace: string,
   tag: string,
   startupCode: string,
   apiName: string,
@@ -8,7 +9,7 @@ export function implementationPrefix(values: {
   return `
   
     [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
-    public class ${values.tag}Client : I${values.tag}Client
+    public class ${values.tag}Client : I${values.tag}Client, ${values.genericNamespace}.IHiveMPBaseClient
     {
         ${values.startupCode}
   
@@ -17,6 +18,18 @@ export function implementationPrefix(values: {
         /// be null, otherwise set it to the API key.
         /// </summary>
         public string ApiKey { get; set; }
+  
+        /// <summary>
+        /// A factory which returns the API key request on demand. You can use this
+        /// property instead of ApiKey if you need to dynamically update the API key
+        /// per request. If this is non-null, the value of ApiKey is ignored.
+        /// </summary>
+        public System.Func<string> ApiKeyFactory { get; set; }
+
+        /// <summary>
+        /// If set, this handler is called to convert the native HiveMP exception into another exception.
+        /// </summary>
+        public System.Func<${values.genericNamespace}.HiveMPException, System.Exception> ExceptionConverter { get; set; }
     
         /// <summary>
         /// The base URL for the API. This is set to production for you by default, but if want to use development or
@@ -28,14 +41,33 @@ export function implementationPrefix(values: {
         /// Called when preparing an API request; you can use this event to modify where the
         /// request is sent.
         /// </summary>
-        public System.Func<HiveMP.Api.RetryableHttpClient, string, string> InterceptRequest { get; set; }
+        public System.Func<${values.genericNamespace}.RetryableHttpClient, string, string> InterceptRequest { get; set; }
         
-        private void PrepareRequest(HiveMP.Api.RetryableHttpClient request, string url)
+        private System.Exception ConvertException(${values.genericNamespace}.HiveMPException ex)
         {
-            request.DefaultRequestHeaders.Add("X-API-Key", ApiKey ?? string.Empty);
+            if (ExceptionConverter != null)
+            {
+                return ExceptionConverter(ex);
+            }
+            else
+            {
+                return ex;
+            }
+        }
+
+        private void PrepareRequest(${values.genericNamespace}.RetryableHttpClient request, string url)
+        {
+            if (ApiKeyFactory != null)
+            {
+                request.DefaultRequestHeaders.Add("X-API-Key", ApiKeyFactory() ?? string.Empty);
+            }
+            else
+            {
+                request.DefaultRequestHeaders.Add("X-API-Key", ApiKey ?? string.Empty);
+            }
         }
   
-        private void PrepareRequest(HiveMP.Api.RetryableHttpClient request, System.Text.StringBuilder urlBuilder)
+        private void PrepareRequest(${values.genericNamespace}.RetryableHttpClient request, System.Text.StringBuilder urlBuilder)
         {
             if (InterceptRequest != null)
             {

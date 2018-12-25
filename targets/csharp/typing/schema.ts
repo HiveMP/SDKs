@@ -10,18 +10,18 @@ export class SchemaType implements ICSharpType {
     return spec.schema !== undefined;
   }
   
-  public getCSharpType(spec: ITypeSpec): string {
+  public getCSharpType(genericNamespace: string, spec: ITypeSpec): string {
     if (isErrorStructure(spec.schema)) {
-      return 'HiveMP.Api.' + normalizeTypeName(spec.schema);  
+      return genericNamespace + '.' + normalizeTypeName(spec.schema);  
     }
     return spec.namespace + '.' + normalizeTypeName(spec.schema);
   }
 
-  public getNonNullableCSharpType(spec: ITypeSpec): string {
-    return this.getCSharpType(spec);
+  public getNonNullableCSharpType(genericNamespace: string, spec: ITypeSpec): string {
+    return this.getCSharpType(genericNamespace, spec);
   }
 
-  public emitStructureDefinition(spec: IDefinitionSpec): string | null {
+  public emitStructureDefinition(genericNamespace: string, spec: IDefinitionSpec): string | null {
     const className = spec.name.replace(/(\[|\])/g, '');
 
     let code = `
@@ -30,7 +30,7 @@ export class SchemaType implements ICSharpType {
     {
         static ${className}()
         {
-            HiveMP.Api.HiveMPSDK.EnsureInited();
+            ${genericNamespace}.HiveMPSDK.EnsureInited();
         }
 `;
     
@@ -49,7 +49,7 @@ export class SchemaType implements ICSharpType {
       /// ${escapeForXmlComment(spec.description, "        /// ")}
       /// </summary>
       [Newtonsoft.Json.JsonProperty("${property.name}")]
-      public ${csType.getCSharpType(property)} ${name} { get; set; }
+      public ${csType.getCSharpType(genericNamespace, property)} ${name} { get; set; }
 `;
     }
     code += `
@@ -59,7 +59,7 @@ export class SchemaType implements ICSharpType {
     return code;
   }
 
-  public pushOntoQueryStringArray(spec: IParameterSpec): string | null {
+  public pushOntoQueryStringArray(genericNamespace: string, spec: IParameterSpec): string | null {
     return null;
   }
 }

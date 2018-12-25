@@ -1,4 +1,4 @@
-export function interfacePrefix(tag: string) {
+export function interfacePrefix(genericNamespace: string, tag: string) {
   return `
     [System.CodeDom.Compiler.GeneratedCode("HiveMP SDK Generator", "1.0.0.0")]
     public interface I${tag}Client
@@ -16,7 +16,7 @@ export function interfacePrefix(tag: string) {
         /// <summary>
         /// Called when preparing an API request; you can use this event to modify where the request is sent.
         /// </summary>
-        System.Func<HiveMP.Api.RetryableHttpClient, string, string> InterceptRequest { get; set; }
+        System.Func<${genericNamespace}.RetryableHttpClient, string, string> InterceptRequest { get; set; }
 `;
 }
 

@@ -25,13 +25,13 @@ const types: ICSharpType[] = [
 export interface ICSharpType {
   doesHandleType(spec: ITypeSpec): boolean;
 
-  getCSharpType(spec: ITypeSpec): string;
+  getCSharpType(genericNamespace: string, spec: ITypeSpec): string;
 
-  getNonNullableCSharpType(spec: ITypeSpec): string;
+  getNonNullableCSharpType(genericNamespace: string, spec: ITypeSpec): string;
 
-  emitStructureDefinition(spec: IDefinitionSpec): string | null;
+  emitStructureDefinition(genericNamespace: string, spec: IDefinitionSpec): string | null;
 
-  pushOntoQueryStringArray(spec: IParameterSpec): string | null;
+  pushOntoQueryStringArray(genericNamespace: string, spec: IParameterSpec): string | null;
 }
 
 export function resolveType(spec: ITypeSpec): ICSharpType {
