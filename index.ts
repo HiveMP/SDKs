@@ -217,16 +217,11 @@ program
           let metadataText = await metadataContent.text();
           let metadata = JSON.parse(metadataText);
           mkdirpSync(path.join(outputDir, api));
-          const existingMetadata = fs.existsSync(path.join(outputDir, api, 'metadata.json')) ? fs.readFileSync(path.join(outputDir, api, 'metadata.json'), 'utf8') : '';
-          if (existingMetadata !== metadataText) {
-            console.log(`updated: ${path.join(outputDir, api, 'metadata.json')}`)
-            fs.writeFileSync(
-              path.join(outputDir, api, 'metadata.json'),
-              metadataText
-            );
-          } else {
-            console.log(`already matching: ${path.join(outputDir, api, 'metadata.json')}`)
-          }
+          console.log(`downloaded: ${path.join(outputDir, api, 'metadata.json')}`)
+          fs.writeFileSync(
+            path.join(outputDir, api, 'metadata.json'),
+            metadataText
+          );
           
           for (const version of metadata.allVersions) {
             let swaggerUri = endpoint.replace('{api}', api) + '/' + version + '/swagger.json';
@@ -234,16 +229,11 @@ program
             let documentContent = await fetch(swaggerUri);
             let documentText = await documentContent.text();
             mkdirpSync(path.join(outputDir, api, version));
-            const existingDocument = fs.existsSync(path.join(outputDir, api, version, 'swagger.json')) ? fs.readFileSync(path.join(outputDir, api, version, 'swagger.json'), 'utf8') : '';
-            if (existingDocument !== documentText) {
-              console.log(`updated: ${path.join(outputDir, api, version, 'swagger.json')}`)
-              fs.writeFileSync(
-                path.join(outputDir, api, version, 'swagger.json'),
-                documentText
-              );
-            } else {
-              console.log(`already matching: ${path.join(outputDir, api, version, 'swagger.json')}`)
-            }
+            console.log(`downloaded: ${path.join(outputDir, api, version, 'swagger.json')}`)
+            fs.writeFileSync(
+              path.join(outputDir, api, version, 'swagger.json'),
+              documentText
+            );
           }
         })(api));
       }
